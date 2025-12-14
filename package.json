@@ -12,27 +12,34 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
     "test": "vitest",
+    "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "test:smoke": "vitest run src/test/smoke.test.tsx",
+    "test:integration": "vitest run src/test/integration.test.tsx",
+    "test:unit": "vitest run --exclude 'src/test/{smoke,integration}.test.tsx'",
     "test:e2e": "maestro test .maestro",
     "test:e2e:cloud": "maestro cloud"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "@tanstack/react-query": "^5.17.0",
     "axios": "^1.6.2",
-    "zod": "^3.22.4",
-    "recharts": "^2.10.3",
-    "lucide-react": "^0.303.0",
-    "react-icons": "^5.0.1",
     "clsx": "^2.1.0",
-    "tailwind-merge": "^2.2.0",
     "i18next": "^23.7.6",
+    "i18next-browser-languagedetector": "^7.2.0",
+    "lucide-react": "^0.303.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-i18next": "^13.5.0",
-    "i18next-browser-languagedetector": "^7.2.0"
+    "react-icons": "^5.0.1",
+    "recharts": "^2.10.3",
+    "tailwind-merge": "^2.2.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
@@ -42,15 +49,12 @@
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "jsdom": "^27.3.0",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.2.2",
     "vite": "^5.4.21",
-    "vitest": "^2.1.8",
-    "@testing-library/react": "^14.1.2",
-    "@testing-library/jest-dom": "^6.1.5",
-    "@testing-library/user-event": "^14.5.1"
+    "vitest": "^2.1.8"
   }
 }
-

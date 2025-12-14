@@ -10,7 +10,8 @@
     "close": "Close",
     "search": "Search",
     "select": "Select",
-    "noData": "No data available"
+    "noData": "No data available",
+    "total": "total"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -59,7 +60,10 @@
     "title": "Tokens",
     "selectToken": "Select Token",
     "noTokens": "No tokens available",
-    "searchPlaceholder": "Search token (BTC, SOL)..."
+    "searchPlaceholder": "Search token (BTC, SOL)...",
+    "loadMore": "Load More",
+    "scrollToLoad": "Scroll to load more...",
+    "allLoaded": "All tokens loaded"
   },
   "filters": {
     "minSpread": "OT:",

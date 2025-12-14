@@ -39,7 +39,7 @@ export function validatePrice(price: number | null | undefined): boolean {
  * Валидация timestamp
  */
 export function validateTimestamp(timestamp: number): boolean {
-  if (!timestamp || !isFinite(timestamp)) {
+  if (timestamp === null || timestamp === undefined || !isFinite(timestamp)) {
     return false;
   }
   // Проверка, что timestamp в разумных пределах (не слишком старый и не из будущего)

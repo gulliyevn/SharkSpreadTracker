@@ -10,7 +10,8 @@
     "close": "Закрыть",
     "search": "Поиск",
     "select": "Выбрать",
-    "noData": "Нет данных"
+    "noData": "Нет данных",
+    "total": "всего"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -59,7 +60,10 @@
     "title": "Токены",
     "selectToken": "Выбрать токен",
     "noTokens": "Нет доступных токенов",
-    "searchPlaceholder": "Поиск токена (BTC, SOL)..."
+    "searchPlaceholder": "Поиск токена (BTC, SOL)...",
+    "loadMore": "Загрузить еще",
+    "scrollToLoad": "Прокрутите вниз, чтобы загрузить еще...",
+    "allLoaded": "Все токены загружены"
   },
   "filters": {
     "minSpread": "OT:",

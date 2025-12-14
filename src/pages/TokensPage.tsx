@@ -1,21 +1,28 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Container } from '@/components/layout/Container';
 import { TokenSearch } from '@/components/features/tokens/TokenSearch';
 import { TokenFilters } from '@/components/features/tokens/TokenFilters';
 import { ExchangeIndicator } from '@/components/features/tokens/ExchangeIndicator';
 import { TokenCard } from '@/components/features/tokens/TokenCard';
+import { TokenCardSkeleton } from '@/components/features/tokens/TokenCardSkeleton';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useTokens } from '@/api/hooks/useTokens';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 /**
  * Главная страница с токенами
  */
+// Количество токенов для отображения за раз
+const ITEMS_PER_PAGE = 24;
+
 export function TokensPage() {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [minSpread, setMinSpread] = useState(0);
   const [showDirectOnly, setShowDirectOnly] = useState(false);
   const [showReverseOnly, setShowReverseOnly] = useState(false);
+  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
 
   // Загружаем токены из API
   const { data: tokens = [], isLoading, error } = useTokens();
@@ -53,6 +60,33 @@ export function TokensPage() {
     return filtered;
   }, [tokens, searchTerm, minSpread, showDirectOnly, showReverseOnly]);
 
+  // Сбрасываем счетчик при изменении фильтров
+  useEffect(() => {
+    setDisplayedCount(ITEMS_PER_PAGE);
+  }, [searchTerm, minSpread, showDirectOnly, showReverseOnly]);
+
+  // Токены для отображения (с учетом пагинации)
+  const displayedTokens = useMemo(() => {
+    return filteredTokens.slice(0, displayedCount);
+  }, [filteredTokens, displayedCount]);
+
+  const hasMore = displayedCount < filteredTokens.length;
+
+  // Загрузка следующей порции
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoading) {
+      setDisplayedCount((prev) => prev + ITEMS_PER_PAGE);
+    }
+  }, [hasMore, isLoading]);
+
+  // Infinite scroll observer
+  const observerTarget = useInfiniteScroll({
+    hasMore,
+    isLoading,
+    onLoadMore: loadMore,
+    threshold: 300,
+  });
+
   return (
     <div className="min-h-screen bg-white dark:bg-dark-900">
       <Container>
@@ -80,24 +114,41 @@ export function TokensPage() {
             <div className="flex items-center justify-between">
               <ExchangeIndicator sourceChain="bsc" targetExchange="MEXC" />
               <div className="text-sm sm:text-base font-medium text-light-600 dark:text-dark-400">
-                {isLoading ? '...' : filteredTokens.length}
+                {isLoading ? (
+                  '...'
+                ) : (
+                  <>
+                    {displayedTokens.length} / {filteredTokens.length}
+                  </>
+                )}
               </div>
             </div>
           </div>
 
           {/* Состояния загрузки и ошибки */}
           {isLoading && (
-            <div className="text-center py-12">
-              <p className="text-light-600 dark:text-dark-400">
-                {t('common.loading') || 'Loading tokens...'}
-              </p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-center py-4">
+                <LoadingSpinner size="md" />
+                <span className="ml-3 text-light-600 dark:text-dark-400">
+                  {t('common.loading') || 'Loading tokens...'}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <TokenCardSkeleton key={i} />
+                ))}
+              </div>
             </div>
           )}
 
           {error && (
             <div className="text-center py-12">
-              <p className="text-error-600 dark:text-error-400">
+              <p className="text-error-600 dark:text-error-400 mb-2">
                 {t('api.errors.unknown') || 'Error loading tokens'}
+              </p>
+              <p className="text-xs text-light-500 dark:text-dark-500">
+                {error instanceof Error ? error.message : 'Please check console for details'}
               </p>
             </div>
           )}
@@ -112,17 +163,52 @@ export function TokensPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {filteredTokens.map((tokenData) => (
-                    <TokenCard
-                      key={`${tokenData.symbol}-${tokenData.chain}`}
-                      token={{ symbol: tokenData.symbol, chain: tokenData.chain }}
-                      price={tokenData.price}
-                      directSpread={tokenData.directSpread}
-                      reverseSpread={tokenData.reverseSpread}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {displayedTokens.map((tokenData) => (
+                      <TokenCard
+                        key={`${tokenData.symbol}-${tokenData.chain}`}
+                        token={{ symbol: tokenData.symbol, chain: tokenData.chain }}
+                        price={tokenData.price}
+                        directSpread={tokenData.directSpread}
+                        reverseSpread={tokenData.reverseSpread}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Infinite scroll trigger и индикатор загрузки */}
+                  {hasMore && (
+                    <div
+                      ref={observerTarget}
+                      className="flex items-center justify-center py-8"
+                    >
+                      {isLoading ? (
+                        <LoadingSpinner size="md" />
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-sm text-light-600 dark:text-dark-400 mb-2">
+                            {t('tokens.scrollToLoad') || 'Scroll to load more...'}
+                          </p>
+                          <button
+                            onClick={loadMore}
+                            className="px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+                          >
+                            {t('tokens.loadMore') || 'Load More'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Индикатор конца списка */}
+                  {!hasMore && displayedTokens.length > 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-light-500 dark:text-dark-500">
+                        {t('tokens.allLoaded') || 'All tokens loaded'} ({filteredTokens.length} {t('common.total') || 'total'})
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

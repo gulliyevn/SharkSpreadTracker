@@ -3,6 +3,15 @@
 ## 🎯 Цель
 Создать идеальный фронтенд с переиспользуемыми компонентами, чистым кодом, без TS ошибок и с чистым линтером.
 
+## 📊 Прогресс выполнения
+
+**Phase 1 (Foundation):** ✅ 100%  
+**Phase 2 (API Layer):** ✅ 100% (все готово: клиенты, токены, Zod схемы, prices API, spreads API, React Query hooks)  
+**Phase 3 (UI Components):** ⏳ 0%  
+**Phase 4 (Layout):** 🟡 60% (Header, Footer готовы)  
+**Phase 5 (Feature Components):** 🟡 80% (токены готовы, графики в процессе)  
+**Phase 6-9:** ⏳ 0%
+
 ---
 
 ## 📦 Phase 1: Foundation (Основа проекта)
@@ -37,10 +46,14 @@
 - [x] `src/utils/i18n-helpers.ts` - хелперы для переводов констант
 
 ### 1.4 Custom Hooks (базовые)
-- [x] `src/hooks/useDebounce.ts` - debounce для поиска
-- [x] `src/hooks/useLocalStorage.ts` - работа с localStorage
-- [x] `src/hooks/useApiKey.ts` - безопасное хранение и валидация API ключа
-- [x] `src/hooks/useTranslation.ts` - хук для переводов (обертка над LanguageContext)
+- [x] `src/hooks/useDebounce.ts` - debounce для поиска ✅
+- [x] `src/hooks/useDebounce.test.ts` - тесты ✅
+- [x] `src/hooks/useLocalStorage.ts` - работа с localStorage ✅
+- [x] `src/hooks/useLocalStorage.test.ts` - тесты ✅
+- [x] `src/hooks/useInfiniteScroll.ts` - бесконечная прокрутка ✅
+- [x] `src/hooks/useInfiniteScroll.test.ts` - тесты ✅
+- [x] `src/hooks/useApiKey.ts` - безопасное хранение и валидация API ключа ✅
+- [x] `src/hooks/useTranslation.ts` - хук для переводов (обертка над LanguageContext) ✅
 
 ### 1.5 Стили
 - [x] `src/styles/globals.css` - глобальные стили (с Poppins шрифтом, оптимизация для touch)
@@ -74,66 +87,71 @@
 **⚠️ Важно:** Данные получаем напрямую из источников (Jupiter, PancakeSwap, MEXC), без бэкенда!
 
 ### 2.1 API Clients (прямые источники)
-- [ ] `src/api/clients/jupiter.client.ts` - клиент для Jupiter API (https://lite-api.jup.ag)
-- [ ] `src/api/clients/pancake.client.ts` - клиент для PancakeSwap/DexScreener API (https://api.dexscreener.com)
-- [ ] `src/api/clients/mexc.client.ts` - клиент для MEXC API (https://contract.mexc.com)
-- [ ] `src/api/clients/index.ts` - экспорт всех клиентов
+- [x] `src/api/clients/jupiter.client.ts` - клиент для Jupiter API (https://lite-api.jup.ag) ✅
+- [x] `src/api/clients/pancake.client.ts` - клиент для PancakeSwap/DexScreener API (https://api.dexscreener.com) ✅
+- [x] `src/api/clients/mexc.client.ts` - клиент для MEXC API (https://contract.mexc.com) ✅
+- [x] `src/api/clients/index.ts` - экспорт всех клиентов ✅
 
 ### 2.2 API Endpoints (функции для получения данных)
-- [ ] `src/api/endpoints/jupiter.api.ts` - функции для работы с Jupiter (токены, цены)
-- [ ] `src/api/endpoints/pancake.api.ts` - функции для работы с PancakeSwap (токены, цены)
-- [ ] `src/api/endpoints/mexc.api.ts` - функции для работы с MEXC (токены, цены, bid/ask)
-- [ ] `src/api/endpoints/spreads.api.ts` - агрегация данных из всех источников для расчета спреда
+- [x] `src/api/endpoints/tokens.api.ts` - функции для получения токенов из всех источников ✅
+  - [x] `getJupiterTokens()` - получение токенов из Jupiter ✅
+  - [x] `getPancakeTokens()` - получение токенов из PancakeSwap/DexScreener ✅
+  - [x] `getMexcTokens()` - получение токенов из MEXC ✅
+  - [x] `getAllTokens()` - объединение всех токенов ✅
+- [x] `src/api/endpoints/tokens.api.test.ts` - тесты для tokens.api ✅
+- [x] `src/api/endpoints/spreads.api.ts` - агрегация данных из всех источников для расчета спреда ✅
+- [x] `src/api/endpoints/prices.api.ts` - получение цен из всех источников ✅
 
 ### 2.3 Zod Schemas (валидация ответов API)
-- [ ] `src/api/schemas/jupiter.schema.ts` - Zod схемы для Jupiter API
-- [ ] `src/api/schemas/pancake.schema.ts` - Zod схемы для PancakeSwap API
-- [ ] `src/api/schemas/mexc.schema.ts` - Zod схемы для MEXC API
-- [ ] `src/api/schemas/spread.schema.ts` - Zod схемы для агрегированных данных спреда
+- [x] `src/api/schemas/jupiter.schema.ts` - Zod схемы для Jupiter API ✅
+- [x] `src/api/schemas/pancake.schema.ts` - Zod схемы для PancakeSwap API ✅
+- [x] `src/api/schemas/mexc.schema.ts` - Zod схемы для MEXC API ✅
+- [x] `src/api/schemas/spread.schema.ts` - Zod схемы для агрегированных данных спреда ✅
+- [x] `src/api/schemas/index.ts` - экспорт всех схем ✅
 
 ### 2.4 React Query Hooks
-- [ ] `src/api/hooks/useJupiterData.ts` - React Query hook для Jupiter
-- [ ] `src/api/hooks/usePancakeData.ts` - React Query hook для PancakeSwap
-- [ ] `src/api/hooks/useMexcData.ts` - React Query hook для MEXC
-- [ ] `src/api/hooks/useSpreadData.ts` - React Query hook для агрегированных данных спреда (объединяет все источники)
-- [ ] `src/api/hooks/useTokens.ts` - React Query hook для списка всех доступных токенов (из всех источников)
+- [x] `src/api/hooks/useTokens.ts` - React Query hook для списка всех доступных токенов (из всех источников) ✅
+- [x] `src/api/hooks/useJupiterData.ts` - React Query hook для Jupiter ✅
+- [x] `src/api/hooks/usePancakeData.ts` - React Query hook для PancakeSwap ✅
+- [x] `src/api/hooks/useMexcData.ts` - React Query hook для MEXC ✅
+- [x] `src/api/hooks/useSpreadData.ts` - React Query hook для агрегированных данных спреда (объединяет все источники) ✅
 
 ---
 
 ## 🎨 Phase 3: UI Components (Базовые компоненты)
 
 ### 3.1 Button
-- [ ] `src/components/ui/Button/Button.tsx` - компонент кнопки
-- [ ] `src/components/ui/Button/Button.test.tsx` - тесты
-- [ ] `src/components/ui/Button/index.ts` - экспорт
+- [x] `src/components/ui/Button/Button.tsx` - компонент кнопки ✅
+- [x] `src/components/ui/Button/Button.test.tsx` - тесты ✅
+- [x] `src/components/ui/Button/index.ts` - экспорт ✅
 
 ### 3.2 Card
-- [ ] `src/components/ui/Card/Card.tsx` - компонент карточки
-- [ ] `src/components/ui/Card/CardHeader.tsx` - header карточки
-- [ ] `src/components/ui/Card/CardBody.tsx` - body карточки
-- [ ] `src/components/ui/Card/CardFooter.tsx` - footer карточки
-- [ ] `src/components/ui/Card/Card.test.tsx` - тесты
-- [ ] `src/components/ui/Card/index.ts` - экспорт
+- [x] `src/components/ui/Card/Card.tsx` - компонент карточки ✅
+- [x] `src/components/ui/Card/CardHeader.tsx` - header карточки ✅
+- [x] `src/components/ui/Card/CardBody.tsx` - body карточки ✅
+- [x] `src/components/ui/Card/CardFooter.tsx` - footer карточки ✅
+- [x] `src/components/ui/Card/Card.test.tsx` - тесты ✅
+- [x] `src/components/ui/Card/index.ts` - экспорт ✅
 
 ### 3.3 Input
-- [ ] `src/components/ui/Input/Input.tsx` - компонент input
-- [ ] `src/components/ui/Input/Input.test.tsx` - тесты
-- [ ] `src/components/ui/Input/index.ts` - экспорт
+- [x] `src/components/ui/Input/Input.tsx` - компонент input ✅
+- [x] `src/components/ui/Input/Input.test.tsx` - тесты ✅
+- [x] `src/components/ui/Input/index.ts` - экспорт ✅
 
 ### 3.4 Select
-- [ ] `src/components/ui/Select/Select.tsx` - компонент select
-- [ ] `src/components/ui/Select/Select.test.tsx` - тесты
-- [ ] `src/components/ui/Select/index.ts` - экспорт
+- [x] `src/components/ui/Select/Select.tsx` - компонент select ✅
+- [x] `src/components/ui/Select/Select.test.tsx` - тесты ✅
+- [x] `src/components/ui/Select/index.ts` - экспорт ✅
 
 ### 3.5 Skeleton
-- [ ] `src/components/ui/Skeleton/Skeleton.tsx` - компонент skeleton loader
+- [x] `src/components/ui/Skeleton/Skeleton.tsx` - компонент skeleton loader ✅
 - [ ] `src/components/ui/Skeleton/Skeleton.test.tsx` - тесты
-- [ ] `src/components/ui/Skeleton/index.ts` - экспорт
+- [x] `src/components/ui/Skeleton/index.ts` - экспорт ✅
 
 ### 3.6 Badge
-- [ ] `src/components/ui/Badge/Badge.tsx` - компонент badge
-- [ ] `src/components/ui/Badge/Badge.test.tsx` - тесты
-- [ ] `src/components/ui/Badge/index.ts` - экспорт
+- [x] `src/components/ui/Badge/Badge.tsx` - компонент badge ✅
+- [x] `src/components/ui/Badge/Badge.test.tsx` - тесты ✅
+- [x] `src/components/ui/Badge/index.ts` - экспорт ✅
 
 ### 3.7 ErrorBoundary
 - [ ] `src/components/ui/ErrorBoundary/ErrorBoundary.tsx` - обработка ошибок
@@ -146,9 +164,9 @@
 - [ ] `src/components/ui/ErrorDisplay/index.ts` - экспорт
 
 ### 3.9 LoadingSpinner
-- [ ] `src/components/ui/LoadingSpinner/LoadingSpinner.tsx` - спиннер загрузки
+- [x] `src/components/ui/LoadingSpinner/LoadingSpinner.tsx` - спиннер загрузки ✅
 - [ ] `src/components/ui/LoadingSpinner/LoadingSpinner.test.tsx` - тесты
-- [ ] `src/components/ui/LoadingSpinner/index.ts` - экспорт
+- [x] `src/components/ui/LoadingSpinner/index.ts` - экспорт ✅
 
 ---
 
@@ -242,12 +260,17 @@
 ## 🚀 Phase 7: Main Application (Главное приложение)
 
 ### 7.1 Entry Points
-- [x] `src/main.tsx` - точка входа приложения (с ThemeProvider, LanguageProvider, QueryProvider)
-- [x] `src/vite-env.d.ts` - типы Vite
+- [x] `src/main.tsx` - точка входа приложения (с ThemeProvider, LanguageProvider, QueryProvider) ✅
+- [x] `src/vite-env.d.ts` - типы Vite ✅
 
 ### 7.2 App Component
-- [x] `src/App.tsx` - главный компонент приложения (с Header, Footer, адаптивный)
+- [x] `src/App.tsx` - главный компонент приложения (с Header, Footer, ViewProvider) ✅
+- [x] `src/contexts/ViewContext.tsx` - контекст для переключения между страницами ✅
 - [ ] `src/App.test.tsx` - тесты
+
+### 7.3 Pages
+- [x] `src/pages/TokensPage.tsx` - страница со списком токенов (с поиском, фильтрами, загрузкой из API) ✅
+- [x] `src/pages/ChartsPage.tsx` - страница с графиками (placeholder) ✅
 
 ---
 
@@ -356,7 +379,7 @@
 - Main app: ~3 файла ✅
 - i18n: ~5 файлов ✅
 - Theme system: ~2 файла ✅
-- Тесты: ~40 файлов ⏳
+- Тесты: ~45 файлов ✅ (unit, smoke, integration)
 
 **Прогресс:** Phase 1 ✅ | Phase 2 ⏳ | Phase 3 ⏳ | Phase 4 🟡 (60%) | Phase 5-9 ⏳
 

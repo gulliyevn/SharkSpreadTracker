@@ -10,7 +10,8 @@
     "close": "Kapat",
     "search": "Ara",
     "select": "Seç",
-    "noData": "Veri yok"
+    "noData": "Veri yok",
+    "total": "toplam"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -59,7 +60,10 @@
     "title": "Tokenler",
     "selectToken": "Token Seç",
     "noTokens": "Kullanılabilir token yok",
-    "searchPlaceholder": "Token ara (BTC, SOL)..."
+    "searchPlaceholder": "Token ara (BTC, SOL)...",
+    "loadMore": "Daha fazla yükle",
+    "scrollToLoad": "Daha fazla yüklemek için aşağı kaydırın...",
+    "allLoaded": "Tüm tokenler yüklendi"
   },
   "filters": {
     "minSpread": "OT:",
