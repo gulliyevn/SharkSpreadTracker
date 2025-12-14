@@ -11,7 +11,10 @@
     "search": "Ara",
     "select": "Seç",
     "noData": "Veri yok",
-    "total": "toplam"
+    "total": "toplam",
+    "retry": "Tekrar Dene",
+    "goHome": "Ana Sayfaya Git",
+    "details": "Detaylar"
   },
   "app": {
     "title": "Shark Spread Tracker",

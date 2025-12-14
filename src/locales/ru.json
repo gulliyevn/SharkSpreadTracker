@@ -11,7 +11,10 @@
     "search": "Поиск",
     "select": "Выбрать",
     "noData": "Нет данных",
-    "total": "всего"
+    "total": "всего",
+    "retry": "Попробовать снова",
+    "goHome": "На главную",
+    "details": "Детали"
   },
   "app": {
     "title": "Shark Spread Tracker",

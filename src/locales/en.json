@@ -11,7 +11,10 @@
     "search": "Search",
     "select": "Select",
     "noData": "No data available",
-    "total": "total"
+    "total": "total",
+    "retry": "Try Again",
+    "goHome": "Go Home",
+    "details": "Details"
   },
   "app": {
     "title": "Shark Spread Tracker",
