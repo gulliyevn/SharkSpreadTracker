@@ -1,0 +1,85 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "select": "Select",
+    "noData": "No data available"
+  },
+  "app": {
+    "title": "Shark Spread Tracker",
+    "description": "Track cryptocurrency spreads across different exchanges"
+  },
+  "api": {
+    "errors": {
+      "invalidKey": "Invalid API key. Please check the key.",
+      "forbidden": "Access denied. Check your permissions.",
+      "notFound": "Data not found.",
+      "tooManyRequests": "Too many requests. Please wait a bit.",
+      "serverError": "Server error. Please try again later.",
+      "networkError": "Network connection problem. Check your connection.",
+      "timeout": "Request timeout exceeded. Please try again.",
+      "unknown": "An unknown error occurred."
+    }
+  },
+  "sources": {
+    "mexc": "MEXC",
+    "jupiter": "Jupiter",
+    "pancakeswap": "PancakeSwap"
+  },
+  "chains": {
+    "solana": "Solana",
+    "bsc": "BSC"
+  },
+  "timeframes": {
+    "1m": "1 minute",
+    "5m": "5 minutes",
+    "15m": "15 minutes",
+    "1h": "1 hour",
+    "4h": "4 hours",
+    "1d": "1 day"
+  },
+  "spread": {
+    "title": "Spread",
+    "calculate": "Calculate Spread",
+    "arbitrage": "Arbitrage Opportunity",
+    "noOpportunity": "No arbitrage opportunity",
+    "from": "From",
+    "to": "To",
+    "price": "Price",
+    "spreadPercent": "Spread %"
+  },
+  "tokens": {
+    "title": "Tokens",
+    "selectToken": "Select Token",
+    "noTokens": "No tokens available",
+    "searchPlaceholder": "Search token (BTC, SOL)..."
+  },
+  "filters": {
+    "minSpread": "OT:",
+    "directOnly": "Only direct",
+    "reverseOnly": "Only reverse"
+  },
+  "validation": {
+    "invalidApiKey": "Invalid API key format",
+    "invalidTokenSymbol": "Invalid token symbol",
+    "invalidPrice": "Invalid price"
+  },
+  "header": {
+    "tokens": "Tokens",
+    "charts": "Charts"
+  },
+  "charts": {
+    "title": "Spread Charts",
+    "description": "View spread charts and analyze trading opportunities",
+    "comingSoon": "Charts Coming Soon",
+    "placeholder": "Spread charts will be displayed here. Select tokens and timeframes to analyze trading opportunities."
+  }
+}
+

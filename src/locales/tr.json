@@ -1,0 +1,85 @@
+{
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "close": "Kapat",
+    "search": "Ara",
+    "select": "Seç",
+    "noData": "Veri yok"
+  },
+  "app": {
+    "title": "Shark Spread Tracker",
+    "description": "Farklı borsalarda kripto para yayılımlarını takip edin"
+  },
+  "api": {
+    "errors": {
+      "invalidKey": "Geçersiz API anahtarı. Lütfen anahtarı kontrol edin.",
+      "forbidden": "Erişim reddedildi. İzinlerinizi kontrol edin.",
+      "notFound": "Veri bulunamadı.",
+      "tooManyRequests": "Çok fazla istek. Lütfen biraz bekleyin.",
+      "serverError": "Sunucu hatası. Lütfen daha sonra tekrar deneyin.",
+      "networkError": "İnternet bağlantı sorunu. Bağlantınızı kontrol edin.",
+      "timeout": "İstek zaman aşımına uğradı. Lütfen tekrar deneyin.",
+      "unknown": "Bilinmeyen bir hata oluştu."
+    }
+  },
+  "sources": {
+    "mexc": "MEXC",
+    "jupiter": "Jupiter",
+    "pancakeswap": "PancakeSwap"
+  },
+  "chains": {
+    "solana": "Solana",
+    "bsc": "BSC"
+  },
+  "timeframes": {
+    "1m": "1 dakika",
+    "5m": "5 dakika",
+    "15m": "15 dakika",
+    "1h": "1 saat",
+    "4h": "4 saat",
+    "1d": "1 gün"
+  },
+  "spread": {
+    "title": "Spread",
+    "calculate": "Spread Hesapla",
+    "arbitrage": "Arbitraj Fırsatı",
+    "noOpportunity": "Arbitraj fırsatı yok",
+    "from": "Kaynak",
+    "to": "Hedef",
+    "price": "Fiyat",
+    "spreadPercent": "Spread %"
+  },
+  "tokens": {
+    "title": "Tokenler",
+    "selectToken": "Token Seç",
+    "noTokens": "Kullanılabilir token yok",
+    "searchPlaceholder": "Token ara (BTC, SOL)..."
+  },
+  "filters": {
+    "minSpread": "OT:",
+    "directOnly": "Sadece doğrudan",
+    "reverseOnly": "Sadece ters"
+  },
+  "validation": {
+    "invalidApiKey": "Geçersiz API anahtarı formatı",
+    "invalidTokenSymbol": "Geçersiz token sembolü",
+    "invalidPrice": "Geçersiz fiyat"
+  },
+  "header": {
+    "tokens": "Tokenler",
+    "charts": "Grafikler"
+  },
+  "charts": {
+    "title": "Spread Grafikleri",
+    "description": "Spread grafiklerini görüntüleyin ve ticaret fırsatlarını analiz edin",
+    "comingSoon": "Grafikler yakında",
+    "placeholder": "Spread grafikleri burada görüntülenecek. Ticaret fırsatlarını analiz etmek için tokenler ve zaman dilimleri seçin."
+  }
+}
+
