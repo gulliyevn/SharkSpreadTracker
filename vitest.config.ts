@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -16,7 +17,9 @@ export default defineConfig({
     // Группировка тестов
     reporters: ['verbose'],
     coverage: {
-      provider: 'v8',
+      // Используем встроенный provider 'istanbul' (c8),
+      // чтобы не требовался внешний пакет @vitest/coverage-v8.
+      provider: 'istanbul',
       reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
