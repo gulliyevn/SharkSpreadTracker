@@ -14,4 +14,3 @@ describe('TokenCardSkeleton', () => {
     expect(skeleton).toHaveClass('animate-pulse');
   });
 });
-

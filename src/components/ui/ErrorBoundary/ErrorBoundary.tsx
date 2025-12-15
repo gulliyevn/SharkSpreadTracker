@@ -16,7 +16,10 @@ interface ErrorBoundaryState {
  * Error Boundary компонент для обработки ошибок React
  * Перехватывает ошибки в дочерних компонентах и отображает fallback UI
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -63,14 +66,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       // Иначе используем ErrorDisplay
       return (
-        <ErrorDisplay
-          error={this.state.error}
-          onReset={this.handleReset}
-        />
+        <ErrorDisplay error={this.state.error} onReset={this.handleReset} />
       );
     }
 
     return this.props.children;
   }
 }
-

@@ -29,4 +29,3 @@ describe('Skeleton', () => {
     expect(container.firstChild).toHaveClass('rounded');
   });
 });
-

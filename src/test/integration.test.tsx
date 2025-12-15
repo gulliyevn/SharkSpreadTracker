@@ -50,7 +50,9 @@ describe('Integration Tests', () => {
       );
 
       // Ищем кнопку переключения views (она одна, переключает между views)
-      const viewButton = screen.getByRole('button', { name: /charts|open charts/i });
+      const viewButton = screen.getByRole('button', {
+        name: /charts|open charts/i,
+      });
       expect(viewButton).toBeInTheDocument();
     });
 
@@ -63,7 +65,9 @@ describe('Integration Tests', () => {
       );
 
       // Ищем кнопку переключения темы по aria-label или title
-      const themeButton = screen.getByRole('button', { name: /toggle theme|switch theme/i });
+      const themeButton = screen.getByRole('button', {
+        name: /toggle theme|switch theme/i,
+      });
       expect(themeButton).toBeInTheDocument();
 
       await user.click(themeButton);
@@ -80,9 +84,13 @@ describe('Integration Tests', () => {
       );
 
       // Ищем кнопки языков (EN, RU, TR)
-      const enButton = screen.getByRole('button', { name: /switch to english|english/i });
-      const ruButton = screen.getByRole('button', { name: /переключить на русский|русский/i });
-      
+      const enButton = screen.getByRole('button', {
+        name: /switch to english|english/i,
+      });
+      const ruButton = screen.getByRole('button', {
+        name: /переключить на русский|русский/i,
+      });
+
       expect(enButton).toBeInTheDocument();
       expect(ruButton).toBeInTheDocument();
 
@@ -130,4 +138,3 @@ describe('Integration Tests', () => {
     });
   });
 });
-

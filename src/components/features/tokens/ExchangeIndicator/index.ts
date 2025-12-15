@@ -1,2 +1,1 @@
 export { ExchangeIndicator } from './ExchangeIndicator';
-

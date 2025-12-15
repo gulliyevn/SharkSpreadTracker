@@ -8,10 +8,7 @@ import type { TokenPrice } from '../endpoints/prices.api';
  * @param symbol - Символ токена
  * @param enabled - Включить/выключить запрос
  */
-export function usePancakeData(
-  symbol: string | null,
-  enabled: boolean = true
-) {
+export function usePancakeData(symbol: string | null, enabled: boolean = true) {
   return useQuery<TokenPrice | null>({
     queryKey: ['pancakeswap', 'price', symbol],
     queryFn: () => {
@@ -27,4 +24,3 @@ export function usePancakeData(
     retryDelay: 1000,
   });
 }
-

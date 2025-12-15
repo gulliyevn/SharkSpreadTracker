@@ -50,4 +50,3 @@ export type JupiterToken = z.infer<typeof JupiterTokenSchema>;
 export type JupiterTokensResponse = z.infer<typeof JupiterTokensResponseSchema>;
 export type JupiterPrice = z.infer<typeof JupiterPriceSchema>;
 export type JupiterPricesResponse = z.infer<typeof JupiterPricesResponseSchema>;
-

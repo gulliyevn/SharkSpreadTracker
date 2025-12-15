@@ -25,4 +25,3 @@ export const CHAINS: Record<ChainType, ChainConfig> = {
 export const getChainConfig = (chain: ChainType): ChainConfig => {
   return CHAINS[chain];
 };
-

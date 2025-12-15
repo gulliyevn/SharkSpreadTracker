@@ -49,19 +49,14 @@ export {
 } from 'react-icons/hi';
 
 // Feather Icons
-export {
-  FiTrendingUp,
-  FiTrendingDown,
-  FiRefreshCw,
-} from 'react-icons/fi';
+export { FiTrendingUp, FiTrendingDown, FiRefreshCw } from 'react-icons/fi';
 
 /**
  * Пример использования:
- * 
+ *
  * import { Moon, Sun } from '@/lib/icons';
  * import { MdTrendingUp } from '@/lib/icons';
- * 
+ *
  * <Moon className="h-4 w-4" />
  * <MdTrendingUp className="h-5 w-5" />
  */
-

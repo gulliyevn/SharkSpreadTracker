@@ -132,7 +132,9 @@ export async function getMexcPrice(symbol: string): Promise<TokenPrice | null> {
   try {
     // MEXC API для получения тикера
     // Эндпоинт: /api/v3/ticker/price или /api/v3/ticker/bookTicker
-    const response = await mexcClient.get(`/api/v3/ticker/bookTicker?symbol=${symbol}`);
+    const response = await mexcClient.get(
+      `/api/v3/ticker/bookTicker?symbol=${symbol}`
+    );
 
     // Валидация через Zod
     const validated = MexcTickerSchema.safeParse(response.data);
@@ -140,7 +142,9 @@ export async function getMexcPrice(symbol: string): Promise<TokenPrice | null> {
     if (!validated.success) {
       // Если bookTicker не работает, пробуем обычный ticker
       try {
-        const tickerResponse = await mexcClient.get(`/api/v3/ticker/price?symbol=${symbol}`);
+        const tickerResponse = await mexcClient.get(
+          `/api/v3/ticker/price?symbol=${symbol}`
+        );
         const priceStr = tickerResponse.data?.price;
         if (priceStr) {
           const price = parseFloat(priceStr);
@@ -204,8 +208,7 @@ export async function getAllPrices(token: Token): Promise<AllPrices> {
     results[0].status === 'fulfilled' ? results[0].value : null;
   const pancakePrice =
     results[1].status === 'fulfilled' ? results[1].value : null;
-  const mexcPrice =
-    results[2].status === 'fulfilled' ? results[2].value : null;
+  const mexcPrice = results[2].status === 'fulfilled' ? results[2].value : null;
 
   return {
     symbol,
@@ -216,4 +219,3 @@ export async function getAllPrices(token: Token): Promise<AllPrices> {
     timestamp,
   };
 }
-

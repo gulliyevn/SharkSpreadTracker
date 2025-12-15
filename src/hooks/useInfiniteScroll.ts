@@ -45,4 +45,3 @@ export function useInfiniteScroll({
 
   return observerTarget;
 }
-

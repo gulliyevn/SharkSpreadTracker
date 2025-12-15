@@ -37,7 +37,7 @@ describe('useDebounce', () => {
     act(() => {
       vi.advanceTimersByTime(300);
     });
-    
+
     // After timeout, value should be updated
     expect(result.current).toBe('updated');
   });
@@ -53,7 +53,7 @@ describe('useDebounce', () => {
     act(() => {
       rerender({ value: 'updated', delay: 500 });
     });
-    
+
     act(() => {
       vi.advanceTimersByTime(300);
     });
@@ -62,7 +62,7 @@ describe('useDebounce', () => {
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    
+
     // After full delay, value should be updated
     expect(result.current).toBe('updated');
   });
@@ -90,7 +90,7 @@ describe('useDebounce', () => {
     act(() => {
       rerender({ value: 'third', delay: 300 });
     });
-    
+
     // Advance full delay from last change
     act(() => {
       vi.advanceTimersByTime(300);
@@ -100,4 +100,3 @@ describe('useDebounce', () => {
     expect(result.current).toBe('third');
   });
 });
-

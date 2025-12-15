@@ -24,4 +24,3 @@ describe('ExchangeIndicator', () => {
     expect(screen.getByText('JUPITER')).toBeInTheDocument();
   });
 });
-

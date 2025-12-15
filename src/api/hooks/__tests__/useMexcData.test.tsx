@@ -57,4 +57,3 @@ describe('useMexcData', () => {
     expect(getMexcPrice).not.toHaveBeenCalled();
   });
 });
-

@@ -14,7 +14,9 @@ export const API_CONFIG = {
  */
 export const SOURCE_URLS = {
   JUPITER: import.meta.env.VITE_JUPITER_URL || 'https://lite-api.jup.ag',
-  PANCAKE: import.meta.env.VITE_PANCAKE_URL || 'https://api.dexscreener.com/latest/dex/tokens',
+  PANCAKE:
+    import.meta.env.VITE_PANCAKE_URL ||
+    'https://api.dexscreener.com/latest/dex/tokens',
   MEXC: import.meta.env.VITE_MEXC_REST_URL || 'https://contract.mexc.com',
 } as const;
 
@@ -37,4 +39,3 @@ export const STORAGE_KEYS = {
   THEME: 'shark_theme',
   LANGUAGE: 'i18nextLng', // i18next использует этот ключ по умолчанию
 } as const;
-

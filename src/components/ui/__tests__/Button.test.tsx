@@ -6,7 +6,9 @@ import { Button } from '../Button';
 describe('Button', () => {
   it('should render button with text', () => {
     render(<Button>Click me</Button>);
-    expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Click me' })
+    ).toBeInTheDocument();
   });
 
   it('should call onClick when clicked', async () => {
@@ -44,4 +46,3 @@ describe('Button', () => {
     expect(container.firstChild).toHaveClass('px-6');
   });
 });
-

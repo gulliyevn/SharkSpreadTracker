@@ -34,4 +34,3 @@ describe('TokenList', () => {
     expect(screen.getByText(/no tokens found/i)).toBeInTheDocument();
   });
 });
-

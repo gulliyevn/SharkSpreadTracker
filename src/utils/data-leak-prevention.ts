@@ -74,4 +74,3 @@ export function checkUrlForLeaks(): void {
 if (typeof window !== 'undefined') {
   checkUrlForLeaks();
 }
-

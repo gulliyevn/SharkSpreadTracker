@@ -87,4 +87,3 @@ export function formatDate(timestamp: number): string {
     timeZone: 'UTC',
   });
 }
-

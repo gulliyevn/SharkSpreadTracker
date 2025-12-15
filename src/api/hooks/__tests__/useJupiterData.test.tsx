@@ -55,4 +55,3 @@ describe('useJupiterData', () => {
     expect(getJupiterPrice).not.toHaveBeenCalled();
   });
 });
-

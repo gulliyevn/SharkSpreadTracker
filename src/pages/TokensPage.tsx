@@ -148,7 +148,9 @@ export function TokensPage() {
                 {t('api.errors.unknown') || 'Error loading tokens'}
               </p>
               <p className="text-xs text-light-500 dark:text-dark-500">
-                {error instanceof Error ? error.message : 'Please check console for details'}
+                {error instanceof Error
+                  ? error.message
+                  : 'Please check console for details'}
               </p>
             </div>
           )}
@@ -168,7 +170,10 @@ export function TokensPage() {
                     {displayedTokens.map((tokenData) => (
                       <TokenCard
                         key={`${tokenData.symbol}-${tokenData.chain}`}
-                        token={{ symbol: tokenData.symbol, chain: tokenData.chain }}
+                        token={{
+                          symbol: tokenData.symbol,
+                          chain: tokenData.chain,
+                        }}
                         price={tokenData.price}
                         directSpread={tokenData.directSpread}
                         reverseSpread={tokenData.reverseSpread}
@@ -187,7 +192,8 @@ export function TokensPage() {
                       ) : (
                         <div className="text-center">
                           <p className="text-sm text-light-600 dark:text-dark-400 mb-2">
-                            {t('tokens.scrollToLoad') || 'Scroll to load more...'}
+                            {t('tokens.scrollToLoad') ||
+                              'Scroll to load more...'}
                           </p>
                           <button
                             onClick={loadMore}
@@ -204,7 +210,8 @@ export function TokensPage() {
                   {!hasMore && displayedTokens.length > 0 && (
                     <div className="text-center py-8">
                       <p className="text-sm text-light-500 dark:text-dark-500">
-                        {t('tokens.allLoaded') || 'All tokens loaded'} ({filteredTokens.length} {t('common.total') || 'total'})
+                        {t('tokens.allLoaded') || 'All tokens loaded'} (
+                        {filteredTokens.length} {t('common.total') || 'total'})
                       </p>
                     </div>
                   )}
@@ -217,6 +224,3 @@ export function TokensPage() {
     </div>
   );
 }
-
-
-

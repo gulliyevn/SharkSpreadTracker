@@ -50,11 +50,8 @@ export const getSourceConfig = (sourceId: SourceType): SourceConfig => {
 /**
  * Получить доступные источники для указанной цепи
  */
-export const getSourcesForChain = (
-  chain: 'solana' | 'bsc'
-): SourceConfig[] => {
+export const getSourcesForChain = (chain: 'solana' | 'bsc'): SourceConfig[] => {
   return Object.values(SOURCES).filter((source) =>
     source.chains.includes(chain)
   );
 };
-

@@ -34,4 +34,3 @@ if (typeof globalThis !== 'undefined') {
     unobserve() {}
   } as unknown as typeof IntersectionObserver;
 }
-

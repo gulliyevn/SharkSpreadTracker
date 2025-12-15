@@ -11,4 +11,3 @@ export const jupiterClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
 });
-

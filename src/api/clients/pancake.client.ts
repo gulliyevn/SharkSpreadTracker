@@ -11,4 +11,3 @@ export const pancakeClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
 });
-

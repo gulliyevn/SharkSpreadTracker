@@ -6,14 +6,18 @@
  * Очистка таймеров и подписок
  */
 export class CleanupManager {
-  private timers: Set<ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>> = new Set();
+  private timers: Set<
+    ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>
+  > = new Set();
   private subscriptions: Set<() => void> = new Set();
   private abortControllers: Set<AbortController> = new Set();
 
   /**
    * Добавить таймер для очистки
    */
-  addTimer(timer: ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>): void {
+  addTimer(
+    timer: ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>
+  ): void {
     this.timers.add(timer);
   }
 
@@ -114,4 +118,3 @@ export class CacheManager<T> {
     return this.cache.size;
   }
 }
-

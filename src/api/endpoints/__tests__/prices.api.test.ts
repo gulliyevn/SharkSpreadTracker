@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getJupiterPrice, getPancakePrice, getMexcPrice, getAllPrices } from '../prices.api';
+import {
+  getJupiterPrice,
+  getPancakePrice,
+  getMexcPrice,
+  getAllPrices,
+} from '../prices.api';
 import { jupiterClient, pancakeClient, mexcClient } from '../../clients';
 import type { Token } from '@/types';
 
@@ -24,7 +29,7 @@ describe('prices.api', () => {
     it('should fetch Jupiter price successfully', async () => {
       const mockResponse = {
         data: {
-          'BTC': {
+          BTC: {
             price: 50000,
             time: Date.now(),
           },
@@ -119,7 +124,7 @@ describe('prices.api', () => {
       const mockToken: Token = { symbol: 'BTC', chain: 'solana' };
 
       vi.mocked(jupiterClient.get).mockResolvedValue({
-        data: { 'BTC': { price: 50000, time: Date.now() } },
+        data: { BTC: { price: 50000, time: Date.now() } },
       });
       vi.mocked(pancakeClient.get).mockResolvedValue({
         data: { pairs: [] },
@@ -137,4 +142,3 @@ describe('prices.api', () => {
     });
   });
 });
-

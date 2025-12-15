@@ -21,7 +21,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             'border-light-300 dark:border-dark-700',
             'text-dark-950 dark:text-dark-50',
             'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-            'appearance-none bg-[url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")] bg-[length:1em] bg-[right_0.5rem_center] bg-no-repeat pr-10',
+            "appearance-none bg-[url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")] bg-[length:1em] bg-[right_0.5rem_center] bg-no-repeat pr-10",
             error &&
               'border-error-500 dark:border-error-500 focus:ring-error-500',
             className
@@ -48,4 +48,3 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 );
 
 Select.displayName = 'Select';
-

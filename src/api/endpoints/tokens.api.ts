@@ -55,7 +55,7 @@ export async function getJupiterTokens(): Promise<Token[]> {
     // Jupiter API - получение списка токенов
     // Эндпоинт может быть /tokens или /v1/tokens
     const response = await jupiterClient.get('/tokens');
-    
+
     if (!response.data || !Array.isArray(response.data)) {
       return [];
     }
@@ -93,7 +93,10 @@ export async function getJupiterTokens(): Promise<Token[]> {
           return result;
         }
       } catch (fallbackError) {
-        console.error('Error fetching Jupiter tokens (fallback):', fallbackError);
+        console.error(
+          'Error fetching Jupiter tokens (fallback):',
+          fallbackError
+        );
       }
     }
     console.error('Error fetching Jupiter tokens:', error);
@@ -115,7 +118,9 @@ export async function getPancakeTokens(): Promise<Token[]> {
     // Получаем данные для популярных токенов
     for (const tokenSymbol of popularTokens) {
       try {
-        const response = await pancakeClient.get<DexScreenerResponse>(`/${tokenSymbol}`);
+        const response = await pancakeClient.get<DexScreenerResponse>(
+          `/${tokenSymbol}`
+        );
         if (response.data?.pairs && Array.isArray(response.data.pairs)) {
           response.data.pairs.forEach((pair) => {
             if (pair.baseToken?.symbol) {
@@ -151,8 +156,10 @@ export async function getMexcTokens(): Promise<Token[]> {
   try {
     // MEXC API - получение информации о бирже
     // Стандартный эндпоинт: /api/v3/exchangeInfo
-    const response = await mexcClient.get<MexcExchangeInfo>('/api/v3/exchangeInfo');
-    
+    const response = await mexcClient.get<MexcExchangeInfo>(
+      '/api/v3/exchangeInfo'
+    );
+
     if (!response.data?.symbols || !Array.isArray(response.data.symbols)) {
       return [];
     }
@@ -166,11 +173,11 @@ export async function getMexcTokens(): Promise<Token[]> {
         // MEXC поддерживает оба блокчейна, но нужно определить какой
         const baseAsset = symbol.baseAsset || '';
         const quoteAsset = symbol.quoteAsset || '';
-        
+
         // Если есть USDT или BUSD - скорее всего BSC
         // Если есть SOL - Solana
         let chain: 'solana' | 'bsc' = 'bsc';
-        
+
         if (baseAsset.includes('SOL') || quoteAsset.includes('SOL')) {
           chain = 'solana';
         }
@@ -188,16 +195,25 @@ export async function getMexcTokens(): Promise<Token[]> {
     return Array.from(tokensMap.values());
   } catch (error: unknown) {
     // Если основной эндпоинт не работает, пробуем альтернативный
-    const axiosError = error as { response?: { status?: number }; code?: string };
-    if (axiosError.response?.status === 404 || axiosError.code === 'ECONNREFUSED') {
+    const axiosError = error as {
+      response?: { status?: number };
+      code?: string;
+    };
+    if (
+      axiosError.response?.status === 404 ||
+      axiosError.code === 'ECONNREFUSED'
+    ) {
       try {
         // Альтернативный эндпоинт для MEXC
-        const response = await mexcClient.get<MexcExchangeInfo>('/api/v1/exchangeInfo');
+        const response = await mexcClient.get<MexcExchangeInfo>(
+          '/api/v1/exchangeInfo'
+        );
         if (response.data?.symbols && Array.isArray(response.data.symbols)) {
           const tokensMap = new Map<string, Token>();
           response.data.symbols.forEach((symbol) => {
             if (symbol.symbol && symbol.status === 'ENABLED') {
-              const tokenSymbol = symbol.baseAsset?.toUpperCase() || symbol.symbol;
+              const tokenSymbol =
+                symbol.baseAsset?.toUpperCase() || symbol.symbol;
               if (tokenSymbol) {
                 tokensMap.set(`${tokenSymbol}-bsc`, {
                   symbol: tokenSymbol,
@@ -228,10 +244,13 @@ export async function getAllTokens(): Promise<TokenWithData[]> {
       getPancakeTokens(),
       getMexcTokens(),
     ]);
-    
-    const jupiterTokens: Token[] = results[0].status === 'fulfilled' ? results[0].value : [];
-    const pancakeTokens: Token[] = results[1].status === 'fulfilled' ? results[1].value : [];
-    const mexcTokens: Token[] = results[2].status === 'fulfilled' ? results[2].value : [];
+
+    const jupiterTokens: Token[] =
+      results[0].status === 'fulfilled' ? results[0].value : [];
+    const pancakeTokens: Token[] =
+      results[1].status === 'fulfilled' ? results[1].value : [];
+    const mexcTokens: Token[] =
+      results[2].status === 'fulfilled' ? results[2].value : [];
 
     // Объединяем все токены, убираем дубликаты
     const allTokensMap = new Map<string, TokenWithData>();
@@ -267,7 +286,9 @@ export async function getAllTokens(): Promise<TokenWithData[]> {
 
     // Если все API вернули пустые результаты, возвращаем моковые данные для тестирования
     if (result.length === 0) {
-      console.warn('All API endpoints returned empty results. Using mock data for testing.');
+      console.warn(
+        'All API endpoints returned empty results. Using mock data for testing.'
+      );
       return getMockTokens();
     }
 
@@ -284,30 +305,173 @@ export async function getAllTokens(): Promise<TokenWithData[]> {
  */
 function getMockTokens(): TokenWithData[] {
   return [
-    { symbol: 'ARIAIP', chain: 'bsc', price: 73, directSpread: 5.0, reverseSpread: 5.13 },
-    { symbol: 'POP', chain: 'bsc', price: 65, directSpread: 3.29, reverseSpread: 4.09 },
-    { symbol: 'RION', chain: 'bsc', price: 46, directSpread: 4.74, reverseSpread: 5.28 },
-    { symbol: 'NB', chain: 'bsc', price: 57, directSpread: 3.11, reverseSpread: 8.96 },
-    { symbol: 'BOS', chain: 'bsc', price: 91, directSpread: 4.09, reverseSpread: 4.64 },
-    { symbol: 'MAIGA', chain: 'bsc', price: 47, directSpread: 1.64, reverseSpread: 2.54 },
-    { symbol: 'SUBHUB', chain: 'bsc', price: 60, directSpread: 1.21, reverseSpread: 2.86 },
-    { symbol: 'LAB', chain: 'bsc', price: 2363, directSpread: 0.36, reverseSpread: 0.71 },
-    { symbol: 'ON', chain: 'bsc', price: 2018, directSpread: 0.29, reverseSpread: 0.7 },
-    { symbol: 'POWER', chain: 'bsc', price: 5578, directSpread: 0.25, reverseSpread: 0.69 },
-    { symbol: 'JCT', chain: 'bsc', price: 1560, directSpread: 0.22, reverseSpread: 0.59 },
-    { symbol: 'GAIB', chain: 'bsc', price: 101, directSpread: 1.63, reverseSpread: 2.16 },
-    { symbol: 'BULLA', chain: 'bsc', price: 1987, directSpread: 0.52, reverseSpread: 1.72 },
-    { symbol: 'COAI', chain: 'bsc', price: 5805, directSpread: 0.31, reverseSpread: 0.47 },
-    { symbol: 'TAKE', chain: 'bsc', price: 2403, directSpread: 0.29, reverseSpread: 0.44 },
-    { symbol: 'Q', chain: 'bsc', price: 1931, directSpread: 0.24, reverseSpread: 0.49 },
-    { symbol: 'CROSS', chain: 'bsc', price: 2365, directSpread: 0.19, reverseSpread: 0.55 },
-    { symbol: 'BAY', chain: 'bsc', price: 38, directSpread: 2.32, reverseSpread: 3.56 },
-    { symbol: 'LONG', chain: 'bsc', price: 281, directSpread: 1.23, reverseSpread: 3.34 },
-    { symbol: 'RAVE', chain: 'bsc', price: 235, directSpread: 0.42, reverseSpread: 0.73 },
-    { symbol: 'YALA', chain: 'bsc', price: 82, directSpread: 0.3, reverseSpread: 0.46 },
-    { symbol: 'B', chain: 'bsc', price: 29532, directSpread: 0.29, reverseSpread: 0.49 },
-    { symbol: 'SENTIS', chain: 'bsc', price: 329, directSpread: 0.23, reverseSpread: 1.29 },
-    { symbol: '42', chain: 'bsc', price: 1776, directSpread: 0.13, reverseSpread: 0.95 },
+    {
+      symbol: 'ARIAIP',
+      chain: 'bsc',
+      price: 73,
+      directSpread: 5.0,
+      reverseSpread: 5.13,
+    },
+    {
+      symbol: 'POP',
+      chain: 'bsc',
+      price: 65,
+      directSpread: 3.29,
+      reverseSpread: 4.09,
+    },
+    {
+      symbol: 'RION',
+      chain: 'bsc',
+      price: 46,
+      directSpread: 4.74,
+      reverseSpread: 5.28,
+    },
+    {
+      symbol: 'NB',
+      chain: 'bsc',
+      price: 57,
+      directSpread: 3.11,
+      reverseSpread: 8.96,
+    },
+    {
+      symbol: 'BOS',
+      chain: 'bsc',
+      price: 91,
+      directSpread: 4.09,
+      reverseSpread: 4.64,
+    },
+    {
+      symbol: 'MAIGA',
+      chain: 'bsc',
+      price: 47,
+      directSpread: 1.64,
+      reverseSpread: 2.54,
+    },
+    {
+      symbol: 'SUBHUB',
+      chain: 'bsc',
+      price: 60,
+      directSpread: 1.21,
+      reverseSpread: 2.86,
+    },
+    {
+      symbol: 'LAB',
+      chain: 'bsc',
+      price: 2363,
+      directSpread: 0.36,
+      reverseSpread: 0.71,
+    },
+    {
+      symbol: 'ON',
+      chain: 'bsc',
+      price: 2018,
+      directSpread: 0.29,
+      reverseSpread: 0.7,
+    },
+    {
+      symbol: 'POWER',
+      chain: 'bsc',
+      price: 5578,
+      directSpread: 0.25,
+      reverseSpread: 0.69,
+    },
+    {
+      symbol: 'JCT',
+      chain: 'bsc',
+      price: 1560,
+      directSpread: 0.22,
+      reverseSpread: 0.59,
+    },
+    {
+      symbol: 'GAIB',
+      chain: 'bsc',
+      price: 101,
+      directSpread: 1.63,
+      reverseSpread: 2.16,
+    },
+    {
+      symbol: 'BULLA',
+      chain: 'bsc',
+      price: 1987,
+      directSpread: 0.52,
+      reverseSpread: 1.72,
+    },
+    {
+      symbol: 'COAI',
+      chain: 'bsc',
+      price: 5805,
+      directSpread: 0.31,
+      reverseSpread: 0.47,
+    },
+    {
+      symbol: 'TAKE',
+      chain: 'bsc',
+      price: 2403,
+      directSpread: 0.29,
+      reverseSpread: 0.44,
+    },
+    {
+      symbol: 'Q',
+      chain: 'bsc',
+      price: 1931,
+      directSpread: 0.24,
+      reverseSpread: 0.49,
+    },
+    {
+      symbol: 'CROSS',
+      chain: 'bsc',
+      price: 2365,
+      directSpread: 0.19,
+      reverseSpread: 0.55,
+    },
+    {
+      symbol: 'BAY',
+      chain: 'bsc',
+      price: 38,
+      directSpread: 2.32,
+      reverseSpread: 3.56,
+    },
+    {
+      symbol: 'LONG',
+      chain: 'bsc',
+      price: 281,
+      directSpread: 1.23,
+      reverseSpread: 3.34,
+    },
+    {
+      symbol: 'RAVE',
+      chain: 'bsc',
+      price: 235,
+      directSpread: 0.42,
+      reverseSpread: 0.73,
+    },
+    {
+      symbol: 'YALA',
+      chain: 'bsc',
+      price: 82,
+      directSpread: 0.3,
+      reverseSpread: 0.46,
+    },
+    {
+      symbol: 'B',
+      chain: 'bsc',
+      price: 29532,
+      directSpread: 0.29,
+      reverseSpread: 0.49,
+    },
+    {
+      symbol: 'SENTIS',
+      chain: 'bsc',
+      price: 329,
+      directSpread: 0.23,
+      reverseSpread: 1.29,
+    },
+    {
+      symbol: '42',
+      chain: 'bsc',
+      price: 1776,
+      directSpread: 0.13,
+      reverseSpread: 0.95,
+    },
   ];
 }
-

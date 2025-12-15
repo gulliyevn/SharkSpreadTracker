@@ -1,2 +1,1 @@
 export { LoadingSpinner } from './LoadingSpinner';
-

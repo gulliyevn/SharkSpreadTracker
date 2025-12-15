@@ -26,8 +26,8 @@ export function TokenList({
     // Фильтр по поиску
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (token) => token.symbol.toLowerCase().includes(searchLower)
+      filtered = filtered.filter((token) =>
+        token.symbol.toLowerCase().includes(searchLower)
       );
     }
 
@@ -55,4 +55,3 @@ export function TokenList({
     </div>
   );
 }
-

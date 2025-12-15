@@ -11,7 +11,9 @@ interface LanguageContextType {
   isReady: boolean;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const LanguageContext = createContext<LanguageContextType | undefined>(
+  undefined
+);
 
 interface LanguageProviderProps {
   children: React.ReactNode;
@@ -19,10 +21,11 @@ interface LanguageProviderProps {
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const { t, i18n } = useI18nTranslation();
-  const [storedLanguage, setStoredLanguage] = useLocalStorage<SupportedLanguage>(
-    STORAGE_KEYS.LANGUAGE,
-    'en' as SupportedLanguage
-  );
+  const [storedLanguage, setStoredLanguage] =
+    useLocalStorage<SupportedLanguage>(
+      STORAGE_KEYS.LANGUAGE,
+      'en' as SupportedLanguage
+    );
 
   const changeLanguage = useCallback(
     (lang: SupportedLanguage) => {
@@ -64,4 +67,3 @@ export function useLanguage() {
   }
   return context;
 }
-

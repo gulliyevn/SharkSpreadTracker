@@ -92,11 +92,11 @@ describe('Jupiter Schemas', () => {
   describe('JupiterPricesResponseSchema', () => {
     it('should validate prices record', () => {
       const validPrices = {
-        'So11111111111111111111111111111111111111112': {
+        So11111111111111111111111111111111111111112: {
           price: 100.5,
           id: 'SOL',
         },
-        'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': {
+        EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: {
           price: 1.0,
           id: 'USDC',
         },
@@ -107,4 +107,3 @@ describe('Jupiter Schemas', () => {
     });
   });
 });
-

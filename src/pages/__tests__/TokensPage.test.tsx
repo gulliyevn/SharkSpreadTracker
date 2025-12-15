@@ -88,10 +88,12 @@ describe('TokensPage', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('BTC')).toBeInTheDocument();
-      expect(screen.getByText('ETH')).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText('BTC')).toBeInTheDocument();
+        expect(screen.getByText('ETH')).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 });
-

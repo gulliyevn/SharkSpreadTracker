@@ -41,4 +41,3 @@ export function validateCSRFToken(token: string): boolean {
   const storedToken = sessionStorage.getItem(CSRF_TOKEN_KEY);
   return storedToken !== null && storedToken === token;
 }
-

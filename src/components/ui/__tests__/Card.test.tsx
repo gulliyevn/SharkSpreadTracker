@@ -34,4 +34,3 @@ describe('CardFooter', () => {
     expect(screen.getByText('Footer')).toBeInTheDocument();
   });
 });
-

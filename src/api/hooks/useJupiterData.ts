@@ -29,4 +29,3 @@ export function useJupiterData(
     retryDelay: 1000,
   });
 }
-

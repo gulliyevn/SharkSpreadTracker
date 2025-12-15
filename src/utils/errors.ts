@@ -21,7 +21,10 @@ export class ApiError extends Error {
  * Кастомный класс ошибки валидации
  */
 export class ValidationError extends Error {
-  constructor(message: string, public field?: string) {
+  constructor(
+    message: string,
+    public field?: string
+  ) {
     super(message);
     this.name = 'ValidationError';
     Object.setPrototypeOf(this, ValidationError.prototype);
@@ -100,7 +103,9 @@ export function getErrorMessage(
       case 503:
         return 'Server error. Please try again later.';
       default:
-        return error.message || 'An error occurred while requesting the server.';
+        return (
+          error.message || 'An error occurred while requesting the server.'
+        );
     }
   }
 
@@ -140,8 +145,9 @@ export function isNetworkError(error: unknown): boolean {
  */
 export function isTimeoutError(error: unknown): boolean {
   if (error instanceof Error) {
-    return error.message.includes('timeout') || error.message.includes('Timeout');
+    return (
+      error.message.includes('timeout') || error.message.includes('Timeout')
+    );
   }
   return false;
 }
-

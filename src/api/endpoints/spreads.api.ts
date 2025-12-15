@@ -1,4 +1,10 @@
-import type { Token, SpreadResponse, SpreadDataPoint, CurrentData, TimeframeOption } from '@/types';
+import type {
+  Token,
+  SpreadResponse,
+  SpreadDataPoint,
+  CurrentData,
+  TimeframeOption,
+} from '@/types';
 import { getAllPrices, type AllPrices } from './prices.api';
 import { calculateSpread } from '@/utils/calculations';
 import { SpreadResponseSchema } from '../schemas';
@@ -110,10 +116,14 @@ export function calculateSpreads(prices: AllPrices): {
  */
 export async function getSpreadsForTokens(
   tokens: Token[]
-): Promise<Array<Token & { directSpread: number | null; reverseSpread: number | null }>> {
+): Promise<
+  Array<Token & { directSpread: number | null; reverseSpread: number | null }>
+> {
   // Получаем цены для всех токенов параллельно (с ограничением)
   const BATCH_SIZE = 10; // Ограничиваем количество параллельных запросов
-  const results: Array<Token & { directSpread: number | null; reverseSpread: number | null }> = [];
+  const results: Array<
+    Token & { directSpread: number | null; reverseSpread: number | null }
+  > = [];
 
   for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
     const batch = tokens.slice(i, i + BATCH_SIZE);
@@ -138,4 +148,3 @@ export async function getSpreadsForTokens(
 
   return results;
 }
-

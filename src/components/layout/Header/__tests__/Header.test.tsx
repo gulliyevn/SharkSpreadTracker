@@ -53,7 +53,9 @@ describe('Header', () => {
     );
 
     await waitFor(() => {
-      const viewButton = screen.getByRole('button', { name: /charts|open charts/i });
+      const viewButton = screen.getByRole('button', {
+        name: /charts|open charts/i,
+      });
       expect(viewButton).toBeInTheDocument();
     });
   });
@@ -66,8 +68,12 @@ describe('Header', () => {
     );
 
     await waitFor(() => {
-      const enButton = screen.getByRole('button', { name: /switch to english/i });
-      const ruButton = screen.getByRole('button', { name: /переключить на русский/i });
+      const enButton = screen.getByRole('button', {
+        name: /switch to english/i,
+      });
+      const ruButton = screen.getByRole('button', {
+        name: /переключить на русский/i,
+      });
       expect(enButton).toBeInTheDocument();
       expect(ruButton).toBeInTheDocument();
     });
@@ -81,7 +87,9 @@ describe('Header', () => {
     );
 
     await waitFor(() => {
-      const themeButton = screen.getByRole('button', { name: /switch to (light|dark) mode/i });
+      const themeButton = screen.getByRole('button', {
+        name: /switch to (light|dark) mode/i,
+      });
       expect(themeButton).toBeInTheDocument();
     });
   });
@@ -96,17 +104,17 @@ describe('Header', () => {
 
     await waitFor(() => {
       const buttons = screen.getAllByRole('button');
-      const themeButton = buttons.find(btn => 
+      const themeButton = buttons.find((btn) =>
         btn.getAttribute('aria-label')?.includes('mode')
       );
       expect(themeButton).toBeDefined();
     });
 
     const buttons = screen.getAllByRole('button');
-    const themeButton = buttons.find(btn => 
+    const themeButton = buttons.find((btn) =>
       btn.getAttribute('aria-label')?.includes('mode')
     );
-    
+
     if (themeButton) {
       await user.click(themeButton);
       // Theme should toggle (button should still be present)
@@ -114,4 +122,3 @@ describe('Header', () => {
     }
   });
 });
-

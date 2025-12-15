@@ -47,4 +47,3 @@ describe('Select', () => {
     expect(screen.getByText('Error message')).toHaveClass('text-error-600');
   });
 });
-

@@ -69,4 +69,3 @@ export type CurrentData = z.infer<typeof CurrentDataSchema>;
 export type Sources = z.infer<typeof SourcesSchema>;
 export type SpreadResponse = z.infer<typeof SpreadResponseSchema>;
 export type SpreadCalculation = z.infer<typeof SpreadCalculationSchema>;
-

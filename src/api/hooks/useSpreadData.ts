@@ -29,4 +29,3 @@ export function useSpreadData(
     retryDelay: 1000,
   });
 }
-

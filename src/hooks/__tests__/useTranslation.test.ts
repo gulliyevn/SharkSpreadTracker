@@ -24,4 +24,3 @@ describe('useTranslation', () => {
     expect(useLanguage).toHaveBeenCalled();
   });
 });
-

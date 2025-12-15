@@ -52,4 +52,3 @@ export function TokenSearch({
     </div>
   );
 }
-

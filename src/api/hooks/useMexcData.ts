@@ -8,10 +8,7 @@ import type { TokenPrice } from '../endpoints/prices.api';
  * @param symbol - Символ токена (например, 'BTCUSDT')
  * @param enabled - Включить/выключить запрос
  */
-export function useMexcData(
-  symbol: string | null,
-  enabled: boolean = true
-) {
+export function useMexcData(symbol: string | null, enabled: boolean = true) {
   return useQuery<TokenPrice | null>({
     queryKey: ['mexc', 'price', symbol],
     queryFn: () => {
@@ -27,4 +24,3 @@ export function useMexcData(
     retryDelay: 1000,
   });
 }
-

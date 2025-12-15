@@ -128,4 +128,3 @@ describe('TokenFilters', () => {
     expect(onReverseOnlyChange).toHaveBeenCalledWith(true);
   });
 });
-

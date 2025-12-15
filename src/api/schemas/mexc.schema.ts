@@ -41,8 +41,14 @@ export const MexcExchangeInfoSchema = z.object({
 export const MexcTickerSchema = z.object({
   symbol: z.string().min(1, 'Symbol is required'),
   price: z.string().regex(/^\d+\.?\d*$/, 'Price must be a valid number string'),
-  bidPrice: z.string().regex(/^\d+\.?\d*$/, 'Bid price must be a valid number string').optional(),
-  askPrice: z.string().regex(/^\d+\.?\d*$/, 'Ask price must be a valid number string').optional(),
+  bidPrice: z
+    .string()
+    .regex(/^\d+\.?\d*$/, 'Bid price must be a valid number string')
+    .optional(),
+  askPrice: z
+    .string()
+    .regex(/^\d+\.?\d*$/, 'Ask price must be a valid number string')
+    .optional(),
   volume: z.string().optional(),
   quoteVolume: z.string().optional(),
   openPrice: z.string().optional(),
@@ -75,4 +81,3 @@ export type MexcSymbol = z.infer<typeof MexcSymbolSchema>;
 export type MexcExchangeInfo = z.infer<typeof MexcExchangeInfoSchema>;
 export type MexcTicker = z.infer<typeof MexcTickerSchema>;
 export type MexcTickersResponse = z.infer<typeof MexcTickersResponseSchema>;
-

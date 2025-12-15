@@ -8,9 +8,12 @@ interface SkeletonProps {
 /**
  * Компонент Skeleton для отображения состояния загрузки
  */
-export function Skeleton({ className, variant = 'rectangular' }: SkeletonProps) {
+export function Skeleton({
+  className,
+  variant = 'rectangular',
+}: SkeletonProps) {
   const baseClasses = 'animate-pulse bg-light-200 dark:bg-dark-700';
-  
+
   const variantClasses = {
     text: 'h-4 rounded',
     circular: 'rounded-full',
@@ -25,4 +28,3 @@ export function Skeleton({ className, variant = 'rectangular' }: SkeletonProps) 
     />
   );
 }
-

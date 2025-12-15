@@ -49,7 +49,11 @@ describe('TokenSearch', () => {
     const onChange = vi.fn();
     render(
       <TestWrapper>
-        <TokenSearch value="" onChange={onChange} placeholder="Search tokens..." />
+        <TokenSearch
+          value=""
+          onChange={onChange}
+          placeholder="Search tokens..."
+        />
       </TestWrapper>
     );
 
@@ -93,10 +97,12 @@ describe('TokenSearch', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      const input = screen.getByDisplayValue('BTC');
-      expect(input).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const input = screen.getByDisplayValue('BTC');
+        expect(input).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 });
-

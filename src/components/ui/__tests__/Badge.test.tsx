@@ -23,4 +23,3 @@ describe('Badge', () => {
     expect(container.firstChild).toHaveClass('bg-light-200');
   });
 });
-

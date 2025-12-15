@@ -45,9 +45,12 @@ describe('Smoke Tests - Critical Paths', () => {
           <App />
         </TestWrapper>
       );
-      await waitFor(() => {
-        expect(document.body).toBeInTheDocument();
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(document.body).toBeInTheDocument();
+        },
+        { timeout: 2000 }
+      );
     });
 
     it('should render Header', async () => {
@@ -70,7 +73,11 @@ describe('Smoke Tests - Critical Paths', () => {
           <App />
         </TestWrapper>
       );
-      const footer = await screen.findByRole('contentinfo', {}, { timeout: 2000 });
+      const footer = await screen.findByRole(
+        'contentinfo',
+        {},
+        { timeout: 2000 }
+      );
       expect(footer).toBeInTheDocument();
     });
   });
@@ -83,9 +90,12 @@ describe('Smoke Tests - Critical Paths', () => {
         </TestWrapper>
       );
       // Проверяем, что страница токенов рендерится (по умолчанию)
-      await waitFor(() => {
-        expect(document.body).toBeInTheDocument();
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(document.body).toBeInTheDocument();
+        },
+        { timeout: 2000 }
+      );
     });
 
     it('should display search input', async () => {
@@ -96,7 +106,11 @@ describe('Smoke Tests - Critical Paths', () => {
       );
       // Ищем поле поиска по placeholder или role
       // Может быть не сразу, так как страница загружается
-      const searchInput = await screen.findByPlaceholderText(/search|поиск|ara/i, {}, { timeout: 5000 });
+      const searchInput = await screen.findByPlaceholderText(
+        /search|поиск|ara/i,
+        {},
+        { timeout: 5000 }
+      );
       expect(searchInput).toBeInTheDocument();
     });
   });
@@ -109,9 +123,12 @@ describe('Smoke Tests - Critical Paths', () => {
         </TestWrapper>
       );
       // Проверяем, что тема применяется (класс dark или light)
-      await waitFor(() => {
-        expect(container.firstChild).toBeInTheDocument();
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(container.firstChild).toBeInTheDocument();
+        },
+        { timeout: 2000 }
+      );
     });
 
     it('should provide LanguageContext', async () => {
@@ -121,9 +138,12 @@ describe('Smoke Tests - Critical Paths', () => {
         </TestWrapper>
       );
       // Проверяем, что переводы работают (текст на странице)
-      await waitFor(() => {
-        expect(document.body).toBeInTheDocument();
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(document.body).toBeInTheDocument();
+        },
+        { timeout: 2000 }
+      );
     });
 
     it('should provide ViewContext', async () => {
@@ -133,9 +153,12 @@ describe('Smoke Tests - Critical Paths', () => {
         </TestWrapper>
       );
       // Проверяем, что переключение между views работает
-      await waitFor(() => {
-        expect(document.body).toBeInTheDocument();
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(document.body).toBeInTheDocument();
+        },
+        { timeout: 2000 }
+      );
     });
   });
 
@@ -148,10 +171,12 @@ describe('Smoke Tests - Critical Paths', () => {
         </TestWrapper>
       );
       // Приложение должно рендериться даже если API недоступно
-      await waitFor(() => {
-        expect(document.body).toBeInTheDocument();
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(document.body).toBeInTheDocument();
+        },
+        { timeout: 2000 }
+      );
     });
   });
 });
-

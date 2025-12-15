@@ -55,4 +55,3 @@ describe('usePancakeData', () => {
     expect(getPancakePrice).not.toHaveBeenCalled();
   });
 });
-

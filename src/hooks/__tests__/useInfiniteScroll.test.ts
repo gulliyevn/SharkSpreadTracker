@@ -60,4 +60,3 @@ describe('useInfiniteScroll', () => {
     expect('current' in result.current).toBe(true);
   });
 });
-

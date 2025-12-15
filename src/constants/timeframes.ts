@@ -56,4 +56,3 @@ export const getTimeframeConfig = (
 ): TimeframeConfig => {
   return TIMEFRAMES[timeframe];
 };
-

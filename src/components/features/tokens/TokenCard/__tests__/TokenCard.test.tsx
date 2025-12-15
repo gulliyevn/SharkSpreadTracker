@@ -39,9 +39,7 @@ describe('TokenCard', () => {
     const user = userEvent.setup();
     const onFavoriteToggle = vi.fn();
 
-    render(
-      <TokenCard token={mockToken} onFavoriteToggle={onFavoriteToggle} />
-    );
+    render(<TokenCard token={mockToken} onFavoriteToggle={onFavoriteToggle} />);
 
     const favoriteButton = screen.getByRole('button', {
       name: /add to favorites|remove from favorites/i,
@@ -59,4 +57,3 @@ describe('TokenCard', () => {
     expect(favoriteButton).toBeInTheDocument();
   });
 });
-

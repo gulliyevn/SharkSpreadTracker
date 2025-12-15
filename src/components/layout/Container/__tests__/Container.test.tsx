@@ -32,4 +32,3 @@ describe('Container', () => {
     expect(containerElement).toHaveClass('custom-class');
   });
 });
-

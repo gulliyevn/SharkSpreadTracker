@@ -38,4 +38,3 @@ describe('LoadingSpinner', () => {
     expect(spinner).toHaveAttribute('aria-label', 'Loading');
   });
 });
-

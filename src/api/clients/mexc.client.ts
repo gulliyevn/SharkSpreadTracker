@@ -11,4 +11,3 @@ export const mexcClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
 });
-

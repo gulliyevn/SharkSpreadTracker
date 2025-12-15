@@ -63,7 +63,9 @@ export function TokenCard({
                 ? 'text-yellow-500'
                 : 'text-light-400 dark:text-dark-500 hover:text-yellow-500'
             )}
-            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            aria-label={
+              isFavorite ? 'Remove from favorites' : 'Add to favorites'
+            }
           >
             <Star
               className={cn(
@@ -143,4 +145,3 @@ export function TokenCard({
     </div>
   );
 }
-

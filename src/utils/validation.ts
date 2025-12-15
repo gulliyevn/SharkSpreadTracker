@@ -17,7 +17,9 @@ export function validateApiKey(apiKey: string | null | undefined): boolean {
 /**
  * Валидация символа токена
  */
-export function validateTokenSymbol(symbol: string | null | undefined): boolean {
+export function validateTokenSymbol(
+  symbol: string | null | undefined
+): boolean {
   if (!symbol) {
     return false;
   }
@@ -48,4 +50,3 @@ export function validateTimestamp(timestamp: number): boolean {
   const maxTimestamp = now + 86400000; // +1 день от текущего времени
   return timestamp >= minTimestamp && timestamp <= maxTimestamp;
 }
-

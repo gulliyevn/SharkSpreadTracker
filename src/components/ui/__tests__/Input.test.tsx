@@ -40,4 +40,3 @@ describe('Input', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
   });
 });
-

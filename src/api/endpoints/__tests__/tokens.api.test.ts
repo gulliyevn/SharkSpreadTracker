@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getAllTokens, getJupiterTokens, getPancakeTokens, getMexcTokens } from '../tokens.api';
+import {
+  getAllTokens,
+  getJupiterTokens,
+  getPancakeTokens,
+  getMexcTokens,
+} from '../tokens.api';
 import { jupiterClient, pancakeClient, mexcClient } from '../../clients';
 
 // Моки для клиентов
@@ -22,7 +27,9 @@ describe('tokens.api', () => {
 
   describe('getJupiterTokens', () => {
     it('should return empty array on error', async () => {
-      vi.mocked(jupiterClient.get).mockRejectedValue(new Error('Network error'));
+      vi.mocked(jupiterClient.get).mockRejectedValue(
+        new Error('Network error')
+      );
       const result = await getJupiterTokens();
       expect(result).toEqual([]);
     });
@@ -30,8 +37,14 @@ describe('tokens.api', () => {
     it('should parse valid response', async () => {
       vi.mocked(jupiterClient.get).mockResolvedValue({
         data: [
-          { symbol: 'SOL', address: 'So11111111111111111111111111111111111111112' },
-          { symbol: 'USDC', address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
+          {
+            symbol: 'SOL',
+            address: 'So11111111111111111111111111111111111111112',
+          },
+          {
+            symbol: 'USDC',
+            address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+          },
         ],
       });
 
@@ -58,7 +71,9 @@ describe('tokens.api', () => {
 
   describe('getPancakeTokens', () => {
     it('should return empty array on error', async () => {
-      vi.mocked(pancakeClient.get).mockRejectedValue(new Error('Network error'));
+      vi.mocked(pancakeClient.get).mockRejectedValue(
+        new Error('Network error')
+      );
       const result = await getPancakeTokens();
       expect(result).toEqual([]);
     });
@@ -130,7 +145,9 @@ describe('tokens.api', () => {
         data: { pairs: [{ baseToken: { symbol: 'CAKE' } }] },
       });
       vi.mocked(mexcClient.get).mockResolvedValue({
-        data: { symbols: [{ symbol: 'BTCUSDT', baseAsset: 'BTC', status: 'ENABLED' }] },
+        data: {
+          symbols: [{ symbol: 'BTCUSDT', baseAsset: 'BTC', status: 'ENABLED' }],
+        },
       });
 
       const result = await getAllTokens();
@@ -155,4 +172,3 @@ describe('tokens.api', () => {
     });
   });
 });
-

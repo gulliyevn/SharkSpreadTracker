@@ -32,7 +32,9 @@ describe('ErrorDisplay', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
     });
-    expect(screen.getByText(/test error|an unknown error/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/test error|an unknown error/i)
+    ).toBeInTheDocument();
   });
 
   it('should display custom title', async () => {
@@ -58,7 +60,9 @@ describe('ErrorDisplay', () => {
       </TestWrapper>
     );
 
-    const retryButton = screen.getByRole('button', { name: /try again|попробовать|tekrar dene/i });
+    const retryButton = screen.getByRole('button', {
+      name: /try again|попробовать|tekrar dene/i,
+    });
     await user.click(retryButton);
 
     expect(onReset).toHaveBeenCalledTimes(1);
@@ -75,7 +79,9 @@ describe('ErrorDisplay', () => {
       </TestWrapper>
     );
 
-    const homeButton = screen.getByRole('button', { name: /go home|на главную|ana sayfaya/i });
+    const homeButton = screen.getByRole('button', {
+      name: /go home|на главную|ana sayfaya/i,
+    });
     await user.click(homeButton);
 
     expect(onGoHome).toHaveBeenCalledTimes(1);
@@ -114,4 +120,3 @@ describe('ErrorDisplay', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 });
-

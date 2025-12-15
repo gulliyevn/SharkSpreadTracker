@@ -38,4 +38,3 @@ export function useView() {
   }
   return context;
 }
-

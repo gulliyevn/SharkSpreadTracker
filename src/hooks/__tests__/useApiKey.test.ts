@@ -78,4 +78,3 @@ describe('useApiKey', () => {
     expect(result.current.getValidKey()).toBeNull();
   });
 });
-

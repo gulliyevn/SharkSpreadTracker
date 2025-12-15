@@ -15,10 +15,7 @@ export const TimestampSchema = z.number().int().positive();
 /**
  * Санитизация массива с валидацией через Zod
  */
-export function sanitizeArray<T>(
-  data: unknown,
-  schema: z.ZodSchema<T>
-): T[] {
+export function sanitizeArray<T>(data: unknown, schema: z.ZodSchema<T>): T[] {
   try {
     if (!Array.isArray(data)) {
       return [];
@@ -66,4 +63,3 @@ export function safeExtract<T>(
     return fallback;
   }
 }
-

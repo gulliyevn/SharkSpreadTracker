@@ -85,4 +85,3 @@ describe('useSpreadData', () => {
     expect(result.current.error).toBeInstanceOf(Error);
   });
 });
-

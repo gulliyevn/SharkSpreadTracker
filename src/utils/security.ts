@@ -98,11 +98,7 @@ export const rateLimiter = new RateLimiter(10, 1000); // 10 запросов в 
 /**
  * Безопасное извлечение данных из объекта
  */
-export function safeGet<T>(
-  obj: unknown,
-  path: string,
-  defaultValue: T
-): T {
+export function safeGet<T>(obj: unknown, path: string, defaultValue: T): T {
   if (!obj || typeof obj !== 'object') {
     return defaultValue;
   }
@@ -138,9 +134,11 @@ export function generateCSRFToken(): string {
 /**
  * Валидация timestamp (защита от replay атак)
  */
-export function isValidTimestamp(timestamp: number, maxAgeMs: number = 60000): boolean {
+export function isValidTimestamp(
+  timestamp: number,
+  maxAgeMs: number = 60000
+): boolean {
   const now = Date.now();
   const age = now - timestamp;
   return age >= 0 && age <= maxAgeMs;
 }
-

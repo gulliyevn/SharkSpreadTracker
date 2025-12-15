@@ -90,4 +90,3 @@ describe('Pancake/DexScreener Schemas', () => {
     });
   });
 });
-

@@ -87,4 +87,3 @@ export function TokenFilters({
     </div>
   );
 }
-
