@@ -20,6 +20,14 @@ export const CHAINS: Record<ChainType, ChainConfig> = {
 } as const;
 
 /**
+ * Chain IDs для различных API (DexScreener и др.)
+ */
+export const CHAIN_IDS = {
+  BSC: ['bsc', '56'] as const,
+  SOLANA: ['solana', 'sol'] as const,
+} as const;
+
+/**
  * Получить конфигурацию цепи
  */
 export const getChainConfig = (chain: ChainType): ChainConfig => {

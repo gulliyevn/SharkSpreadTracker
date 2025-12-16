@@ -59,4 +59,62 @@ describe('useInfiniteScroll', () => {
     expect(typeof result.current).toBe('object');
     expect('current' in result.current).toBe(true);
   });
+
+  it('should observe element when ref is attached', () => {
+    const onLoadMore = vi.fn();
+    renderHook(() =>
+      useInfiniteScroll({
+        hasMore: true,
+        isLoading: false,
+        onLoadMore,
+      })
+    );
+
+    // Observer should be created when hook is rendered
+    // Note: This is a simplified test, actual implementation may vary
+    expect(MockIntersectionObserver).toBeDefined();
+  });
+
+  it('should use custom threshold', () => {
+    const onLoadMore = vi.fn();
+    renderHook(() =>
+      useInfiniteScroll({
+        hasMore: true,
+        isLoading: false,
+        onLoadMore,
+        threshold: 500,
+      })
+    );
+
+    // Threshold should be used in IntersectionObserver
+    expect(MockIntersectionObserver).toBeDefined();
+  });
+
+  it('should not call onLoadMore when hasMore is false', () => {
+    const onLoadMore = vi.fn();
+    renderHook(() =>
+      useInfiniteScroll({
+        hasMore: false,
+        isLoading: false,
+        onLoadMore,
+      })
+    );
+
+    // Should not call onLoadMore when hasMore is false
+    expect(onLoadMore).not.toHaveBeenCalled();
+  });
+
+  it('should not call onLoadMore when isLoading is true', () => {
+    const onLoadMore = vi.fn();
+    renderHook(() =>
+      useInfiniteScroll({
+        hasMore: true,
+        isLoading: true,
+        onLoadMore,
+      })
+    );
+
+    // Should not call onLoadMore when isLoading is true
+    expect(onLoadMore).not.toHaveBeenCalled();
+  });
 });

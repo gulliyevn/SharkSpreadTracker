@@ -5,6 +5,7 @@ import {
   DexScreenerResponseSchema,
   MexcTickerSchema,
 } from '../schemas';
+import { CHAIN_IDS } from '@/constants/chains';
 
 /**
  * Интерфейс для цены токена
@@ -101,7 +102,7 @@ export async function getPancakePrice(
     const pair = pairs.find(
       (p) =>
         p.baseToken?.symbol?.toUpperCase() === symbol.toUpperCase() &&
-        (p.chainId === 'bsc' || p.chainId === '56')
+        CHAIN_IDS.BSC.includes(p.chainId as typeof CHAIN_IDS.BSC[number])
     );
 
     if (!pair || !pair.priceUsd) {
@@ -201,7 +202,8 @@ export async function getAllPrices(token: Token): Promise<AllPrices> {
     // PancakeSwap только для BSC
     chain === 'bsc' ? getPancakePrice(symbol) : Promise.resolve(null),
     // MEXC для обоих блокчейнов (нужно правильно сформировать символ)
-    getMexcPrice(`${symbol}USDT`),
+    // Формируем символ для MEXC: {SYMBOL}USDT
+    getMexcPrice(`${symbol.toUpperCase()}USDT`),
   ]);
 
   const jupiterPrice =

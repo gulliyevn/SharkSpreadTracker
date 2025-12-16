@@ -20,6 +20,15 @@ vi.mock('../../clients', () => ({
   },
 }));
 
+// Мок для USE_MOCK_DATA
+vi.mock('@/constants/api', async () => {
+  const actual = await vi.importActual('@/constants/api');
+  return {
+    ...actual,
+    USE_MOCK_DATA: true, // Включаем mock-данные для тестов
+  };
+});
+
 describe('tokens.api', () => {
   beforeEach(() => {
     vi.clearAllMocks();

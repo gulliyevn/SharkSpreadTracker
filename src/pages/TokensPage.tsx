@@ -1,20 +1,20 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Container } from '@/components/layout/Container';
 import { TokenSearch } from '@/components/features/tokens/TokenSearch';
 import { TokenFilters } from '@/components/features/tokens/TokenFilters';
+import { TokenSelector } from '@/components/features/tokens/TokenSelector';
 import { ExchangeIndicator } from '@/components/features/tokens/ExchangeIndicator';
-import { TokenCard } from '@/components/features/tokens/TokenCard';
 import { TokenCardSkeleton } from '@/components/features/tokens/TokenCardSkeleton';
+import { TokenGrid } from '@/components/features/tokens/TokenGrid';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useTokens } from '@/api/hooks/useTokens';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import type { Token } from '@/types';
 
 /**
  * Главная страница с токенами
  */
-// Количество токенов для отображения за раз
-const ITEMS_PER_PAGE = 24;
 
 export function TokensPage() {
   const { t } = useLanguage();
@@ -22,10 +22,24 @@ export function TokensPage() {
   const [minSpread, setMinSpread] = useState(0);
   const [showDirectOnly, setShowDirectOnly] = useState(false);
   const [showReverseOnly, setShowReverseOnly] = useState(false);
-  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
   // Загружаем токены из API
   const { data: tokens = [], isLoading, error } = useTokens();
+
+  // Уникальные токены для селектора (убираем дубликаты по symbol-chain)
+  const uniqueTokensForSelector = useMemo(() => {
+    const tokenMap = new Map<string, Token>();
+    tokens.forEach((token) => {
+      const key = `${token.symbol}-${token.chain}`;
+      if (!tokenMap.has(key)) {
+        tokenMap.set(key, { symbol: token.symbol, chain: token.chain });
+      }
+    });
+    return Array.from(tokenMap.values()).sort((a, b) =>
+      a.symbol.localeCompare(b.symbol)
+    );
+  }, [tokens]);
 
   const filteredTokens = useMemo(() => {
     let filtered = tokens;
@@ -60,32 +74,30 @@ export function TokensPage() {
     return filtered;
   }, [tokens, searchTerm, minSpread, showDirectOnly, showReverseOnly]);
 
-  // Сбрасываем счетчик при изменении фильтров
-  useEffect(() => {
-    setDisplayedCount(ITEMS_PER_PAGE);
-  }, [searchTerm, minSpread, showDirectOnly, showReverseOnly]);
+  // Мемоизированные обработчики для предотвращения лишних ререндеров
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+  }, []);
 
-  // Токены для отображения (с учетом пагинации)
-  const displayedTokens = useMemo(() => {
-    return filteredTokens.slice(0, displayedCount);
-  }, [filteredTokens, displayedCount]);
+  const handleMinSpreadChange = useCallback((value: number) => {
+    setMinSpread(value);
+  }, []);
 
-  const hasMore = displayedCount < filteredTokens.length;
+  const handleDirectOnlyChange = useCallback((value: boolean) => {
+    setShowDirectOnly(value);
+  }, []);
 
-  // Загрузка следующей порции
-  const loadMore = useCallback(() => {
-    if (hasMore && !isLoading) {
-      setDisplayedCount((prev) => prev + ITEMS_PER_PAGE);
-    }
-  }, [hasMore, isLoading]);
+  const handleReverseOnlyChange = useCallback((value: boolean) => {
+    setShowReverseOnly(value);
+  }, []);
 
-  // Infinite scroll observer
-  const observerTarget = useInfiniteScroll({
-    hasMore,
-    isLoading,
-    onLoadMore: loadMore,
-    threshold: 300,
-  });
+  const handleTokenSelect = useCallback((token: Token) => {
+    setSelectedToken(token);
+  }, []);
+
+  const handleTokenClear = useCallback(() => {
+    setSelectedToken(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-dark-900">
@@ -93,19 +105,36 @@ export function TokensPage() {
         <div className="max-w-7xl mx-auto py-4 sm:py-6 lg:py-8">
           {/* Поиск и фильтры */}
           <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
+            {/* Выбор токена */}
+            <div className="flex items-center gap-3">
+              <div className="text-sm font-medium text-light-700 dark:text-dark-300 whitespace-nowrap">
+                {t('tokens.selectedToken') || 'Selected Token:'}
+              </div>
+              <div className="flex-1 max-w-xs">
+                <TokenSelector
+                  tokens={uniqueTokensForSelector}
+                  value={selectedToken}
+                  onSelect={handleTokenSelect}
+                  onClear={handleTokenClear}
+                  placeholder={t('tokens.selectToken') || 'Select a token...'}
+                  showChain
+                />
+              </div>
+            </div>
+
             {/* Поиск */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center">
               <div className="flex-1 w-full sm:max-w-md">
-                <TokenSearch value={searchTerm} onChange={setSearchTerm} />
+                <TokenSearch value={searchTerm} onChange={handleSearchChange} />
               </div>
               <div className="flex-1 sm:flex-initial">
                 <TokenFilters
                   minSpread={minSpread}
-                  onMinSpreadChange={setMinSpread}
+                  onMinSpreadChange={handleMinSpreadChange}
                   showDirectOnly={showDirectOnly}
-                  onDirectOnlyChange={setShowDirectOnly}
+                  onDirectOnlyChange={handleDirectOnlyChange}
                   showReverseOnly={showReverseOnly}
-                  onReverseOnlyChange={setShowReverseOnly}
+                  onReverseOnlyChange={handleReverseOnlyChange}
                 />
               </div>
             </div>
@@ -118,7 +147,7 @@ export function TokensPage() {
                   '...'
                 ) : (
                   <>
-                    {displayedTokens.length} / {filteredTokens.length}
+                    {filteredTokens.length} {t('common.total') || 'total'}
                   </>
                 )}
               </div>
@@ -159,63 +188,20 @@ export function TokensPage() {
           {!isLoading && !error && (
             <>
               {filteredTokens.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-light-500 dark:text-dark-500 text-sm">
-                    {t('tokens.noTokens') || 'No tokens found'}
-                  </p>
-                </div>
+                <EmptyState
+                  icon="search"
+                  title={t('tokens.noTokens') || 'No tokens found'}
+                  description={
+                    searchTerm
+                      ? t('tokens.noTokensWithSearch') || `No tokens match "${searchTerm}"`
+                      : t('tokens.noTokensDescription') || 'Try adjusting your filters or search query'
+                  }
+                />
               ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {displayedTokens.map((tokenData) => (
-                      <TokenCard
-                        key={`${tokenData.symbol}-${tokenData.chain}`}
-                        token={{
-                          symbol: tokenData.symbol,
-                          chain: tokenData.chain,
-                        }}
-                        price={tokenData.price}
-                        directSpread={tokenData.directSpread}
-                        reverseSpread={tokenData.reverseSpread}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Infinite scroll trigger и индикатор загрузки */}
-                  {hasMore && (
-                    <div
-                      ref={observerTarget}
-                      className="flex items-center justify-center py-8"
-                    >
-                      {isLoading ? (
-                        <LoadingSpinner size="md" />
-                      ) : (
-                        <div className="text-center">
-                          <p className="text-sm text-light-600 dark:text-dark-400 mb-2">
-                            {t('tokens.scrollToLoad') ||
-                              'Scroll to load more...'}
-                          </p>
-                          <button
-                            onClick={loadMore}
-                            className="px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
-                          >
-                            {t('tokens.loadMore') || 'Load More'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Индикатор конца списка */}
-                  {!hasMore && displayedTokens.length > 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-light-500 dark:text-dark-500">
-                        {t('tokens.allLoaded') || 'All tokens loaded'} (
-                        {filteredTokens.length} {t('common.total') || 'total'})
-                      </p>
-                    </div>
-                  )}
-                </>
+                // Адаптивная сетка токенов - показывает ВСЕ токены без ограничений
+                <div className="w-full">
+                  <TokenGrid tokens={filteredTokens} />
+                </div>
               )}
             </>
           )}

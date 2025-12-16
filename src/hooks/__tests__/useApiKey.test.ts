@@ -67,16 +67,39 @@ describe('useApiKey', () => {
     expect(result.current.getValidKey()).toBe('valid-key-123');
   });
 
-  // TODO: этот тест иногда флапает в CI из-за отличий окружения localStorage.
-  // Логику getValidKey уже покрывают другие тесты, поэтому временно отключаем.
-  it.skip('should return null for invalid key', () => {
-    vi.mocked(validateApiKey).mockReturnValue(false);
+  it('should trim API key when setting', () => {
     const { result } = renderHook(() => useApiKey());
 
     act(() => {
-      result.current.setApiKey('invalid');
+      result.current.setApiKey('  test-key-123  ');
     });
 
+    expect(result.current.apiKey).toBe('test-key-123');
+  });
+
+  it('should set null API key', () => {
+    const { result } = renderHook(() => useApiKey());
+
+    act(() => {
+      result.current.setApiKey('test-key-123');
+    });
+
+    expect(result.current.apiKey).toBe('test-key-123');
+
+    act(() => {
+      result.current.setApiKey(null);
+    });
+
+    expect(result.current.apiKey).toBeNull();
+  });
+
+  it('should return false for isValid when key is null', () => {
+    const { result } = renderHook(() => useApiKey());
+    expect(result.current.isValid).toBe(false);
+  });
+
+  it('should return null for getValidKey when key is null', () => {
+    const { result } = renderHook(() => useApiKey());
     expect(result.current.getValidKey()).toBeNull();
   });
 });

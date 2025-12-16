@@ -39,3 +39,10 @@ export const STORAGE_KEYS = {
   THEME: 'shark_theme',
   LANGUAGE: 'i18nextLng', // i18next использует этот ключ по умолчанию
 } as const;
+
+/**
+ * Флаг для использования mock-данных (для тестирования/разработки)
+ * Можно переопределить через ENV: VITE_USE_MOCK_DATA=true
+ */
+export const USE_MOCK_DATA =
+  import.meta.env.VITE_USE_MOCK_DATA === 'true' || false;

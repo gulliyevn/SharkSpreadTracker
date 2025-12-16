@@ -14,7 +14,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "test:smoke": "vitest run src/test/smoke.test.tsx",
     "test:integration": "vitest run src/test/integration.test.tsx",
     "test:unit": "vitest run --exclude 'src/test/{smoke,integration}.test.tsx'",
@@ -37,15 +37,19 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
     "@types/node": "^25.0.2",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
+    "@types/react-window": "^1.8.8",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-istanbul": "^4.0.16",
+    "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
@@ -53,9 +57,10 @@
     "jsdom": "^27.3.0",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",
+    "react-window": "^2.2.3",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.2.2",
-    "vite": "^5.4.21",
-    "vitest": "^2.1.8"
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16"
   }
 }

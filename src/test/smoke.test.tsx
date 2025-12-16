@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { ViewProvider } from '@/contexts/ViewContext';
 import App from '@/App';
 import '@/lib/i18n'; // Инициализация i18n
@@ -30,7 +31,9 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <LanguageProvider>
-          <ViewProvider>{children}</ViewProvider>
+          <ToastProvider>
+            <ViewProvider>{children}</ViewProvider>
+          </ToastProvider>
         </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>

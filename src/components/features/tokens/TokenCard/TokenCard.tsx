@@ -1,7 +1,9 @@
 import { Star, ArrowRight, Square, Pencil } from 'lucide-react';
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { cn } from '@/utils/cn';
 import type { Token } from '@/types';
+import { PriceDisplay } from '@/components/features/tokens/PriceDisplay';
+import { SpreadIndicator } from '@/components/features/tokens/SpreadIndicator';
 
 interface TokenCardProps {
   token: Token;
@@ -14,8 +16,9 @@ interface TokenCardProps {
 
 /**
  * Карточка токена в стиле из скриншота
+ * Оптимизирована с помощью React.memo для предотвращения лишних ререндеров
  */
-export function TokenCard({
+export const TokenCard = memo(function TokenCard({
   token,
   price = null,
   directSpread = null,
@@ -25,21 +28,12 @@ export function TokenCard({
 }: TokenCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  const formatPrice = (value: number | null | undefined): string => {
-    if (value === null || value === undefined) return '—';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const handleFavoriteToggle = useCallback(() => {
+    onFavoriteToggle?.(token);
+  }, [onFavoriteToggle, token]);
 
-  const formatSpread = (value: number | null | undefined): string => {
-    if (value === null || value === undefined) return '—';
-    const sign = value >= 0 ? '+' : '';
-    return `${sign}${value.toFixed(2)}%`;
-  };
+  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
 
   return (
     <div
@@ -49,14 +43,14 @@ export function TokenCard({
         'hover:shadow-md dark:hover:shadow-lg',
         isHovered && 'ring-2 ring-primary-500/20'
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-start justify-between mb-2">
         {/* Левая часть: звезда и название */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
-            onClick={() => onFavoriteToggle?.(token)}
+            onClick={handleFavoriteToggle}
             className={cn(
               'flex-shrink-0 p-0.5 transition-colors',
               isFavorite
@@ -81,34 +75,21 @@ export function TokenCard({
 
         {/* Правая часть: цена */}
         <div className="flex-shrink-0 ml-2">
-          <span className="font-bold text-sm sm:text-base text-dark-950 dark:text-dark-50">
-            {formatPrice(price)}
-          </span>
+          <PriceDisplay
+            value={price}
+            className="font-bold text-sm sm:text-base"
+          />
         </div>
       </div>
 
       {/* Процентные метки (зеленая и красная) */}
       <div className="flex items-center gap-2 mb-3">
-        <div
-          className={cn(
-            'flex-1 px-2 py-1 rounded text-xs font-medium text-center',
-            directSpread !== null && directSpread > 0
-              ? 'bg-success-500/20 text-success-600 dark:text-success-400'
-              : 'bg-light-200 dark:bg-dark-700 text-light-600 dark:text-dark-400'
-          )}
-        >
-          {formatSpread(directSpread)}
-        </div>
-        <div
-          className={cn(
-            'flex-1 px-2 py-1 rounded text-xs font-medium text-center',
-            reverseSpread !== null && reverseSpread > 0
-              ? 'bg-error-500/20 text-error-600 dark:text-error-400'
-              : 'bg-light-200 dark:bg-dark-700 text-light-600 dark:text-dark-400'
-          )}
-        >
-          {formatSpread(reverseSpread)}
-        </div>
+        <SpreadIndicator
+          value={directSpread}
+          type="direct"
+          className="mr-1"
+        />
+        <SpreadIndicator value={reverseSpread} type="reverse" />
       </div>
 
       {/* Иконки действий */}
@@ -144,4 +125,4 @@ export function TokenCard({
       </div>
     </div>
   );
-}
+});

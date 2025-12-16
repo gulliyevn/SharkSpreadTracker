@@ -119,5 +119,37 @@ describe('spreads.api', () => {
       expect(result.directSpread).toBeNull();
       expect(result.reverseSpread).toBeNull();
     });
+
+    it('should handle null prices gracefully', () => {
+      const allPrices = {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        jupiter: { price: null, timestamp: Date.now(), source: 'jupiter' as const },
+        pancakeswap: null,
+        mexc: { price: 50000, timestamp: Date.now(), source: 'mexc' as const },
+        timestamp: Date.now(),
+      };
+
+      const result = calculateSpreads(allPrices);
+
+      expect(result.directSpread).toBeNull();
+      expect(result.reverseSpread).toBeDefined();
+    });
+
+    it('should calculate spreads correctly for BSC with null pancakeswap', () => {
+      const allPrices = {
+        symbol: 'ETH',
+        chain: 'bsc' as const,
+        jupiter: null,
+        pancakeswap: null,
+        mexc: { price: 2000, timestamp: Date.now(), source: 'mexc' as const },
+        timestamp: Date.now(),
+      };
+
+      const result = calculateSpreads(allPrices);
+
+      expect(result.directSpread).toBeNull();
+      expect(result.reverseSpread).toBeNull();
+    });
   });
 });

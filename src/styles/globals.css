@@ -29,6 +29,7 @@ body {
     'Helvetica Neue',
     sans-serif;
   font-weight: 700; /* Bold по умолчанию */
+  font-display: swap; /* Показываем fallback шрифт пока загружается Poppins */
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   line-height: 1.5;

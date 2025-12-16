@@ -17,10 +17,11 @@ export default defineConfig({
     // Группировка тестов
     reporters: ['verbose'],
     coverage: {
-      // Используем встроенный provider 'istanbul' (c8),
-      // чтобы не требовался внешний пакет @vitest/coverage-v8.
-      provider: 'istanbul',
+      // Используем v8 provider для лучшей совместимости
+      provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
+      // Оптимизация: собираем coverage только для важных файлов
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
         'src/test/',
@@ -30,7 +31,15 @@ export default defineConfig({
         '**/__tests__',
         'dist/',
         'coverage/',
+        'src/vite-env.d.ts',
+        'src/lib/icons.ts', // Просто реэкспорты
       ],
+      // Ускоряем сборку coverage
+      all: false, // Не собираем coverage для всех файлов, только для тех, что импортируются
+      lines: 80,
+      functions: 80,
+      branches: 80,
+      statements: 80,
     },
   },
   resolve: {

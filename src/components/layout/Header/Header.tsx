@@ -23,6 +23,9 @@ export function Header() {
               alt="Shark Spread Tracker Logo"
               className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 object-contain flex-shrink-0"
               loading="eager"
+              width="40"
+              height="40"
+              decoding="async"
             />
             <h1 className="text-base sm:text-lg md:text-xl font-bold text-dark-950 dark:text-dark-50 hidden sm:block">
               {t('app.title')}

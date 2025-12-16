@@ -62,7 +62,10 @@
   "tokens": {
     "title": "Tokens",
     "selectToken": "Select Token",
-    "noTokens": "No tokens available",
+    "selectedToken": "Selected Token",
+    "noTokens": "No tokens found",
+    "noTokensWithSearch": "No tokens match your search",
+    "noTokensDescription": "Try adjusting your filters or search query",
     "searchPlaceholder": "Search token (BTC, SOL)...",
     "loadMore": "Load More",
     "scrollToLoad": "Scroll to load more...",

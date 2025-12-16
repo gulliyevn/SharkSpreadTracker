@@ -151,3 +151,69 @@ export function isTimeoutError(error: unknown): boolean {
   }
   return false;
 }
+
+/**
+ * Интерфейс для Axios ошибки
+ */
+interface AxiosErrorLike {
+  response?: {
+    status?: number;
+    statusText?: string;
+    data?: unknown;
+  };
+  code?: string;
+  message?: string;
+}
+
+/**
+ * Type guard для проверки, является ли ошибка Axios-подобной
+ */
+export function isAxiosError(error: unknown): error is AxiosErrorLike {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    !(error instanceof Error) && // Regular Error is not Axios-like
+    ('response' in error || 'code' in error)
+  );
+}
+
+/**
+ * Получить статус код из ошибки (если это Axios ошибка)
+ */
+export function getErrorStatusCode(error: unknown): number | null {
+  if (isAxiosError(error)) {
+    return error.response?.status ?? null;
+  }
+  return null;
+}
+
+/**
+ * Получить код ошибки из Axios ошибки
+ */
+export function getErrorCode(error: unknown): string | null {
+  if (isAxiosError(error)) {
+    return error.code ?? null;
+  }
+  return null;
+}
+
+/**
+ * Result-тип для явной обработки успеха/ошибки
+ */
+export type Result<T, E = Error> =
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+/**
+ * Создать успешный Result
+ */
+export function ok<T>(data: T): Result<T, never> {
+  return { success: true, data };
+}
+
+/**
+ * Создать неуспешный Result
+ */
+export function err<E>(error: E): Result<never, E> {
+  return { success: false, error };
+}
