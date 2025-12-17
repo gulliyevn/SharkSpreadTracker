@@ -13,8 +13,28 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    // Прокси не нужен - работаем напрямую с источниками
-    // Jupiter, PancakeSwap, MEXC доступны напрямую через CORS
+    cors: true,
+    proxy: {
+      // Прокси для обхода CORS в dev-режиме
+      '^/api/jupiter/.*': {
+        target: 'https://api.jup.ag',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/jupiter/, ''),
+        secure: true,
+      },
+      '^/api/mexc/.*': {
+        target: 'https://api.mexc.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/mexc/, '/api'),
+        secure: true,
+      },
+      '^/api/pancake/.*': {
+        target: 'https://api.dexscreener.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/pancake/, ''),
+        secure: true,
+      },
+    },
   },
 });
 

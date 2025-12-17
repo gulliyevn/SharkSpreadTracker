@@ -10,9 +10,9 @@ export const jupiterClient: AxiosInstance = axios.create({
   timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
-    // Добавляем API ключ, если он указан в .env
+    // Jupiter API требует x-api-key заголовок (не Authorization)
     ...(import.meta.env.VITE_JUPITER_API_KEY && {
-      Authorization: `Bearer ${import.meta.env.VITE_JUPITER_API_KEY}`,
+      'x-api-key': import.meta.env.VITE_JUPITER_API_KEY,
     }),
   },
 });

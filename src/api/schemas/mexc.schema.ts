@@ -6,6 +6,35 @@ import { z } from 'zod';
  */
 
 /**
+ * Схема для фильтра MIN_NOTIONAL
+ */
+export const MexcMinNotionalFilterSchema = z.object({
+  filterType: z.literal('MIN_NOTIONAL'),
+  minNotional: z.string(),
+});
+
+/**
+ * Схема для фильтра LOT_SIZE
+ */
+export const MexcLotSizeFilterSchema = z.object({
+  filterType: z.literal('LOT_SIZE'),
+  minQty: z.string(),
+  maxQty: z.string(),
+  stepSize: z.string(),
+});
+
+/**
+ * Схема для фильтров MEXC (union)
+ * Используем обычный union вместо discriminatedUnion, так как fallback схема может не иметь filterType
+ */
+export const MexcFilterSchema = z.union([
+  MexcMinNotionalFilterSchema,
+  MexcLotSizeFilterSchema,
+  // Другие типы фильтров (MARKET_LOT_SIZE, MAX_NUM_ORDERS, etc.) - принимаем любой объект
+  z.record(z.unknown()),
+]);
+
+/**
  * Схема для символа MEXC
  */
 export const MexcSymbolSchema = z.object({
@@ -20,7 +49,7 @@ export const MexcSymbolSchema = z.object({
   ocoAllowed: z.boolean().optional(),
   isSpotTradingAllowed: z.boolean().optional(),
   isMarginTradingAllowed: z.boolean().optional(),
-  filters: z.array(z.unknown()).optional(),
+  filters: z.array(MexcFilterSchema).optional(),
   permissions: z.array(z.string()).optional(),
 });
 

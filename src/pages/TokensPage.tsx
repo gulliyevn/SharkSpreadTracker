@@ -3,9 +3,11 @@ import { Container } from '@/components/layout/Container';
 import { TokenSearch } from '@/components/features/tokens/TokenSearch';
 import { TokenFilters } from '@/components/features/tokens/TokenFilters';
 import { TokenSelector } from '@/components/features/tokens/TokenSelector';
+import { ChainFilter, type ChainFilterValue } from '@/components/features/tokens/ChainFilter';
 import { ExchangeIndicator } from '@/components/features/tokens/ExchangeIndicator';
 import { TokenCardSkeleton } from '@/components/features/tokens/TokenCardSkeleton';
 import { TokenGrid } from '@/components/features/tokens/TokenGrid';
+import { TokenDetailsModal } from '@/components/features/tokens/TokenDetailsModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useTokens } from '@/api/hooks/useTokens';
@@ -28,6 +30,8 @@ export function TokensPage() {
   const [showDirectOnly, setShowDirectOnly] = useState(false);
   const [showReverseOnly, setShowReverseOnly] = useState(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+  const [chainFilter, setChainFilter] = useState<ChainFilterValue>('all');
+  const [editingToken, setEditingToken] = useState<Token | null>(null);
 
   // Загружаем токены из API
   const { data: tokens = [], isLoading, error } = useTokens();
@@ -46,8 +50,23 @@ export function TokensPage() {
     );
   }, [tokens]);
 
+  // Подсчет токенов по chain
+  const chainCounts = useMemo(() => {
+    const counts = {
+      all: tokens.length,
+      solana: tokens.filter((t) => t.chain === 'solana').length,
+      bsc: tokens.filter((t) => t.chain === 'bsc').length,
+    };
+    return counts;
+  }, [tokens]);
+
   const filteredTokens = useMemo(() => {
     let filtered = tokens;
+
+    // Фильтр по chain
+    if (chainFilter !== 'all') {
+      filtered = filtered.filter((token) => token.chain === chainFilter);
+    }
 
     // Фильтр по поиску
     if (searchTerm) {
@@ -76,8 +95,24 @@ export function TokensPage() {
       filtered = filtered.filter((token) => (token.reverseSpread || 0) > 0);
     }
 
+    // Сортировка по спреду (по убыванию)
+    // Токены с высоким спредом → первые в списке
+    // Вторичная сортировка: по алфавиту (если спред одинаковый)
+    filtered.sort((a, b) => {
+      const spreadA = Math.max(a.directSpread || 0, a.reverseSpread || 0);
+      const spreadB = Math.max(b.directSpread || 0, b.reverseSpread || 0);
+      
+      // Сначала по спреду (по убыванию)
+      if (spreadB !== spreadA) {
+        return spreadB - spreadA;
+      }
+      
+      // Затем по алфавиту (если спред одинаковый)
+      return a.symbol.localeCompare(b.symbol);
+    });
+
     return filtered;
-  }, [tokens, searchTerm, minSpread, showDirectOnly, showReverseOnly]);
+  }, [tokens, chainFilter, searchTerm, minSpread, showDirectOnly, showReverseOnly]);
 
   // Трекинг просмотра страницы
   useEffect(() => {
@@ -122,6 +157,28 @@ export function TokensPage() {
     setSelectedToken(null);
   }, []);
 
+  const handleTokenEdit = useCallback((token: Token) => {
+    setEditingToken(token);
+    trackTokenSelected(token.symbol, token.chain);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setEditingToken(null);
+  }, []);
+
+  // Получаем данные для редактируемого токена
+  const editingTokenData = useMemo(() => {
+    if (!editingToken) return null;
+    return filteredTokens.find(
+      (t) => t.symbol === editingToken.symbol && t.chain === editingToken.chain
+    ) || null;
+  }, [editingToken, filteredTokens]);
+
+  const handleChainFilterChange = useCallback((value: ChainFilterValue) => {
+    setChainFilter(value);
+    trackTokenFilter('chain', value);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-dark-900">
       <Container>
@@ -143,6 +200,18 @@ export function TokensPage() {
                   showChain
                 />
               </div>
+            </div>
+
+            {/* Chain Filter */}
+            <div className="flex items-center gap-3">
+              <div className="text-sm font-medium text-light-700 dark:text-dark-300 whitespace-nowrap">
+                Chain:
+              </div>
+              <ChainFilter
+                value={chainFilter}
+                onChange={handleChainFilterChange}
+                counts={chainCounts}
+              />
             </div>
 
             {/* Поиск */}
@@ -225,13 +294,25 @@ export function TokensPage() {
               ) : (
                 // Адаптивная сетка токенов - показывает ВСЕ токены без ограничений
                 <div className="w-full">
-                  <TokenGrid tokens={filteredTokens} />
+                  <TokenGrid tokens={filteredTokens} onEdit={handleTokenEdit} />
                 </div>
               )}
             </>
           )}
         </div>
       </Container>
+
+      {/* Модальное окно с деталями токена */}
+      {editingToken && editingTokenData && (
+        <TokenDetailsModal
+          isOpen={editingToken !== null}
+          onClose={handleCloseModal}
+          token={editingToken}
+          price={editingTokenData.price}
+          directSpread={editingTokenData.directSpread}
+          reverseSpread={editingTokenData.reverseSpread}
+        />
+      )}
     </div>
   );
 }

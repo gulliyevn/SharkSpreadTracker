@@ -1,6 +1,7 @@
 export interface Token {
   symbol: string;
   chain: 'solana' | 'bsc';
+  address?: string; // Адрес токена (для Jupiter и PancakeSwap, MEXC не имеет address)
 }
 
 export type SourceType = 'mexc' | 'jupiter' | 'pancakeswap';
@@ -36,3 +37,20 @@ export interface SpreadResponse {
 }
 
 export type TimeframeOption = '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
+
+/**
+ * Лимиты на покупку MEXC
+ */
+export interface MexcTradingLimits {
+  minNotional?: number;
+  minQty?: number;
+  maxQty?: number;
+  stepSize?: number;
+}
+
+/**
+ * Токен с лимитами MEXC
+ */
+export interface TokenWithLimits extends Token {
+  mexcLimits?: MexcTradingLimits;
+}
