@@ -2,6 +2,8 @@
  * Защита от утечек данных
  */
 
+import { logger } from './logger';
+
 /**
  * Маскирование чувствительных данных в логах
  */
@@ -18,11 +20,11 @@ export function maskSensitiveData(data: string): string {
 export function safeLog(message: string, data?: unknown): void {
   if (import.meta.env.PROD) {
     // В production не логируем детали
-    console.log(message);
+    logger.info(message);
     return;
   }
   // В development логируем все
-  console.log(message, data);
+  logger.debug(message, data);
 }
 
 /**
@@ -64,7 +66,7 @@ export function checkUrlForLeaks(): void {
 
   sensitiveParams.forEach((param) => {
     if (url.searchParams.has(param)) {
-      console.warn(`⚠️ Sensitive parameter "${param}" detected in URL!`);
+      logger.warn(`⚠️ Sensitive parameter "${param}" detected in URL!`);
       // Удаляем из URL
       url.searchParams.delete(param);
       window.history.replaceState({}, '', url.toString());

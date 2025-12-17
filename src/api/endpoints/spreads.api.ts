@@ -8,6 +8,7 @@ import type {
 import { getAllPrices, type AllPrices } from './prices.api';
 import { calculateSpread } from '@/utils/calculations';
 import { SpreadResponseSchema } from '../schemas';
+import { logger } from '@/utils/logger';
 
 /**
  * Получить данные спреда для токена
@@ -62,7 +63,7 @@ export async function getSpreadData(
   }
 
   // Если валидация не прошла, возвращаем исходный ответ
-  console.warn('Spread response validation failed:', validated.error);
+  logger.warn('Spread response validation failed:', validated.error);
   return response;
 }
 

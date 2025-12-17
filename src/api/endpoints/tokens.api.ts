@@ -3,6 +3,8 @@ import type { Token } from '@/types';
 import { isAxiosError, getErrorStatusCode, getErrorCode } from '@/utils/errors';
 import { USE_MOCK_DATA } from '@/constants/api';
 import { MOCK_TOKENS } from '../mockData/tokens.mock';
+import { logger } from '@/utils/logger';
+import { rateLimiter } from '@/utils/security';
 
 /**
  * Интерфейс для токена с дополнительными данными
@@ -55,6 +57,12 @@ interface MexcExchangeInfo {
  * @param signal - AbortSignal для отмены запроса (опционально)
  */
 export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
+  // Проверка rate limiting
+  if (!rateLimiter.isAllowed('jupiter-api')) {
+    logger.warn('Jupiter API rate limit exceeded');
+    return [];
+  }
+
   try {
     // Jupiter API - получение списка токенов
     // Эндпоинт может быть /tokens или /v1/tokens
@@ -97,7 +105,7 @@ export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
         }
       } catch (fallbackError) {
         const fallbackStatusCode = getErrorStatusCode(fallbackError);
-        console.error(
+        logger.error(
           `Error fetching Jupiter tokens (fallback): ${fallbackStatusCode || 'unknown'}`,
           fallbackError
         );
@@ -105,7 +113,7 @@ export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
     }
     const jupiterStatusCode = getErrorStatusCode(error);
     const jupiterErrorCode = getErrorCode(error);
-    console.error(
+    logger.error(
       `Error fetching Jupiter tokens: ${jupiterStatusCode || jupiterErrorCode || 'unknown'}`,
       error
     );
@@ -119,6 +127,12 @@ export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
  * @param signal - AbortSignal для отмены запросов (опционально)
  */
 export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
+  // Проверка rate limiting
+  if (!rateLimiter.isAllowed('pancakeswap-api')) {
+    logger.warn('PancakeSwap API rate limit exceeded');
+    return [];
+  }
+
   try {
     // DexScreener API - получение популярных токенов BSC
     // Попробуем получить токены через поиск популярных пар
@@ -127,6 +141,12 @@ export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
 
     // Получаем данные для популярных токенов
     for (const tokenSymbol of popularTokens) {
+      // Проверка rate limiting для каждого запроса
+      if (!rateLimiter.isAllowed('pancakeswap-api')) {
+        logger.warn(`PancakeSwap API rate limit exceeded for ${tokenSymbol}`);
+        continue;
+      }
+
       try {
         const response = await pancakeClient.get<DexScreenerResponse>(
           `/${tokenSymbol}`,
@@ -156,7 +176,7 @@ export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
   } catch (error) {
     const pancakeStatusCode = getErrorStatusCode(error);
     const pancakeErrorCode = getErrorCode(error);
-    console.error(
+    logger.error(
       `Error fetching PancakeSwap tokens: ${pancakeStatusCode || pancakeErrorCode || 'unknown'}`,
       error
     );
@@ -170,6 +190,12 @@ export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
  * @param signal - AbortSignal для отмены запроса (опционально)
  */
 export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
+  // Проверка rate limiting
+  if (!rateLimiter.isAllowed('mexc-api')) {
+    logger.warn('MEXC API rate limit exceeded');
+    return [];
+  }
+
   try {
     // MEXC API - получение информации о бирже
     // Стандартный эндпоинт: /api/v3/exchangeInfo
@@ -240,13 +266,13 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
         }
       } catch (fallbackError) {
         const fallbackStatusCode = getErrorStatusCode(fallbackError);
-        console.error(
+        logger.error(
           `Error fetching MEXC tokens (fallback): ${fallbackStatusCode || 'unknown'}`,
           fallbackError
         );
       }
     }
-    console.error(
+    logger.error(
       `Error fetching MEXC tokens: ${initialStatusCode || initialErrorCode || 'unknown'}`,
       error
     );
@@ -311,7 +337,7 @@ export async function getAllTokens(
     // Если все API вернули пустые результаты, возвращаем моковые данные для тестирования
     // Только если USE_MOCK_DATA=true или если все источники вернули пустые результаты
     if (result.length === 0 && USE_MOCK_DATA) {
-      console.warn(
+      logger.warn(
         'All API endpoints returned empty results. Using mock data (VITE_USE_MOCK_DATA=true).'
       );
       return MOCK_TOKENS;
@@ -321,13 +347,13 @@ export async function getAllTokens(
   } catch (error) {
     const allTokensStatusCode = getErrorStatusCode(error);
     const allTokensErrorCode = getErrorCode(error);
-    console.error(
+    logger.error(
       `Error fetching all tokens: ${allTokensStatusCode || allTokensErrorCode || 'unknown'}`,
       error
     );
     // В случае ошибки возвращаем моковые данные только если флаг установлен
     if (USE_MOCK_DATA) {
-      console.warn(
+      logger.warn(
         'Using mock data due to API errors (VITE_USE_MOCK_DATA=true)'
       );
       return MOCK_TOKENS;

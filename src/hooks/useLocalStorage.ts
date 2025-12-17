@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 
 /**
  * Хук для работы с localStorage
@@ -28,7 +29,7 @@ export function useLocalStorage<T>(
         return item as T;
       }
     } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
+      logger.error(`Error reading localStorage key "${key}":`, error);
       return initialValue;
     }
   });
@@ -45,7 +46,7 @@ export function useLocalStorage<T>(
         const serialized = JSON.stringify(valueToStore);
         // Ограничение размера localStorage (5MB максимум)
         if (serialized.length > 5 * 1024 * 1024) {
-          console.error(`Data too large for localStorage key "${key}"`);
+          logger.error(`Data too large for localStorage key "${key}"`);
           return;
         }
         window.localStorage.setItem(key, serialized);
@@ -53,9 +54,9 @@ export function useLocalStorage<T>(
     } catch (error) {
       // Обработка ошибок QuotaExceededError и других
       if (error instanceof Error && error.name === 'QuotaExceededError') {
-        console.error(`localStorage quota exceeded for key "${key}"`);
+        logger.error(`localStorage quota exceeded for key "${key}"`);
       } else {
-        console.error(`Error setting localStorage key "${key}":`, error);
+        logger.error(`Error setting localStorage key "${key}":`, error);
       }
     }
   };
@@ -71,7 +72,7 @@ export function useLocalStorage<T>(
         try {
           setStoredValue(JSON.parse(e.newValue));
         } catch (error) {
-          console.error(`Error parsing storage event for key "${key}":`, error);
+          logger.error(`Error parsing storage event for key "${key}":`, error);
         }
       }
     };

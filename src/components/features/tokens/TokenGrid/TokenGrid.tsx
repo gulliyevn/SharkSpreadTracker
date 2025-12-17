@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TokenCard } from '../TokenCard';
 import type { TokenWithData } from '@/api/endpoints/tokens.api';
+import { logger } from '@/utils/logger';
 
 export interface TokenWithFavorite extends TokenWithData {
   isFavorite?: boolean;
@@ -56,7 +57,7 @@ export function TokenGrid({ tokens, onFavoriteToggle }: TokenGridProps) {
 
   // Проверяем, что columnCount валиден
   if (!columnCount || columnCount < 1) {
-    console.warn('TokenGrid: Invalid column count', { columnCount });
+    logger.warn('TokenGrid: Invalid column count', { columnCount });
     return null;
   }
 

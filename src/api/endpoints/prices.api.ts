@@ -6,6 +6,8 @@ import {
   MexcTickerSchema,
 } from '../schemas';
 import { CHAIN_IDS } from '@/constants/chains';
+import { logger } from '@/utils/logger';
+import { rateLimiter } from '@/utils/security';
 
 /**
  * Интерфейс для цены токена
@@ -41,6 +43,12 @@ export async function getJupiterPrice(
   address?: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
+  // Проверка rate limiting
+  if (!rateLimiter.isAllowed('jupiter-api')) {
+    logger.warn('Jupiter API rate limit exceeded');
+    return null;
+  }
+
   try {
     // Jupiter API для получения цены
     // Эндпоинт: /price/v1/quote или /v1/quote
@@ -54,7 +62,7 @@ export async function getJupiterPrice(
     const validated = JupiterPricesResponseSchema.safeParse(response.data);
 
     if (!validated.success) {
-      console.warn('Jupiter price validation failed:', validated.error);
+      logger.warn('Jupiter price validation failed:', validated.error);
       return null;
     }
 
@@ -71,7 +79,7 @@ export async function getJupiterPrice(
       source: 'jupiter',
     };
   } catch (error) {
-    console.error('Error fetching Jupiter price:', error);
+    logger.error('Error fetching Jupiter price:', error);
     return null;
   }
 }
@@ -85,6 +93,12 @@ export async function getPancakePrice(
   symbol: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
+  // Проверка rate limiting
+  if (!rateLimiter.isAllowed('pancakeswap-api')) {
+    logger.warn('PancakeSwap API rate limit exceeded');
+    return null;
+  }
+
   try {
     // DexScreener API для получения цены
     // Эндпоинт: /latest/dex/tokens/{address} или поиск по символу
@@ -97,7 +111,7 @@ export async function getPancakePrice(
     const validated = DexScreenerResponseSchema.safeParse(response.data);
 
     if (!validated.success) {
-      console.warn('PancakeSwap price validation failed:', validated.error);
+      logger.warn('PancakeSwap price validation failed:', validated.error);
       return null;
     }
 
@@ -126,7 +140,7 @@ export async function getPancakePrice(
       source: 'pancakeswap',
     };
   } catch (error) {
-    console.error('Error fetching PancakeSwap price:', error);
+    logger.error('Error fetching PancakeSwap price:', error);
     return null;
   }
 }
@@ -140,6 +154,12 @@ export async function getMexcPrice(
   symbol: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
+  // Проверка rate limiting
+  if (!rateLimiter.isAllowed('mexc-api')) {
+    logger.warn('MEXC API rate limit exceeded');
+    return null;
+  }
+
   try {
     // MEXC API для получения тикера
     // Эндпоинт: /api/v3/ticker/price или /api/v3/ticker/bookTicker
@@ -170,10 +190,10 @@ export async function getMexcPrice(
           }
         }
       } catch (tickerError) {
-        console.error('Error fetching MEXC ticker price:', tickerError);
+        logger.error('Error fetching MEXC ticker price:', tickerError);
       }
 
-      console.warn('MEXC price validation failed:', validated.error);
+      logger.warn('MEXC price validation failed:', validated.error);
       return null;
     }
 
@@ -194,7 +214,7 @@ export async function getMexcPrice(
       source: 'mexc',
     };
   } catch (error) {
-    console.error('Error fetching MEXC price:', error);
+    logger.error('Error fetching MEXC price:', error);
     return null;
   }
 }

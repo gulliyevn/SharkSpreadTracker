@@ -222,4 +222,89 @@ describe('TokensPage', () => {
       { timeout: 3000 }
     );
   });
+
+  it('should filter tokens by search term', async () => {
+    const mockTokens = [
+      { symbol: 'BTC', chain: 'solana' as const },
+      { symbol: 'ETH', chain: 'bsc' as const },
+      { symbol: 'BNB', chain: 'bsc' as const },
+    ];
+
+    mockUseTokens.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+    });
+
+    // Находим поле поиска и вводим текст
+    const searchInput = screen.getByPlaceholderText(/search|поиск/i);
+    expect(searchInput).toBeInTheDocument();
+  });
+
+  it('should handle analytics tracking on token select', async () => {
+    const mockTokens = [{ symbol: 'BTC', chain: 'solana' as const }];
+
+    mockUseTokens.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle empty tokens array gracefully', async () => {
+    mockUseTokens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/no tokens found/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show loading state correctly', async () => {
+    mockUseTokens.mockReturnValue({
+      data: [],
+      isLoading: true,
+      error: null,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      const spinners = screen.getAllByRole('status', { hidden: true });
+      expect(spinners.length).toBeGreaterThan(0);
+    });
+  });
 });

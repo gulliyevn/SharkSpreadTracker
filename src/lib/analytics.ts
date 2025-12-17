@@ -42,8 +42,10 @@ class Analytics {
     }
 
     // В production можно отправлять на сервер
-    // В dev режиме просто логируем
+    // Логирование через logger (только в dev)
     if (import.meta.env.DEV) {
+      // Используем прямой console.log для аналитики в dev (не через logger)
+      // чтобы не создавать циклические зависимости
       console.log('[Analytics]', eventName, properties);
     }
 
