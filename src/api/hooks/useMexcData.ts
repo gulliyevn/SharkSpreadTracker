@@ -11,11 +11,11 @@ import type { TokenPrice } from '../endpoints/prices.api';
 export function useMexcData(symbol: string | null, enabled: boolean = true) {
   return useQuery<TokenPrice | null>({
     queryKey: ['mexc', 'price', symbol],
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (!symbol) {
         throw new Error('Symbol is required');
       }
-      return getMexcPrice(symbol);
+      return getMexcPrice(symbol, signal);
     },
     enabled: enabled && symbol !== null,
     staleTime: REFRESH_INTERVALS.SPREAD_DATA,

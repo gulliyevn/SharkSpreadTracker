@@ -38,12 +38,16 @@ describe('TokenFilters', () => {
     );
 
     // Ищем input по типу number (более надежно, чем по label)
-    await waitFor(() => {
-      const input = screen.getByRole('spinbutton') || 
-                    screen.getByDisplayValue('0') ||
-                    document.querySelector('input[type="number"]');
-      expect(input).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const input =
+          screen.getByRole('spinbutton') ||
+          screen.getByDisplayValue('0') ||
+          document.querySelector('input[type="number"]');
+        expect(input).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('should call onMinSpreadChange when min spread changes', async () => {
@@ -64,16 +68,20 @@ describe('TokenFilters', () => {
     );
 
     // Ищем input по значению или типу
-    const input = await screen.findByDisplayValue('0', {}, { timeout: 3000 }) ||
-                  screen.getByRole('spinbutton') as HTMLInputElement;
-    
+    const input =
+      (await screen.findByDisplayValue('0', {}, { timeout: 3000 })) ||
+      (screen.getByRole('spinbutton') as HTMLInputElement);
+
     await user.clear(input);
     await user.type(input, '5');
 
     // Проверяем, что onChange был вызван
-    await waitFor(() => {
-      expect(onMinSpreadChange).toHaveBeenCalled();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(onMinSpreadChange).toHaveBeenCalled();
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should toggle direct only filter', async () => {
@@ -94,15 +102,22 @@ describe('TokenFilters', () => {
     );
 
     // Ищем кнопку по тексту (может быть на разных языках)
-    const button = await screen.findByRole('button', {
-      name: /only direct|только прямой|direct/i
-    }, { timeout: 3000 });
-    
+    const button = await screen.findByRole(
+      'button',
+      {
+        name: /only direct|только прямой|direct/i,
+      },
+      { timeout: 3000 }
+    );
+
     await user.click(button);
 
-    await waitFor(() => {
-      expect(onDirectOnlyChange).toHaveBeenCalledWith(true);
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(onDirectOnlyChange).toHaveBeenCalledWith(true);
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should toggle reverse only filter', async () => {
@@ -123,14 +138,21 @@ describe('TokenFilters', () => {
     );
 
     // Ищем кнопку по тексту (может быть на разных языках)
-    const button = await screen.findByRole('button', {
-      name: /only reverse|только обратный|reverse/i
-    }, { timeout: 3000 });
-    
+    const button = await screen.findByRole(
+      'button',
+      {
+        name: /only reverse|только обратный|reverse/i,
+      },
+      { timeout: 3000 }
+    );
+
     await user.click(button);
 
-    await waitFor(() => {
-      expect(onReverseOnlyChange).toHaveBeenCalledWith(true);
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(onReverseOnlyChange).toHaveBeenCalledWith(true);
+      },
+      { timeout: 2000 }
+    );
   });
 });

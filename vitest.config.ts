@@ -10,8 +10,17 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     // Test suites configuration
-    include: ['**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    exclude: [
+      'node_modules',
+      'dist',
+      '.idea',
+      '.git',
+      '.cache',
+      'e2e',
+      '**/e2e/**',
+      '**/*.e2e.{test,spec}.{ts,tsx}',
+    ],
     // Timeout для тестов
     testTimeout: 10000,
     // Группировка тестов

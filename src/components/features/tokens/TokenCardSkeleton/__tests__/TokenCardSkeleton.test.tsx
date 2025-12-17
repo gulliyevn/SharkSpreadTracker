@@ -14,7 +14,9 @@ describe('TokenCardSkeleton', () => {
     // Проверяем, что компонент рендерится и имеет правильные классы
     expect(skeleton).toHaveClass('bg-light-50');
     // Проверяем, что внутри есть Skeleton компоненты (они имеют animate-pulse)
-    const skeletonElements = container.querySelectorAll('[class*="animate-pulse"]');
+    const skeletonElements = container.querySelectorAll(
+      '[class*="animate-pulse"]'
+    );
     expect(skeletonElements.length).toBeGreaterThan(0);
   });
 });

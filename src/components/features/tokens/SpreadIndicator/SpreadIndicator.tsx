@@ -18,7 +18,12 @@ export interface SpreadIndicatorProps extends HTMLAttributes<HTMLDivElement> {
  * Используется в карточке токена и может переиспользоваться в графиках/статистике.
  * Оптимизирован с помощью React.memo и useMemo для предотвращения лишних ререндеров.
  */
-export const SpreadIndicator = memo(function SpreadIndicator({ value, type, className, ...rest }: SpreadIndicatorProps) {
+export const SpreadIndicator = memo(function SpreadIndicator({
+  value,
+  type,
+  className,
+  ...rest
+}: SpreadIndicatorProps) {
   const isPositive = typeof value === 'number' && value > 0;
 
   const baseClasses =
@@ -29,7 +34,8 @@ export const SpreadIndicator = memo(function SpreadIndicator({ value, type, clas
       ? 'bg-success-500/20 text-success-600 dark:text-success-400'
       : 'bg-error-500/20 text-error-600 dark:text-error-400';
 
-  const neutralClasses = 'bg-light-200 dark:bg-dark-700 text-light-600 dark:text-dark-400';
+  const neutralClasses =
+    'bg-light-200 dark:bg-dark-700 text-light-600 dark:text-dark-400';
 
   const display = useMemo(() => {
     if (value === null || value === undefined) return '—';
@@ -39,12 +45,14 @@ export const SpreadIndicator = memo(function SpreadIndicator({ value, type, clas
 
   return (
     <div
-      className={cn(baseClasses, isPositive ? positiveClasses : neutralClasses, className)}
+      className={cn(
+        baseClasses,
+        isPositive ? positiveClasses : neutralClasses,
+        className
+      )}
       {...rest}
     >
       {display}
     </div>
   );
 });
-
-

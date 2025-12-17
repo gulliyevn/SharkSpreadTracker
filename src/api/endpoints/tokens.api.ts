@@ -52,12 +52,13 @@ interface MexcExchangeInfo {
 /**
  * Получить все токены из Jupiter
  * Jupiter API: https://lite-api.jup.ag
+ * @param signal - AbortSignal для отмены запроса (опционально)
  */
-export async function getJupiterTokens(): Promise<Token[]> {
+export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
   try {
     // Jupiter API - получение списка токенов
     // Эндпоинт может быть /tokens или /v1/tokens
-    const response = await jupiterClient.get('/tokens');
+    const response = await jupiterClient.get('/tokens', { signal });
 
     if (!response.data || !Array.isArray(response.data)) {
       return [];
@@ -80,7 +81,7 @@ export async function getJupiterTokens(): Promise<Token[]> {
     // Если эндпоинт не найден, пробуем альтернативный
     if (isAxiosError(error) && getErrorStatusCode(error) === 404) {
       try {
-        const response = await jupiterClient.get('/v1/tokens');
+        const response = await jupiterClient.get('/v1/tokens', { signal });
         if (response.data && Array.isArray(response.data)) {
           const tokens = response.data as JupiterTokenResponse[];
           const result: Token[] = [];
@@ -115,8 +116,9 @@ export async function getJupiterTokens(): Promise<Token[]> {
 /**
  * Получить все токены из PancakeSwap/DexScreener
  * DexScreener API: https://api.dexscreener.com/latest/dex/tokens
+ * @param signal - AbortSignal для отмены запросов (опционально)
  */
-export async function getPancakeTokens(): Promise<Token[]> {
+export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
   try {
     // DexScreener API - получение популярных токенов BSC
     // Попробуем получить токены через поиск популярных пар
@@ -127,7 +129,8 @@ export async function getPancakeTokens(): Promise<Token[]> {
     for (const tokenSymbol of popularTokens) {
       try {
         const response = await pancakeClient.get<DexScreenerResponse>(
-          `/${tokenSymbol}`
+          `/${tokenSymbol}`,
+          { signal }
         );
         if (response.data?.pairs && Array.isArray(response.data.pairs)) {
           response.data.pairs.forEach((pair) => {
@@ -164,13 +167,15 @@ export async function getPancakeTokens(): Promise<Token[]> {
 /**
  * Получить все токены из MEXC
  * MEXC API: https://contract.mexc.com
+ * @param signal - AbortSignal для отмены запроса (опционально)
  */
-export async function getMexcTokens(): Promise<Token[]> {
+export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
   try {
     // MEXC API - получение информации о бирже
     // Стандартный эндпоинт: /api/v3/exchangeInfo
     const response = await mexcClient.get<MexcExchangeInfo>(
-      '/api/v3/exchangeInfo'
+      '/api/v3/exchangeInfo',
+      { signal }
     );
 
     if (!response.data?.symbols || !Array.isArray(response.data.symbols)) {
@@ -214,7 +219,8 @@ export async function getMexcTokens(): Promise<Token[]> {
       try {
         // Альтернативный эндпоинт для MEXC
         const response = await mexcClient.get<MexcExchangeInfo>(
-          '/api/v1/exchangeInfo'
+          '/api/v1/exchangeInfo',
+          { signal }
         );
         if (response.data?.symbols && Array.isArray(response.data.symbols)) {
           const tokensMap = new Map<string, Token>();
@@ -250,14 +256,17 @@ export async function getMexcTokens(): Promise<Token[]> {
 
 /**
  * Получить все токены из всех источников и объединить
+ * @param signal - AbortSignal для отмены запросов (опционально)
  */
-export async function getAllTokens(): Promise<TokenWithData[]> {
+export async function getAllTokens(
+  signal?: AbortSignal
+): Promise<TokenWithData[]> {
   try {
     // Выполняем запросы параллельно с обработкой ошибок
     const results = await Promise.allSettled([
-      getJupiterTokens(),
-      getPancakeTokens(),
-      getMexcTokens(),
+      getJupiterTokens(signal),
+      getPancakeTokens(signal),
+      getMexcTokens(signal),
     ]);
 
     const jupiterTokens: Token[] =
@@ -318,7 +327,9 @@ export async function getAllTokens(): Promise<TokenWithData[]> {
     );
     // В случае ошибки возвращаем моковые данные только если флаг установлен
     if (USE_MOCK_DATA) {
-      console.warn('Using mock data due to API errors (VITE_USE_MOCK_DATA=true)');
+      console.warn(
+        'Using mock data due to API errors (VITE_USE_MOCK_DATA=true)'
+      );
       return MOCK_TOKENS;
     }
     return [];

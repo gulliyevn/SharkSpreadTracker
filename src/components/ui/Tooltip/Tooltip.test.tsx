@@ -5,7 +5,9 @@ import { Tooltip } from './Tooltip';
 
 // Mock для requestAnimationFrame и getBoundingClientRect
 beforeEach(() => {
-  global.requestAnimationFrame = vi.fn((cb) => setTimeout(cb, 0) as unknown as number);
+  global.requestAnimationFrame = vi.fn(
+    (cb) => setTimeout(cb, 0) as unknown as number
+  );
   global.cancelAnimationFrame = vi.fn((id) => clearTimeout(id));
 
   // Mock getBoundingClientRect
@@ -128,4 +130,3 @@ describe('Tooltip', () => {
     expect(screen.getByText('Button')).toBeInTheDocument();
   });
 });
-

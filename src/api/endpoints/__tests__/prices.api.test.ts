@@ -278,8 +278,12 @@ describe('prices.api', () => {
     it('should handle errors gracefully', async () => {
       const mockToken: Token = { symbol: 'BTC', chain: 'solana' };
 
-      vi.mocked(jupiterClient.get).mockRejectedValue(new Error('Jupiter error'));
-      vi.mocked(pancakeClient.get).mockRejectedValue(new Error('Pancake error'));
+      vi.mocked(jupiterClient.get).mockRejectedValue(
+        new Error('Jupiter error')
+      );
+      vi.mocked(pancakeClient.get).mockRejectedValue(
+        new Error('Pancake error')
+      );
       vi.mocked(mexcClient.get).mockRejectedValue(new Error('MEXC error'));
 
       const result = await getAllPrices(mockToken);

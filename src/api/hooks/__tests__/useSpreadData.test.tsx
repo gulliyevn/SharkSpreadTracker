@@ -62,7 +62,11 @@ describe('useSpreadData', () => {
     );
 
     expect(result.current.data).toEqual(mockSpreadData);
-    expect(getSpreadData).toHaveBeenCalledWith(mockToken, '1h');
+    expect(getSpreadData).toHaveBeenCalled();
+    // Проверяем что функция вызвана с правильными аргументами (signal передается автоматически React Query)
+    const calls = vi.mocked(getSpreadData).mock.calls;
+    expect(calls[0]?.[0]).toEqual(mockToken);
+    expect(calls[0]?.[1]).toBe('1h');
   });
 
   it('should not fetch when token is null', () => {

@@ -84,11 +84,7 @@ export const TokenCard = memo(function TokenCard({
 
       {/* Процентные метки (зеленая и красная) */}
       <div className="flex items-center gap-2 mb-3">
-        <SpreadIndicator
-          value={directSpread}
-          type="direct"
-          className="mr-1"
-        />
+        <SpreadIndicator value={directSpread} type="direct" className="mr-1" />
         <SpreadIndicator value={reverseSpread} type="reverse" />
       </div>
 

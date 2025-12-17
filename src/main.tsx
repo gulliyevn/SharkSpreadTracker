@@ -7,8 +7,16 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastProvider } from './contexts/ToastContext';
 import './lib/i18n'; // Инициализация i18n
 import { checkUrlForLeaks } from './utils/data-leak-prevention';
+import { initSentry } from './lib/sentry';
+import { initAnalytics } from './lib/analytics';
 import App from './App';
 import './styles/tailwind.css';
+
+// Инициализация Sentry (error tracking)
+initSentry();
+
+// Инициализация аналитики
+initAnalytics();
 
 // Проверка на утечки данных при загрузке
 checkUrlForLeaks();

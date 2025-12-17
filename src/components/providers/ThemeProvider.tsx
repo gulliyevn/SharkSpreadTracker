@@ -12,5 +12,3 @@ interface AppThemeProviderProps {
 export function ThemeProvider({ children }: AppThemeProviderProps) {
   return <BaseThemeProvider>{children}</BaseThemeProvider>;
 }
-
-

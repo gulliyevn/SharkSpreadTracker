@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { STORAGE_KEYS } from '@/constants/api';
+import { trackThemeChange } from '@/lib/analytics';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -86,6 +87,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     const resolved = theme === 'system' ? getSystemTheme() : theme;
     applyTheme(resolved);
     setResolvedTheme(resolved);
+    // Трекинг смены темы
+    if (resolved === 'light' || resolved === 'dark') {
+      trackThemeChange(resolved);
+    }
   };
 
   return (

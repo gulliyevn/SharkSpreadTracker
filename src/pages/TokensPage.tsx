@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Container } from '@/components/layout/Container';
 import { TokenSearch } from '@/components/features/tokens/TokenSearch';
 import { TokenFilters } from '@/components/features/tokens/TokenFilters';
@@ -10,6 +10,11 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useTokens } from '@/api/hooks/useTokens';
 import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  analytics,
+  trackTokenFilter,
+  trackTokenSelected,
+} from '@/lib/analytics';
 import type { Token } from '@/types';
 
 /**
@@ -74,25 +79,43 @@ export function TokensPage() {
     return filtered;
   }, [tokens, searchTerm, minSpread, showDirectOnly, showReverseOnly]);
 
+  // Трекинг просмотра страницы
+  useEffect(() => {
+    analytics.pageView('tokens');
+  }, []);
+
   // Мемоизированные обработчики для предотвращения лишних ререндеров
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
+    if (value) {
+      trackTokenFilter('search', value);
+    }
   }, []);
 
   const handleMinSpreadChange = useCallback((value: number) => {
     setMinSpread(value);
+    if (value > 0) {
+      trackTokenFilter('minSpread', value);
+    }
   }, []);
 
   const handleDirectOnlyChange = useCallback((value: boolean) => {
     setShowDirectOnly(value);
+    if (value) {
+      trackTokenFilter('directOnly', true);
+    }
   }, []);
 
   const handleReverseOnlyChange = useCallback((value: boolean) => {
     setShowReverseOnly(value);
+    if (value) {
+      trackTokenFilter('reverseOnly', true);
+    }
   }, []);
 
   const handleTokenSelect = useCallback((token: Token) => {
     setSelectedToken(token);
+    trackTokenSelected(token.symbol, token.chain);
   }, []);
 
   const handleTokenClear = useCallback(() => {
@@ -193,8 +216,10 @@ export function TokensPage() {
                   title={t('tokens.noTokens') || 'No tokens found'}
                   description={
                     searchTerm
-                      ? t('tokens.noTokensWithSearch') || `No tokens match "${searchTerm}"`
-                      : t('tokens.noTokensDescription') || 'Try adjusting your filters or search query'
+                      ? t('tokens.noTokensWithSearch') ||
+                        `No tokens match "${searchTerm}"`
+                      : t('tokens.noTokensDescription') ||
+                        'Try adjusting your filters or search query'
                   }
                 />
               ) : (

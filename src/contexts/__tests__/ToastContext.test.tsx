@@ -201,4 +201,3 @@ describe('ToastContext', () => {
     consoleSpy.mockRestore();
   });
 });
-

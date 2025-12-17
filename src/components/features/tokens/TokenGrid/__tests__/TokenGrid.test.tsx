@@ -6,12 +6,12 @@ import type { TokenWithFavorite } from '../TokenGrid';
 
 // Mock TokenCard - используем правильный путь
 vi.mock('@/components/features/tokens/TokenCard', () => ({
-  TokenCard: ({ 
-    token, 
-    onFavoriteToggle 
-  }: { 
-    token: { symbol: string; chain: string }; 
-    onFavoriteToggle?: (token: { symbol: string; chain: string }) => void 
+  TokenCard: ({
+    token,
+    onFavoriteToggle,
+  }: {
+    token: { symbol: string; chain: string };
+    onFavoriteToggle?: (token: { symbol: string; chain: string }) => void;
   }) => (
     <div data-testid={`token-card-${token.symbol}`}>
       {token.symbol}
@@ -90,11 +90,13 @@ describe('TokenGrid', () => {
 
   it('should call onFavoriteToggle when favorite button is clicked', async () => {
     const onFavoriteToggle = vi.fn();
-    render(<TokenGrid tokens={mockTokens} onFavoriteToggle={onFavoriteToggle} />);
+    render(
+      <TokenGrid tokens={mockTokens} onFavoriteToggle={onFavoriteToggle} />
+    );
 
     const favoriteButtons = screen.getAllByText('Toggle Favorite');
     expect(favoriteButtons.length).toBeGreaterThan(0);
-    
+
     if (favoriteButtons[0]) {
       favoriteButtons[0].click();
       expect(onFavoriteToggle).toHaveBeenCalledWith(mockTokens[0]);
@@ -113,7 +115,7 @@ describe('TokenGrid', () => {
   it('should handle resize events', async () => {
     const { container } = render(<TokenGrid tokens={mockTokens} />);
     const grid = container.firstChild as HTMLElement;
-    
+
     expect(grid).toBeInTheDocument();
 
     // Изменяем ширину окна
@@ -154,4 +156,3 @@ describe('TokenGrid', () => {
     expect(cards.length).toBe(2);
   });
 });
-

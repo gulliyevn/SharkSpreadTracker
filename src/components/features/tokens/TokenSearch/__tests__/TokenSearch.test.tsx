@@ -56,7 +56,11 @@ describe('TokenSearch', () => {
     );
 
     // Если передан явный placeholder, он должен использоваться
-    const input = await screen.findByPlaceholderText('Search tokens...', {}, { timeout: 5000 });
+    const input = await screen.findByPlaceholderText(
+      'Search tokens...',
+      {},
+      { timeout: 5000 }
+    );
     expect(input).toBeInTheDocument();
   });
 
@@ -72,14 +76,17 @@ describe('TokenSearch', () => {
 
     // Ждем появления input
     const input = await screen.findByRole('textbox', {}, { timeout: 5000 });
-    
+
     // Вводим текст
     await user.type(input, 'BTC');
 
     // Ждем debounce delay (300ms) + небольшой запас
-    await waitFor(() => {
-      expect(onChange).toHaveBeenCalled();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(onChange).toHaveBeenCalled();
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('should display current value', async () => {
@@ -91,7 +98,11 @@ describe('TokenSearch', () => {
     );
 
     // Ждем рендера и проверяем, что значение отображается
-    const input = await screen.findByDisplayValue('BTC', {}, { timeout: 5000 }) as HTMLInputElement;
+    const input = (await screen.findByDisplayValue(
+      'BTC',
+      {},
+      { timeout: 5000 }
+    )) as HTMLInputElement;
     expect(input).toBeInTheDocument();
     expect(input.value).toBe('BTC');
   });

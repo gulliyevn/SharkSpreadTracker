@@ -171,4 +171,3 @@ describe('Tooltip', () => {
     expect(true).toBe(true);
   });
 });
-

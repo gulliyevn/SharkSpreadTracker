@@ -31,7 +31,10 @@ export const PriceDisplay = memo(function PriceDisplay({
 }: PriceDisplayProps) {
   if (value === null || value === undefined) {
     return (
-      <span className={cn('text-light-600 dark:text-dark-400', className)} {...rest}>
+      <span
+        className={cn('text-light-600 dark:text-dark-400', className)}
+        {...rest}
+      >
         —
       </span>
     );
@@ -45,10 +48,11 @@ export const PriceDisplay = memo(function PriceDisplay({
   }).format(value);
 
   return (
-    <span className={cn('text-dark-950 dark:text-dark-50', className)} {...rest}>
+    <span
+      className={cn('text-dark-950 dark:text-dark-50', className)}
+      {...rest}
+    >
       {formatted}
     </span>
   );
 });
-
-

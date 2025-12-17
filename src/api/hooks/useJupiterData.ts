@@ -16,11 +16,11 @@ export function useJupiterData(
 ) {
   return useQuery<TokenPrice | null>({
     queryKey: ['jupiter', 'price', symbol, address],
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (!symbol) {
         throw new Error('Symbol is required');
       }
-      return getJupiterPrice(symbol, address);
+      return getJupiterPrice(symbol, address, signal);
     },
     enabled: enabled && symbol !== null,
     staleTime: REFRESH_INTERVALS.SPREAD_DATA,

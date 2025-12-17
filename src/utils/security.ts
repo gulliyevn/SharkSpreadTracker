@@ -59,11 +59,11 @@ export function sanitizeNumber(value: unknown): number | null {
 
 /**
  * Защита от слишком частых запросов (rate limiting)
- * 
+ *
  * ⚠️ ВНИМАНИЕ: RateLimiter в настоящее время НЕ используется в API calls.
  * Класс покрыт тестами и может быть интегрирован в будущем для защиты от rate limiting
  * внешних API (Jupiter, PancakeSwap, MEXC).
- * 
+ *
  * Пример использования:
  * ```ts
  * if (rateLimiter.isAllowed('jupiter-api')) {

@@ -43,7 +43,10 @@ describe('usePancakeData', () => {
     });
 
     expect(result.current.data).toEqual(mockPrice);
-    expect(getPancakePrice).toHaveBeenCalledWith('ETH');
+    expect(getPancakePrice).toHaveBeenCalled();
+    // Проверяем что функция вызвана с правильными аргументами (signal передается автоматически React Query)
+    const calls = vi.mocked(getPancakePrice).mock.calls;
+    expect(calls[0]?.[0]).toBe('ETH');
   });
 
   it('should not fetch when symbol is null', () => {

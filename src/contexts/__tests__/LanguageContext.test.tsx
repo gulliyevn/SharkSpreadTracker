@@ -92,7 +92,9 @@ describe('LanguageContext', () => {
 
     it('should throw error when useLanguage is used outside provider', () => {
       // Подавляем console.error для этого теста
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       expect(() => {
         renderHook(() => useLanguage());
@@ -102,4 +104,3 @@ describe('LanguageContext', () => {
     });
   });
 });
-

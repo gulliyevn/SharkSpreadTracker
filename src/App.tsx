@@ -6,8 +6,16 @@ import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { ToastContainer } from './components/ui/Toast';
 
 // Ленивая загрузка страниц для уменьшения bundle size
-const TokensPage = lazy(() => import('./pages/TokensPage').then((module) => ({ default: module.TokensPage })));
-const ChartsPage = lazy(() => import('./pages/ChartsPage').then((module) => ({ default: module.ChartsPage })));
+const TokensPage = lazy(() =>
+  import('./pages/TokensPage').then((module) => ({
+    default: module.TokensPage,
+  }))
+);
+const ChartsPage = lazy(() =>
+  import('./pages/ChartsPage').then((module) => ({
+    default: module.ChartsPage,
+  }))
+);
 
 /**
  * Главный компонент приложения

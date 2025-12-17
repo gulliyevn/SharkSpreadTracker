@@ -85,8 +85,10 @@ describe('data-leak-prevention', () => {
     it('should detect sensitive parameters in URL', () => {
       // Мокаем window.location через Object.defineProperty
       const originalLocation = window.location;
-      const mockUrl = new URL('https://example.com?api_key=secret123&token=abc');
-      
+      const mockUrl = new URL(
+        'https://example.com?api_key=secret123&token=abc'
+      );
+
       // Создаём мок для location с searchParams
       const locationMock = {
         href: mockUrl.href,
@@ -99,7 +101,9 @@ describe('data-leak-prevention', () => {
         configurable: true,
       });
 
-      const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
+      const replaceStateSpy = vi
+        .spyOn(window.history, 'replaceState')
+        .mockImplementation(() => {});
       checkUrlForLeaks();
 
       expect(console.warn).toHaveBeenCalled();
@@ -115,7 +119,7 @@ describe('data-leak-prevention', () => {
     it('should not modify URL without sensitive params', () => {
       const originalLocation = window.location;
       const mockUrl = new URL('https://example.com?page=1');
-      
+
       const locationMock = {
         href: mockUrl.href,
         searchParams: mockUrl.searchParams,
@@ -139,4 +143,3 @@ describe('data-leak-prevention', () => {
     });
   });
 });
-

@@ -45,7 +45,10 @@ describe('useMexcData', () => {
     });
 
     expect(result.current.data).toEqual(mockPrice);
-    expect(getMexcPrice).toHaveBeenCalledWith('BTCUSDT');
+    expect(getMexcPrice).toHaveBeenCalled();
+    // Проверяем что функция вызвана с правильными аргументами (signal передается автоматически React Query)
+    const calls = vi.mocked(getMexcPrice).mock.calls;
+    expect(calls[0]?.[0]).toBe('BTCUSDT');
   });
 
   it('should not fetch when symbol is null', () => {

@@ -102,8 +102,20 @@ describe('TokensPage', () => {
 
   it('should display tokens with spread data', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, price: 50000, directSpread: 1.0, reverseSpread: 1.1 },
-      { symbol: 'ETH', chain: 'bsc' as const, price: 2000, directSpread: 0.5, reverseSpread: 0.6 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        price: 50000,
+        directSpread: 1.0,
+        reverseSpread: 1.1,
+      },
+      {
+        symbol: 'ETH',
+        chain: 'bsc' as const,
+        price: 2000,
+        directSpread: 0.5,
+        reverseSpread: 0.6,
+      },
     ];
 
     mockUseTokens.mockReturnValue({
@@ -118,16 +130,31 @@ describe('TokensPage', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('BTC')).toBeInTheDocument();
-      expect(screen.getByText('ETH')).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText('BTC')).toBeInTheDocument();
+        expect(screen.getByText('ETH')).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('should handle tokens with null spreads', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, price: 50000, directSpread: null, reverseSpread: null },
-      { symbol: 'ETH', chain: 'bsc' as const, price: 2000, directSpread: 0.5, reverseSpread: 0.6 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        price: 50000,
+        directSpread: null,
+        reverseSpread: null,
+      },
+      {
+        symbol: 'ETH',
+        chain: 'bsc' as const,
+        price: 2000,
+        directSpread: 0.5,
+        reverseSpread: 0.6,
+      },
     ];
 
     mockUseTokens.mockReturnValue({
@@ -142,10 +169,13 @@ describe('TokensPage', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('BTC')).toBeInTheDocument();
-      expect(screen.getByText('ETH')).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText('BTC')).toBeInTheDocument();
+        expect(screen.getByText('ETH')).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('should display empty state when no tokens loaded (without mock fallback)', async () => {
@@ -179,10 +209,17 @@ describe('TokensPage', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      // Проверяем наличие текста об ошибке (может быть на разных языках)
-      const errorText = screen.queryByText(/error|ошибка/i) || screen.queryByText(/api.errors/i);
-      expect(errorText || screen.getByText(/Please check console/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        // Проверяем наличие текста об ошибке (может быть на разных языках)
+        const errorText =
+          screen.queryByText(/error|ошибка/i) ||
+          screen.queryByText(/api.errors/i);
+        expect(
+          errorText || screen.getByText(/Please check console/i)
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 });

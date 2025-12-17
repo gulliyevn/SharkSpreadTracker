@@ -63,9 +63,7 @@ describe('TokenSelector', () => {
 
   it('should open dropdown on click', async () => {
     const user = userEvent.setup();
-    render(
-      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />
-    );
+    render(<TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />);
 
     const button = screen.getByRole('button');
     await user.click(button);
@@ -82,31 +80,34 @@ describe('TokenSelector', () => {
 
   it('should filter tokens by search', async () => {
     const user = userEvent.setup();
-    render(
-      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />
-    );
+    render(<TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />);
 
     const button = screen.getByRole('button');
     await user.click(button);
 
     // Ждем появления input для поиска
-    const input = await screen.findByPlaceholderText(/search|поиск/i, {}, { timeout: 2000 });
-    
+    const input = await screen.findByPlaceholderText(
+      /search|поиск/i,
+      {},
+      { timeout: 2000 }
+    );
+
     // Вводим текст для фильтрации
     await user.type(input, 'BTC');
 
     // Проверяем, что отображается только BTC, а ETH скрыт
-    await waitFor(() => {
-      expect(screen.getByText('BTC')).toBeInTheDocument();
-      expect(screen.queryByText('ETH')).not.toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText('BTC')).toBeInTheDocument();
+        expect(screen.queryByText('ETH')).not.toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should select token on click', async () => {
     const user = userEvent.setup();
-    render(
-      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />
-    );
+    render(<TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />);
 
     const button = screen.getByRole('button');
     await user.click(button);
@@ -119,9 +120,7 @@ describe('TokenSelector', () => {
 
   it('should close dropdown after selection', async () => {
     const user = userEvent.setup();
-    render(
-      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />
-    );
+    render(<TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />);
 
     const button = screen.getByRole('button');
     await user.click(button);
@@ -130,24 +129,29 @@ describe('TokenSelector', () => {
     await user.click(btcOption);
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText('Search tokens...')).not.toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText('Search tokens...')
+      ).not.toBeInTheDocument();
     });
   });
 
   it('should handle keyboard navigation', async () => {
     const user = userEvent.setup();
-    render(
-      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />
-    );
+    render(<TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />);
 
     const button = screen.getByRole('button');
     button.focus();
     await user.keyboard('{Enter}');
 
     // Ждем открытия dropdown
-    await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/search|поиск/i)).toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByPlaceholderText(/search|поиск/i)
+        ).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
 
     // Arrow down to highlight next item
     const input = screen.getByPlaceholderText(/search|поиск/i);
@@ -156,33 +160,44 @@ describe('TokenSelector', () => {
     await user.keyboard('{Enter}');
 
     // Проверяем, что выбран второй токен (ETH)
-    await waitFor(() => {
-      expect(mockOnSelect).toHaveBeenCalledWith(mockTokens[1]); // ETH
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(mockOnSelect).toHaveBeenCalledWith(mockTokens[1]); // ETH
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should close on Escape key', async () => {
     const user = userEvent.setup();
-    render(
-      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />
-    );
+    render(<TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />);
 
     const button = screen.getByRole('button');
     await user.click(button);
 
     // Ждем открытия dropdown
-    await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/search|поиск/i)).toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByPlaceholderText(/search|поиск/i)
+        ).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
 
     const input = screen.getByPlaceholderText(/search|поиск/i);
     input.focus();
     await user.keyboard('{Escape}');
 
     // Проверяем, что dropdown закрылся
-    await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/search|поиск/i)).not.toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByPlaceholderText(/search|поиск/i)
+        ).not.toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should show clear button when value is selected and onClear is provided', () => {
@@ -196,8 +211,9 @@ describe('TokenSelector', () => {
     );
 
     // Ищем кнопку с иконкой X (clear button)
-    const clearButton = container.querySelector('button[aria-label*="Close"]') ||
-                        container.querySelector('button svg');
+    const clearButton =
+      container.querySelector('button[aria-label*="Close"]') ||
+      container.querySelector('button svg');
     expect(clearButton).toBeInTheDocument();
   });
 
@@ -213,9 +229,14 @@ describe('TokenSelector', () => {
     );
 
     // Ищем кнопку с иконкой X (clear button)
-    const clearButton = container.querySelector('button[aria-label*="Close"]') as HTMLButtonElement ||
-                        container.querySelector('button svg')?.closest('button') as HTMLButtonElement;
-    
+    const clearButton =
+      (container.querySelector(
+        'button[aria-label*="Close"]'
+      ) as HTMLButtonElement) ||
+      (container
+        .querySelector('button svg')
+        ?.closest('button') as HTMLButtonElement);
+
     if (clearButton) {
       await user.click(clearButton);
       expect(mockOnClear).toHaveBeenCalled();
@@ -227,32 +248,33 @@ describe('TokenSelector', () => {
 
   it('should show "No tokens found" when filtered list is empty', async () => {
     const user = userEvent.setup();
-    render(
-      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />
-    );
+    render(<TokenSelector tokens={mockTokens} onSelect={mockOnSelect} />);
 
     const button = screen.getByRole('button');
     await user.click(button);
 
     // Ждем открытия dropdown
-    const input = await screen.findByPlaceholderText(/search|поиск/i, {}, { timeout: 2000 });
-    
+    const input = await screen.findByPlaceholderText(
+      /search|поиск/i,
+      {},
+      { timeout: 2000 }
+    );
+
     // Вводим несуществующий токен
     await user.type(input, 'XYZ123');
 
     // Проверяем, что показывается сообщение "No data available"
-    await waitFor(() => {
-      expect(screen.getByText('No data available')).toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText('No data available')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should be disabled when disabled prop is true', () => {
     render(
-      <TokenSelector
-        tokens={mockTokens}
-        onSelect={mockOnSelect}
-        disabled
-      />
+      <TokenSelector tokens={mockTokens} onSelect={mockOnSelect} disabled />
     );
 
     const button = screen.getByRole('button');
@@ -291,4 +313,3 @@ describe('TokenSelector', () => {
     expect(checkIcon).toBeInTheDocument();
   });
 });
-

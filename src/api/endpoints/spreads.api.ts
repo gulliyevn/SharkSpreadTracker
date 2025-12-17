@@ -13,16 +13,18 @@ import { SpreadResponseSchema } from '../schemas';
  * Получить данные спреда для токена
  * @param token - Токен (symbol и chain)
  * @param _timeframe - Таймфрейм для исторических данных (пока не используется)
+ * @param signal - AbortSignal для отмены запросов (опционально)
  * @returns SpreadResponse с текущими и историческими данными
  */
 export async function getSpreadData(
   token: Token,
-  _timeframe: TimeframeOption = '1h'
+  _timeframe: TimeframeOption = '1h',
+  signal?: AbortSignal
 ): Promise<SpreadResponse> {
   const { symbol, chain } = token;
 
   // Получаем текущие цены
-  const currentPrices = await getAllPrices(token);
+  const currentPrices = await getAllPrices(token, signal);
 
   // Формируем текущие данные
   const current: CurrentData = {
@@ -112,10 +114,12 @@ export function calculateSpreads(prices: AllPrices): {
 /**
  * Получить спреды для списка токенов
  * @param tokens - Массив токенов
+ * @param signal - AbortSignal для отмены запросов (опционально)
  * @returns Массив токенов с рассчитанными спредами
  */
 export async function getSpreadsForTokens(
-  tokens: Token[]
+  tokens: Token[],
+  signal?: AbortSignal
 ): Promise<
   Array<Token & { directSpread: number | null; reverseSpread: number | null }>
 > {
@@ -129,7 +133,7 @@ export async function getSpreadsForTokens(
     const batch = tokens.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.allSettled(
       batch.map(async (token) => {
-        const prices = await getAllPrices(token);
+        const prices = await getAllPrices(token, signal);
         const spreads = calculateSpreads(prices);
         return {
           ...token,

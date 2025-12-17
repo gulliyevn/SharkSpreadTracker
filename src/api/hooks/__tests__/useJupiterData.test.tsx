@@ -43,7 +43,11 @@ describe('useJupiterData', () => {
     });
 
     expect(result.current.data).toEqual(mockPrice);
-    expect(getJupiterPrice).toHaveBeenCalledWith('BTC', undefined);
+    expect(getJupiterPrice).toHaveBeenCalled();
+    // Проверяем что функция вызвана с правильными аргументами (signal передается автоматически React Query)
+    const calls = vi.mocked(getJupiterPrice).mock.calls;
+    expect(calls[0]?.[0]).toBe('BTC');
+    expect(calls[0]?.[1]).toBeUndefined();
   });
 
   it('should not fetch when symbol is null', () => {

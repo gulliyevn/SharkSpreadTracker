@@ -16,11 +16,11 @@ export function useSpreadData(
 ) {
   return useQuery<SpreadResponse>({
     queryKey: ['spread', token?.symbol, token?.chain, timeframe],
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (!token) {
         throw new Error('Token is required');
       }
-      return getSpreadData(token, timeframe);
+      return getSpreadData(token, timeframe, signal);
     },
     enabled: enabled && token !== null,
     staleTime: REFRESH_INTERVALS.SPREAD_DATA,

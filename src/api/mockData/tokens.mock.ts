@@ -178,4 +178,3 @@ export const MOCK_TOKENS: TokenWithData[] = [
     reverseSpread: 0.95,
   },
 ];
-

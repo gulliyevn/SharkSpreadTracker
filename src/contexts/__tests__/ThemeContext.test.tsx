@@ -119,7 +119,9 @@ describe('ThemeContext', () => {
 
     it('should throw error when useTheme is used outside provider', () => {
       // Подавляем console.error для этого теста
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       expect(() => {
         renderHook(() => useTheme());
@@ -129,4 +131,3 @@ describe('ThemeContext', () => {
     });
   });
 });
-

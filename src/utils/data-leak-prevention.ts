@@ -37,7 +37,9 @@ export function sanitizeForAnalytics(data: unknown): unknown {
   const sensitiveKeys = ['apiKey', 'api_key', 'token', 'password', 'secret'];
 
   for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-    if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
+    if (
+      sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
+    ) {
       sanitized[key] = '[REDACTED]';
     } else if (typeof value === 'object' && value !== null) {
       sanitized[key] = sanitizeForAnalytics(value);

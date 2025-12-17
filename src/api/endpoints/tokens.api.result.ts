@@ -1,9 +1,9 @@
 /**
  * Альтернативные функции API с Result<T, E> типом для явной обработки ошибок
- * 
+ *
  * Эти функции возвращают Result<T, E> вместо пустых массивов при ошибках,
  * что позволяет компонентам явно обрабатывать ошибки.
- * 
+ *
  * Использование:
  * ```ts
  * const result = await getAllTokensResult();
@@ -15,7 +15,12 @@
  * ```
  */
 
-import { getAllTokens, getJupiterTokens, getPancakeTokens, getMexcTokens } from './tokens.api';
+import {
+  getAllTokens,
+  getJupiterTokens,
+  getPancakeTokens,
+  getMexcTokens,
+} from './tokens.api';
 import type { Token } from '@/types';
 import type { TokenWithData } from './tokens.api';
 import { Result, ok, err, ApiError } from '@/utils/errors';
@@ -24,7 +29,9 @@ import { isAxiosError, getErrorStatusCode } from '@/utils/errors';
 /**
  * Получить все токены с Result типом
  */
-export async function getAllTokensResult(): Promise<Result<TokenWithData[], ApiError>> {
+export async function getAllTokensResult(): Promise<
+  Result<TokenWithData[], ApiError>
+> {
   try {
     const tokens = await getAllTokens();
     return ok(tokens);
@@ -42,7 +49,9 @@ export async function getAllTokensResult(): Promise<Result<TokenWithData[], ApiE
 /**
  * Получить токены Jupiter с Result типом
  */
-export async function getJupiterTokensResult(): Promise<Result<Token[], ApiError>> {
+export async function getJupiterTokensResult(): Promise<
+  Result<Token[], ApiError>
+> {
   try {
     const tokens = await getJupiterTokens();
     return ok(tokens);
@@ -60,7 +69,9 @@ export async function getJupiterTokensResult(): Promise<Result<Token[], ApiError
 /**
  * Получить токены PancakeSwap с Result типом
  */
-export async function getPancakeTokensResult(): Promise<Result<Token[], ApiError>> {
+export async function getPancakeTokensResult(): Promise<
+  Result<Token[], ApiError>
+> {
   try {
     const tokens = await getPancakeTokens();
     return ok(tokens);
@@ -78,7 +89,9 @@ export async function getPancakeTokensResult(): Promise<Result<Token[], ApiError
 /**
  * Получить токены MEXC с Result типом
  */
-export async function getMexcTokensResult(): Promise<Result<Token[], ApiError>> {
+export async function getMexcTokensResult(): Promise<
+  Result<Token[], ApiError>
+> {
   try {
     const tokens = await getMexcTokens();
     return ok(tokens);
@@ -92,4 +105,3 @@ export async function getMexcTokensResult(): Promise<Result<Token[], ApiError>> 
     return err(apiError);
   }
 }
-

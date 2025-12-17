@@ -63,5 +63,3 @@ describe('ToastContainer', () => {
     expect(container).toHaveAttribute('aria-live', 'polite');
   });
 });
-
-

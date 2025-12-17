@@ -14,9 +14,7 @@ describe('EmptyState', () => {
   });
 
   it('should render action', () => {
-    render(
-      <EmptyState title="No data" action={<button>Retry</button>} />
-    );
+    render(<EmptyState title="No data" action={<button>Retry</button>} />);
     expect(screen.getByText('Retry')).toBeInTheDocument();
   });
 
@@ -29,10 +27,7 @@ describe('EmptyState', () => {
   });
 
   it('should render custom icon', () => {
-    render(
-      <EmptyState title="No data" icon={<span>Custom Icon</span>} />
-    );
+    render(<EmptyState title="No data" icon={<span>Custom Icon</span>} />);
     expect(screen.getByText('Custom Icon')).toBeInTheDocument();
   });
 });
-

@@ -22,9 +22,12 @@ const iconColors = {
 };
 
 const bgColors = {
-  success: 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800',
-  error: 'bg-error-50 dark:bg-error-900/20 border-error-200 dark:border-error-800',
-  warning: 'bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800',
+  success:
+    'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800',
+  error:
+    'bg-error-50 dark:bg-error-900/20 border-error-200 dark:border-error-800',
+  warning:
+    'bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800',
   info: 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800',
 };
 
@@ -56,7 +59,9 @@ export function Toast({ toast, onClose }: ToastProps) {
       aria-live="polite"
     >
       <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', iconColor)} />
-      <div className={cn('flex-1 text-sm font-medium', textColor)}>{toast.message}</div>
+      <div className={cn('flex-1 text-sm font-medium', textColor)}>
+        {toast.message}
+      </div>
       <button
         onClick={() => onClose(toast.id)}
         className={cn(
@@ -70,4 +75,3 @@ export function Toast({ toast, onClose }: ToastProps) {
     </div>
   );
 }
-

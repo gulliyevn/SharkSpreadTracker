@@ -47,7 +47,9 @@ describe('ViewContext', () => {
 
     it('should throw error when useView is used outside provider', () => {
       // Подавляем console.error для этого теста
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       expect(() => {
         renderHook(() => useView());
@@ -57,4 +59,3 @@ describe('ViewContext', () => {
     });
   });
 });
-

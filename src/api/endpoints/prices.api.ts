@@ -34,10 +34,12 @@ export interface AllPrices {
  * Получить цену токена из Jupiter
  * @param symbol - Символ токена (например, 'SOL')
  * @param address - Адрес токена в Solana (опционально)
+ * @param signal - AbortSignal для отмены запроса (опционально)
  */
 export async function getJupiterPrice(
   symbol: string,
-  address?: string
+  address?: string,
+  signal?: AbortSignal
 ): Promise<TokenPrice | null> {
   try {
     // Jupiter API для получения цены
@@ -46,7 +48,7 @@ export async function getJupiterPrice(
       ? `/price/v1/quote?ids=${address}`
       : `/price/v1/quote?ids=${symbol}`;
 
-    const response = await jupiterClient.get(endpoint);
+    const response = await jupiterClient.get(endpoint, { signal });
 
     // Валидация через Zod
     const validated = JupiterPricesResponseSchema.safeParse(response.data);
@@ -77,15 +79,19 @@ export async function getJupiterPrice(
 /**
  * Получить цену токена из PancakeSwap/DexScreener
  * @param symbol - Символ токена (например, 'CAKE')
+ * @param signal - AbortSignal для отмены запроса (опционально)
  */
 export async function getPancakePrice(
-  symbol: string
+  symbol: string,
+  signal?: AbortSignal
 ): Promise<TokenPrice | null> {
   try {
     // DexScreener API для получения цены
     // Эндпоинт: /latest/dex/tokens/{address} или поиск по символу
     // Для BSC используем поиск по символу
-    const response = await pancakeClient.get(`/latest/dex/search?q=${symbol}`);
+    const response = await pancakeClient.get(`/latest/dex/search?q=${symbol}`, {
+      signal,
+    });
 
     // Валидация через Zod
     const validated = DexScreenerResponseSchema.safeParse(response.data);
@@ -102,7 +108,7 @@ export async function getPancakePrice(
     const pair = pairs.find(
       (p) =>
         p.baseToken?.symbol?.toUpperCase() === symbol.toUpperCase() &&
-        CHAIN_IDS.BSC.includes(p.chainId as typeof CHAIN_IDS.BSC[number])
+        CHAIN_IDS.BSC.includes(p.chainId as (typeof CHAIN_IDS.BSC)[number])
     );
 
     if (!pair || !pair.priceUsd) {
@@ -128,13 +134,18 @@ export async function getPancakePrice(
 /**
  * Получить цену токена из MEXC
  * @param symbol - Символ токена (например, 'BTCUSDT')
+ * @param signal - AbortSignal для отмены запроса (опционально)
  */
-export async function getMexcPrice(symbol: string): Promise<TokenPrice | null> {
+export async function getMexcPrice(
+  symbol: string,
+  signal?: AbortSignal
+): Promise<TokenPrice | null> {
   try {
     // MEXC API для получения тикера
     // Эндпоинт: /api/v3/ticker/price или /api/v3/ticker/bookTicker
     const response = await mexcClient.get(
-      `/api/v3/ticker/bookTicker?symbol=${symbol}`
+      `/api/v3/ticker/bookTicker?symbol=${symbol}`,
+      { signal }
     );
 
     // Валидация через Zod
@@ -144,7 +155,8 @@ export async function getMexcPrice(symbol: string): Promise<TokenPrice | null> {
       // Если bookTicker не работает, пробуем обычный ticker
       try {
         const tickerResponse = await mexcClient.get(
-          `/api/v3/ticker/price?symbol=${symbol}`
+          `/api/v3/ticker/price?symbol=${symbol}`,
+          { signal }
         );
         const priceStr = tickerResponse.data?.price;
         if (priceStr) {
@@ -190,20 +202,26 @@ export async function getMexcPrice(symbol: string): Promise<TokenPrice | null> {
 /**
  * Получить все цены для токена из всех источников
  * @param token - Токен (symbol и chain)
+ * @param signal - AbortSignal для отмены запросов (опционально)
  */
-export async function getAllPrices(token: Token): Promise<AllPrices> {
+export async function getAllPrices(
+  token: Token,
+  signal?: AbortSignal
+): Promise<AllPrices> {
   const { symbol, chain } = token;
   const timestamp = Date.now();
 
   // Выполняем запросы параллельно
   const results = await Promise.allSettled([
     // Jupiter только для Solana
-    chain === 'solana' ? getJupiterPrice(symbol) : Promise.resolve(null),
+    chain === 'solana'
+      ? getJupiterPrice(symbol, undefined, signal)
+      : Promise.resolve(null),
     // PancakeSwap только для BSC
-    chain === 'bsc' ? getPancakePrice(symbol) : Promise.resolve(null),
+    chain === 'bsc' ? getPancakePrice(symbol, signal) : Promise.resolve(null),
     // MEXC для обоих блокчейнов (нужно правильно сформировать символ)
     // Формируем символ для MEXC: {SYMBOL}USDT
-    getMexcPrice(`${symbol.toUpperCase()}USDT`),
+    getMexcPrice(`${symbol.toUpperCase()}USDT`, signal),
   ]);
 
   const jupiterPrice =

@@ -1,5 +1,6 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { ErrorDisplay } from '../ErrorDisplay';
+import { captureError } from '@/lib/sentry';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -44,10 +45,11 @@ export class ErrorBoundary extends Component<
       this.props.onError(error, errorInfo);
     }
 
-    // В production можно отправить ошибку в сервис мониторинга (Sentry, etc.)
-    // if (import.meta.env.PROD) {
-    //   reportErrorToService(error, errorInfo);
-    // }
+    // Отправляем ошибку в Sentry
+    captureError(error, {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: true,
+    });
   }
 
   handleReset = (): void => {

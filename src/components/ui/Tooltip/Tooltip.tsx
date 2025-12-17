@@ -66,18 +66,34 @@ export function Tooltip({
     switch (position) {
       case 'top':
         top = triggerRect.top + scrollY - tooltipRect.height - 8;
-        left = triggerRect.left + scrollX + triggerRect.width / 2 - tooltipRect.width / 2;
+        left =
+          triggerRect.left +
+          scrollX +
+          triggerRect.width / 2 -
+          tooltipRect.width / 2;
         break;
       case 'bottom':
         top = triggerRect.bottom + scrollY + 8;
-        left = triggerRect.left + scrollX + triggerRect.width / 2 - tooltipRect.width / 2;
+        left =
+          triggerRect.left +
+          scrollX +
+          triggerRect.width / 2 -
+          tooltipRect.width / 2;
         break;
       case 'left':
-        top = triggerRect.top + scrollY + triggerRect.height / 2 - tooltipRect.height / 2;
+        top =
+          triggerRect.top +
+          scrollY +
+          triggerRect.height / 2 -
+          tooltipRect.height / 2;
         left = triggerRect.left + scrollX - tooltipRect.width - 8;
         break;
       case 'right':
-        top = triggerRect.top + scrollY + triggerRect.height / 2 - tooltipRect.height / 2;
+        top =
+          triggerRect.top +
+          scrollY +
+          triggerRect.height / 2 -
+          tooltipRect.height / 2;
         left = triggerRect.right + scrollX + 8;
         break;
     }
@@ -163,10 +179,14 @@ export function Tooltip({
             className={cn(
               'absolute w-2 h-2 rotate-45',
               'bg-dark-900 dark:bg-dark-950 border-dark-700 dark:border-dark-600',
-              position === 'top' && 'bottom-[-4px] left-1/2 -translate-x-1/2 border-r border-b',
-              position === 'bottom' && 'top-[-4px] left-1/2 -translate-x-1/2 border-l border-t',
-              position === 'left' && 'right-[-4px] top-1/2 -translate-y-1/2 border-r border-b',
-              position === 'right' && 'left-[-4px] top-1/2 -translate-y-1/2 border-l border-t'
+              position === 'top' &&
+                'bottom-[-4px] left-1/2 -translate-x-1/2 border-r border-b',
+              position === 'bottom' &&
+                'top-[-4px] left-1/2 -translate-x-1/2 border-l border-t',
+              position === 'left' &&
+                'right-[-4px] top-1/2 -translate-y-1/2 border-r border-b',
+              position === 'right' &&
+                'left-[-4px] top-1/2 -translate-y-1/2 border-l border-t'
             )}
           />
         </div>
@@ -174,4 +194,3 @@ export function Tooltip({
     </>
   );
 }
-

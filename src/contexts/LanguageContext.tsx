@@ -3,6 +3,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import type { SupportedLanguage } from '@/lib/i18n';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { STORAGE_KEYS } from '@/constants/api';
+import { trackLanguageChange } from '@/lib/analytics';
 
 interface LanguageContextType {
   currentLanguage: SupportedLanguage;
@@ -31,6 +32,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     (lang: SupportedLanguage) => {
       i18n.changeLanguage(lang);
       setStoredLanguage(lang);
+      trackLanguageChange(lang);
     },
     [i18n, setStoredLanguage]
   );

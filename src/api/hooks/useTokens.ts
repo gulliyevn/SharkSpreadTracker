@@ -9,7 +9,7 @@ import type { TokenWithData } from '../endpoints/tokens.api';
 export function useTokens() {
   return useQuery<TokenWithData[]>({
     queryKey: ['tokens', 'all'],
-    queryFn: getAllTokens,
+    queryFn: ({ signal }) => getAllTokens(signal),
     staleTime: REFRESH_INTERVALS.TOKENS,
     refetchInterval: REFRESH_INTERVALS.TOKENS,
     retry: 3,

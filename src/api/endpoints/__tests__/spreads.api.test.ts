@@ -124,7 +124,11 @@ describe('spreads.api', () => {
       const allPrices = {
         symbol: 'BTC',
         chain: 'solana' as const,
-        jupiter: { price: null, timestamp: Date.now(), source: 'jupiter' as const },
+        jupiter: {
+          price: null,
+          timestamp: Date.now(),
+          source: 'jupiter' as const,
+        },
         pancakeswap: null,
         mexc: { price: 50000, timestamp: Date.now(), source: 'mexc' as const },
         timestamp: Date.now(),

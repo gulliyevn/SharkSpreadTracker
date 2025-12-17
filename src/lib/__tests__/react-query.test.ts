@@ -5,7 +5,7 @@ describe('react-query', () => {
   it('should create queryClient with correct default options', () => {
     expect(queryClient).toBeDefined();
     const defaultOptions = queryClient.getDefaultOptions();
-    
+
     expect(defaultOptions.queries).toBeDefined();
     expect(defaultOptions.queries?.staleTime).toBe(5000);
     expect(defaultOptions.queries?.gcTime).toBe(10 * 60 * 1000);
@@ -22,9 +22,9 @@ describe('react-query', () => {
   it('should have exponential retry delay function', () => {
     const defaultOptions = queryClient.getDefaultOptions();
     const retryDelay = defaultOptions.queries?.retryDelay;
-    
+
     expect(typeof retryDelay).toBe('function');
-    
+
     if (typeof retryDelay === 'function') {
       const mockError = new Error('Test error');
       expect(retryDelay(0, mockError)).toBe(1000); // 1s
@@ -34,4 +34,3 @@ describe('react-query', () => {
     }
   });
 });
-

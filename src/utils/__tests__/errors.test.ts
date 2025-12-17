@@ -65,7 +65,9 @@ describe('errors', () => {
 
     it('should return correct key for 429', () => {
       const error = new ApiError('Too many requests', 429);
-      expect(getApiErrorTranslationKey(error)).toBe('api.errors.tooManyRequests');
+      expect(getApiErrorTranslationKey(error)).toBe(
+        'api.errors.tooManyRequests'
+      );
     });
 
     it('should return correct key for 500', () => {
@@ -347,4 +349,3 @@ describe('errors', () => {
     });
   });
 });
-

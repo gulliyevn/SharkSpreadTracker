@@ -95,4 +95,3 @@ describe('Modal', () => {
     expect(modalLg).toBeInTheDocument();
   });
 });
-

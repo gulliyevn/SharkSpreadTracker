@@ -210,7 +210,9 @@ export function TokenSelector({
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {value ? (
             <>
-              <span className="text-sm font-medium truncate">{displayValue}</span>
+              <span className="text-sm font-medium truncate">
+                {displayValue}
+              </span>
               {onClear && (
                 <button
                   type="button"
@@ -275,18 +277,16 @@ export function TokenSelector({
           </div>
 
           {/* Список токенов */}
-          <ul
-            ref={listRef}
-            role="listbox"
-            className="max-h-60 overflow-y-auto"
-          >
+          <ul ref={listRef} role="listbox" className="max-h-60 overflow-y-auto">
             {filteredTokens.length === 0 ? (
               <li className="px-4 py-3 text-sm text-center text-light-500 dark:text-dark-500">
                 {t('common.noData') || 'No tokens found'}
               </li>
             ) : (
               filteredTokens.map((token, index) => {
-                const isSelected = value?.symbol === token.symbol && value?.chain === token.chain;
+                const isSelected =
+                  value?.symbol === token.symbol &&
+                  value?.chain === token.chain;
                 const isHighlighted = index === highlightedIndex;
 
                 return (
@@ -338,4 +338,3 @@ export function TokenSelector({
     </div>
   );
 }
-

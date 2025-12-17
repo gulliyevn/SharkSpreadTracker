@@ -11,11 +11,11 @@ import type { TokenPrice } from '../endpoints/prices.api';
 export function usePancakeData(symbol: string | null, enabled: boolean = true) {
   return useQuery<TokenPrice | null>({
     queryKey: ['pancakeswap', 'price', symbol],
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (!symbol) {
         throw new Error('Symbol is required');
       }
-      return getPancakePrice(symbol);
+      return getPancakePrice(symbol, signal);
     },
     enabled: enabled && symbol !== null,
     staleTime: REFRESH_INTERVALS.SPREAD_DATA,

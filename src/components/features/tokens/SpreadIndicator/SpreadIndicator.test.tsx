@@ -18,5 +18,3 @@ describe('SpreadIndicator', () => {
     expect(screen.getByText('-3.10%')).toBeInTheDocument();
   });
 });
-
-

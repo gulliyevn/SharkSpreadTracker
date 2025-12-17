@@ -18,5 +18,3 @@ describe('PriceDisplay', () => {
     expect(screen.getByText('$1,234.56')).toBeInTheDocument();
   });
 });
-
-

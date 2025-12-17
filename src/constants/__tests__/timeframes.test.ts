@@ -36,14 +36,7 @@ describe('timeframes', () => {
 
   describe('TIMEFRAME_OPTIONS', () => {
     it('should contain all timeframe options', () => {
-      expect(TIMEFRAME_OPTIONS).toEqual([
-        '1m',
-        '5m',
-        '15m',
-        '1h',
-        '4h',
-        '1d',
-      ]);
+      expect(TIMEFRAME_OPTIONS).toEqual(['1m', '5m', '15m', '1h', '4h', '1d']);
     });
   });
 
@@ -67,4 +60,3 @@ describe('timeframes', () => {
     });
   });
 });
-

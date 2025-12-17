@@ -30,11 +30,10 @@ describe('Toast', () => {
   it('should call onClose when close button is clicked', () => {
     const onClose = vi.fn();
     render(<Toast toast={mockToast} onClose={onClose} />);
-    
+
     const closeButton = screen.getByLabelText('Close notification');
     closeButton.click();
-    
+
     expect(onClose).toHaveBeenCalledWith('1');
   });
 });
-
