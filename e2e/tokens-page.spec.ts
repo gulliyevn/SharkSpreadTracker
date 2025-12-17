@@ -75,19 +75,54 @@ test.describe('TokensPage', () => {
   });
 
   test('should handle API errors gracefully', async ({ page }) => {
-    // Перехватываем API запросы и возвращаем ошибку
-    await page.route('**/api/**', (route) => {
+    // Перехватываем запросы к реальным API endpoints
+    await page.route('**/lite-api.jup.ag/**', (route) => {
       route.fulfill({
         status: 500,
         body: JSON.stringify({ error: 'Internal Server Error' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    await page.route('**/api.dexscreener.com/**', (route) => {
+      route.fulfill({
+        status: 500,
+        body: JSON.stringify({ error: 'Internal Server Error' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    await page.route('**/contract.mexc.com/**', (route) => {
+      route.fulfill({
+        status: 500,
+        body: JSON.stringify({ error: 'Internal Server Error' }),
+        headers: { 'Content-Type': 'application/json' },
       });
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    
+    // Ждем завершения запросов (с таймаутом)
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 15000 });
+    } catch {
+      // Игнорируем таймаут, если запросы долго выполняются
+    }
 
-    // Проверяем что приложение не упало и показывает ошибку
+    // Даем время React Query обработать ошибку и React отрендерить
+    await page.waitForTimeout(3000);
+
+    // Проверяем что приложение не упало - main должен быть виден
     const mainContent = page.locator('main');
-    await expect(mainContent).toBeVisible();
+    await expect(mainContent).toBeVisible({ timeout: 5000 });
+
+    // Проверяем что страница показывает либо:
+    // 1. Сообщение об ошибке
+    // 2. Пустое состояние (если ошибка обработана и показан fallback)
+    // 3. Или хотя бы header/footer видны (приложение работает)
+    const header = page.locator('header');
+    await expect(header).toBeVisible({ timeout: 2000 });
+    
+    // Главное - приложение не должно упасть, main должен быть виден
+    const isMainVisible = await mainContent.isVisible();
+    expect(isMainVisible).toBe(true);
   });
 });
