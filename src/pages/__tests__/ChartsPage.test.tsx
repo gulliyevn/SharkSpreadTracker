@@ -29,9 +29,11 @@ describe('ChartsPage', () => {
     );
 
     await waitFor(() => {
-      // Check for title or description
-      const title = screen.queryByText(/charts|графики/i);
-      const description = screen.queryByText(/spread charts|графики спреда/i);
+      // Check for title or description (allow multiple matches)
+      const titles = screen.queryAllByText(/charts|графики/i);
+      const descriptions = screen.queryAllByText(/spread charts|графики спреда/i);
+      const title = titles[0];
+      const description = descriptions[0];
       expect(title || description || document.body).toBeInTheDocument();
     });
   });

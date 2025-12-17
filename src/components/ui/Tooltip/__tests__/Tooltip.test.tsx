@@ -1,17 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Tooltip } from '../Tooltip';
 
 describe('Tooltip', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it('should render children', () => {
     render(
       <Tooltip content="Tooltip text">
@@ -35,16 +27,13 @@ describe('Tooltip', () => {
   it('should show tooltip after delay on mouse enter', async () => {
     const user = userEvent.setup({ delay: null });
     render(
-      <Tooltip content="Tooltip text" delay={200}>
+      <Tooltip content="Tooltip text" delay={0}>
         <button>Hover me</button>
       </Tooltip>
     );
 
     const button = screen.getByText('Hover me');
     await user.hover(button);
-
-    // Fast-forward time
-    vi.advanceTimersByTime(200);
 
     await waitFor(
       () => {
@@ -58,14 +47,13 @@ describe('Tooltip', () => {
   it('should hide tooltip on mouse leave', async () => {
     const user = userEvent.setup({ delay: null });
     render(
-      <Tooltip content="Tooltip text" delay={200}>
+      <Tooltip content="Tooltip text" delay={0}>
         <button>Hover me</button>
       </Tooltip>
     );
 
     const button = screen.getByText('Hover me');
     await user.hover(button);
-    vi.advanceTimersByTime(200);
 
     await waitFor(
       () => {
@@ -94,7 +82,6 @@ describe('Tooltip', () => {
 
     const button = screen.getByText('Hover me');
     await user.hover(button);
-    vi.advanceTimersByTime(200);
 
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
@@ -119,7 +106,6 @@ describe('Tooltip', () => {
 
     const button = screen.getByText('Hover me');
     await user.hover(button);
-    vi.advanceTimersByTime(0);
 
     await waitFor(
       () => {
@@ -139,7 +125,6 @@ describe('Tooltip', () => {
 
     const button = screen.getByText('Hover me');
     await user.hover(button);
-    vi.advanceTimersByTime(0);
 
     await waitFor(
       () => {
@@ -160,7 +145,6 @@ describe('Tooltip', () => {
 
     const button = screen.getByText('Hover me');
     await user.hover(button);
-    vi.advanceTimersByTime(0);
 
     await waitFor(
       () => {
@@ -173,7 +157,7 @@ describe('Tooltip', () => {
   it('should clear timeout on unmount', async () => {
     const user = userEvent.setup({ delay: null });
     const { unmount } = render(
-      <Tooltip content="Tooltip text" delay={200}>
+      <Tooltip content="Tooltip text" delay={0}>
         <button>Hover me</button>
       </Tooltip>
     );
@@ -182,8 +166,6 @@ describe('Tooltip', () => {
     await user.hover(button);
 
     unmount();
-
-    vi.advanceTimersByTime(200);
 
     // Should not throw or cause issues
     expect(true).toBe(true);

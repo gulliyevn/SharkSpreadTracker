@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { TokenCardSkeleton } from '../TokenCardSkeleton';
 
-// Визуальные skeleton-компоненты проще проверять через visual/e2e тесты.
-// Для упрощения CI помечаем этот небольшой suite как skipped.
-describe.skip('TokenCardSkeleton', () => {
+describe('TokenCardSkeleton', () => {
   it('should render skeleton', () => {
     const { container } = render(<TokenCardSkeleton />);
     expect(container.firstChild).toBeInTheDocument();
@@ -13,6 +11,10 @@ describe.skip('TokenCardSkeleton', () => {
   it('should have skeleton classes', () => {
     const { container } = render(<TokenCardSkeleton />);
     const skeleton = container.firstChild as HTMLElement;
-    expect(skeleton).toHaveClass('animate-pulse');
+    // Проверяем, что компонент рендерится и имеет правильные классы
+    expect(skeleton).toHaveClass('bg-light-50');
+    // Проверяем, что внутри есть Skeleton компоненты (они имеют animate-pulse)
+    const skeletonElements = container.querySelectorAll('[class*="animate-pulse"]');
+    expect(skeletonElements.length).toBeGreaterThan(0);
   });
 });

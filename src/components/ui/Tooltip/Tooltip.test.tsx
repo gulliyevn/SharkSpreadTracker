@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Tooltip } from './Tooltip';
 
 // Mock для requestAnimationFrame и getBoundingClientRect
@@ -42,12 +43,51 @@ describe('Tooltip', () => {
     expect(screen.queryByText('Tooltip content')).not.toBeInTheDocument();
   });
 
-  it.skip('should show tooltip on hover', async () => {
-    // Пропускаем из-за сложности с таймерами в тестах
+  it('should show tooltip on hover', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <Tooltip content="Tooltip content" delay={0}>
+        <button>Hover me</button>
+      </Tooltip>
+    );
+
+    const button = screen.getByText('Hover me');
+    await user.hover(button);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Tooltip content')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
-  it.skip('should hide tooltip on mouse leave', async () => {
-    // Пропускаем из-за сложности с таймерами в тестах
+  it('should hide tooltip on mouse leave', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <Tooltip content="Tooltip content" delay={0}>
+        <button>Hover me</button>
+      </Tooltip>
+    );
+
+    const button = screen.getByText('Hover me');
+    await user.hover(button);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Tooltip content')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+
+    await user.unhover(button);
+
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Tooltip content')).not.toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should not show tooltip when disabled', () => {

@@ -20,12 +20,12 @@ describe('TokenCard', () => {
     expect(screen.getByText(/\$50,000/)).toBeInTheDocument();
   });
 
-  // В реальном UI для null-цен используется более сложная разметка,
-  // поэтому этот тест иногда не находит точный текст. Остальная
-  // логика отображения цен покрыта другими тестами.
-  it.skip('should display "—" for null price', () => {
+  it('should display "—" for null price', () => {
     render(<TokenCard token={mockToken} price={null} />);
-    expect(screen.getByText('—')).toBeInTheDocument();
+    // PriceDisplay использует "—" для null значений
+    // Может быть несколько элементов с "—", используем getAllByText
+    const dashes = screen.getAllByText('—');
+    expect(dashes.length).toBeGreaterThan(0);
   });
 
   it('should display direct spread', () => {

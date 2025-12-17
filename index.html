@@ -10,19 +10,12 @@
     <!-- Preconnect для быстрой загрузки шрифтов -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Preload критического шрифта -->
+    <!-- Загрузка шрифтов Google Fonts -->
+    <!-- Используем обычный link без inline обработчиков для соответствия CSP -->
     <link
-      rel="preload"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap"
-      as="style"
-      onload="this.onload=null;this.rel='stylesheet'"
+      rel="stylesheet"
     />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
     <title>Shark Spread Tracker</title>
   </head>
   <body>

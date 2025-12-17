@@ -95,13 +95,19 @@ export async function getJupiterTokens(): Promise<Token[]> {
           return result;
         }
       } catch (fallbackError) {
+        const fallbackStatusCode = getErrorStatusCode(fallbackError);
         console.error(
-          'Error fetching Jupiter tokens (fallback):',
+          `Error fetching Jupiter tokens (fallback): ${fallbackStatusCode || 'unknown'}`,
           fallbackError
         );
       }
     }
-    console.error('Error fetching Jupiter tokens:', error);
+    const jupiterStatusCode = getErrorStatusCode(error);
+    const jupiterErrorCode = getErrorCode(error);
+    console.error(
+      `Error fetching Jupiter tokens: ${jupiterStatusCode || jupiterErrorCode || 'unknown'}`,
+      error
+    );
     return [];
   }
 }
@@ -145,7 +151,12 @@ export async function getPancakeTokens(): Promise<Token[]> {
       chain: 'bsc' as const,
     }));
   } catch (error) {
-    console.error('Error fetching PancakeSwap tokens:', error);
+    const pancakeStatusCode = getErrorStatusCode(error);
+    const pancakeErrorCode = getErrorCode(error);
+    console.error(
+      `Error fetching PancakeSwap tokens: ${pancakeStatusCode || pancakeErrorCode || 'unknown'}`,
+      error
+    );
     return [];
   }
 }
@@ -197,9 +208,9 @@ export async function getMexcTokens(): Promise<Token[]> {
     return Array.from(tokensMap.values());
   } catch (error: unknown) {
     // Если основной эндпоинт не работает, пробуем альтернативный
-    const statusCode = getErrorStatusCode(error);
-    const errorCode = getErrorCode(error);
-    if (statusCode === 404 || errorCode === 'ECONNREFUSED') {
+    const initialStatusCode = getErrorStatusCode(error);
+    const initialErrorCode = getErrorCode(error);
+    if (initialStatusCode === 404 || initialErrorCode === 'ECONNREFUSED') {
       try {
         // Альтернативный эндпоинт для MEXC
         const response = await mexcClient.get<MexcExchangeInfo>(
@@ -222,10 +233,17 @@ export async function getMexcTokens(): Promise<Token[]> {
           return Array.from(tokensMap.values());
         }
       } catch (fallbackError) {
-        console.error('Error fetching MEXC tokens (fallback):', fallbackError);
+        const fallbackStatusCode = getErrorStatusCode(fallbackError);
+        console.error(
+          `Error fetching MEXC tokens (fallback): ${fallbackStatusCode || 'unknown'}`,
+          fallbackError
+        );
       }
     }
-    console.error('Error fetching MEXC tokens:', error);
+    console.error(
+      `Error fetching MEXC tokens: ${initialStatusCode || initialErrorCode || 'unknown'}`,
+      error
+    );
     return [];
   }
 }
@@ -292,9 +310,15 @@ export async function getAllTokens(): Promise<TokenWithData[]> {
 
     return result;
   } catch (error) {
-    console.error('Error fetching all tokens:', error);
+    const allTokensStatusCode = getErrorStatusCode(error);
+    const allTokensErrorCode = getErrorCode(error);
+    console.error(
+      `Error fetching all tokens: ${allTokensStatusCode || allTokensErrorCode || 'unknown'}`,
+      error
+    );
     // В случае ошибки возвращаем моковые данные только если флаг установлен
     if (USE_MOCK_DATA) {
+      console.warn('Using mock data due to API errors (VITE_USE_MOCK_DATA=true)');
       return MOCK_TOKENS;
     }
     return [];

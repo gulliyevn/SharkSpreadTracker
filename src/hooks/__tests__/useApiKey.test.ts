@@ -94,11 +94,13 @@ describe('useApiKey', () => {
   });
 
   it('should return false for isValid when key is null', () => {
+    vi.mocked(validateApiKey).mockReturnValue(false);
     const { result } = renderHook(() => useApiKey());
     expect(result.current.isValid).toBe(false);
   });
 
   it('should return null for getValidKey when key is null', () => {
+    vi.mocked(validateApiKey).mockReturnValue(false);
     const { result } = renderHook(() => useApiKey());
     expect(result.current.getValidKey()).toBeNull();
   });

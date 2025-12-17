@@ -1,65 +1,67 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ToastContainer } from '../ToastContainer';
-import { ToastProvider } from '@/contexts/ToastContext';
+import { useToast } from '@/contexts/ToastContext';
+
+vi.mock('@/contexts/ToastContext', () => ({
+  useToast: vi.fn(),
+}));
+
+const mockedUseToast = vi.mocked(useToast);
 
 describe('ToastContainer', () => {
   it('should render nothing when no toasts', () => {
-    render(
-      <ToastProvider>
-        <ToastContainer />
-      </ToastProvider>
-    );
+    mockedUseToast.mockReturnValue({
+      toasts: [],
+      showToast: vi.fn(),
+      removeToast: vi.fn(),
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+    });
+
+    render(<ToastContainer />);
 
     expect(screen.queryByLabelText('Notifications')).not.toBeInTheDocument();
   });
 
   it('should render toasts when they exist', () => {
-    const TestComponent = () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { useToast: useToastHook } = require('@/contexts/ToastContext');
-      const { showToast } = useToastHook();
-      return (
-        <>
-          <button onClick={() => showToast('Test message', 'info')}>
-            Show Toast
-          </button>
-          <ToastContainer />
-        </>
-      );
-    };
+    mockedUseToast.mockReturnValue({
+      toasts: [
+        { id: '1', message: 'Test message', type: 'info' },
+        { id: '2', message: 'Another message', type: 'success' },
+      ],
+      showToast: vi.fn(),
+      removeToast: vi.fn(),
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+    });
 
-    render(
-      <ToastProvider>
-        <TestComponent />
-      </ToastProvider>
-    );
+    render(<ToastContainer />);
 
-    // This test would need user interaction to show toast
-    // For now, we test the structure
-    expect(true).toBe(true);
+    const container = screen.getByLabelText('Notifications');
+    expect(container).toBeInTheDocument();
   });
 
   it('should have correct ARIA attributes', () => {
-    // Mock toasts
-    vi.mock('@/contexts/ToastContext', () => ({
-      useToast: () => ({
-        toasts: [
-          { id: '1', message: 'Test', type: 'info' },
-        ],
-        removeToast: vi.fn(),
-      }),
-    }));
+    mockedUseToast.mockReturnValue({
+      toasts: [{ id: '1', message: 'Test', type: 'info' }],
+      showToast: vi.fn(),
+      removeToast: vi.fn(),
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+    });
 
-    render(
-      <ToastProvider>
-        <ToastContainer />
-      </ToastProvider>
-    );
+    render(<ToastContainer />);
 
-    // The container should have aria-live and aria-label
-    // This is tested through the component structure
-    expect(true).toBe(true);
+    const container = screen.getByLabelText('Notifications');
+    expect(container).toHaveAttribute('aria-live', 'polite');
   });
 });
+
 

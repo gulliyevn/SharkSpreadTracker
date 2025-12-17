@@ -21,19 +21,13 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// NOTE:
-// Из-за debounce, таймеров и i18n эти тесты стали слишком чувствительны
-// к окружению CI. Базовая функциональность поиска дополнительно
-// покрыта интеграционными и smoke-тестами, поэтому временно
-// помечаем весь suite как skipped.
-describe.skip('TokenSearch', () => {
+describe('TokenSearch', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.useRealTimers();
   });
 
   it('should render search input', async () => {
@@ -44,10 +38,9 @@ describe.skip('TokenSearch', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText(/search|поиск|ara/i);
-      expect(input).toBeInTheDocument();
-    });
+    // Ищем input по роли (более надежно, чем по placeholder)
+    const input = await screen.findByRole('textbox', {}, { timeout: 5000 });
+    expect(input).toBeInTheDocument();
   });
 
   it('should display placeholder', async () => {
@@ -62,10 +55,9 @@ describe.skip('TokenSearch', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText('Search tokens...');
-      expect(input).toBeInTheDocument();
-    });
+    // Если передан явный placeholder, он должен использоваться
+    const input = await screen.findByPlaceholderText('Search tokens...', {}, { timeout: 5000 });
+    expect(input).toBeInTheDocument();
   });
 
   it('should call onChange when typing', async () => {
@@ -78,20 +70,16 @@ describe.skip('TokenSearch', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText(/search|поиск|ara/i);
-      expect(input).toBeInTheDocument();
-    });
-
-    const input = screen.getByPlaceholderText(/search|поиск|ara/i);
+    // Ждем появления input
+    const input = await screen.findByRole('textbox', {}, { timeout: 5000 });
+    
+    // Вводим текст
     await user.type(input, 'BTC');
 
-    // Debounce delay
-    vi.advanceTimersByTime(300);
-
+    // Ждем debounce delay (300ms) + небольшой запас
     await waitFor(() => {
       expect(onChange).toHaveBeenCalled();
-    });
+    }, { timeout: 1000 });
   });
 
   it('should display current value', async () => {
@@ -102,12 +90,9 @@ describe.skip('TokenSearch', () => {
       </TestWrapper>
     );
 
-    await waitFor(
-      () => {
-        const input = screen.getByDisplayValue('BTC');
-        expect(input).toBeInTheDocument();
-      },
-      { timeout: 3000 }
-    );
+    // Ждем рендера и проверяем, что значение отображается
+    const input = await screen.findByDisplayValue('BTC', {}, { timeout: 5000 }) as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input.value).toBe('BTC');
   });
 });

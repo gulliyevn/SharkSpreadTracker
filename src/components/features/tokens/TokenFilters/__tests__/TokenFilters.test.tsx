@@ -22,9 +22,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('TokenFilters', () => {
-  // В CI иногда сложно стабильно найти label из‑за i18n,
-  // поэтому весь suite временно пропускаем.
-  it.skip('should render min spread input', async () => {
+  it('should render min spread input', async () => {
     const onMinSpreadChange = vi.fn();
     render(
       <TestWrapper>
@@ -39,13 +37,16 @@ describe('TokenFilters', () => {
       </TestWrapper>
     );
 
+    // Ищем input по типу number (более надежно, чем по label)
     await waitFor(() => {
-      const input = screen.getByLabelText(/OT|min spread/i);
+      const input = screen.getByRole('spinbutton') || 
+                    screen.getByDisplayValue('0') ||
+                    document.querySelector('input[type="number"]');
       expect(input).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
   });
 
-  it.skip('should call onMinSpreadChange when min spread changes', async () => {
+  it('should call onMinSpreadChange when min spread changes', async () => {
     const user = userEvent.setup();
     const onMinSpreadChange = vi.fn();
 
@@ -62,19 +63,20 @@ describe('TokenFilters', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      const input = screen.getByLabelText(/OT|min spread/i);
-      expect(input).toBeInTheDocument();
-    });
-
-    const input = screen.getByLabelText(/OT|min spread/i);
+    // Ищем input по значению или типу
+    const input = await screen.findByDisplayValue('0', {}, { timeout: 3000 }) ||
+                  screen.getByRole('spinbutton') as HTMLInputElement;
+    
     await user.clear(input);
     await user.type(input, '5');
 
-    expect(onMinSpreadChange).toHaveBeenCalled();
+    // Проверяем, что onChange был вызван
+    await waitFor(() => {
+      expect(onMinSpreadChange).toHaveBeenCalled();
+    }, { timeout: 2000 });
   });
 
-  it.skip('should toggle direct only filter', async () => {
+  it('should toggle direct only filter', async () => {
     const user = userEvent.setup();
     const onDirectOnlyChange = vi.fn();
 
@@ -91,18 +93,19 @@ describe('TokenFilters', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      const button = screen.getByText(/only direct|только прямой/i);
-      expect(button).toBeInTheDocument();
-    });
-
-    const button = screen.getByText(/only direct|только прямой/i);
+    // Ищем кнопку по тексту (может быть на разных языках)
+    const button = await screen.findByRole('button', {
+      name: /only direct|только прямой|direct/i
+    }, { timeout: 3000 });
+    
     await user.click(button);
 
-    expect(onDirectOnlyChange).toHaveBeenCalledWith(true);
+    await waitFor(() => {
+      expect(onDirectOnlyChange).toHaveBeenCalledWith(true);
+    }, { timeout: 2000 });
   });
 
-  it.skip('should toggle reverse only filter', async () => {
+  it('should toggle reverse only filter', async () => {
     const user = userEvent.setup();
     const onReverseOnlyChange = vi.fn();
 
@@ -119,14 +122,15 @@ describe('TokenFilters', () => {
       </TestWrapper>
     );
 
-    await waitFor(() => {
-      const button = screen.getByText(/only reverse|только обратный/i);
-      expect(button).toBeInTheDocument();
-    });
-
-    const button = screen.getByText(/only reverse|только обратный/i);
+    // Ищем кнопку по тексту (может быть на разных языках)
+    const button = await screen.findByRole('button', {
+      name: /only reverse|только обратный|reverse/i
+    }, { timeout: 3000 });
+    
     await user.click(button);
 
-    expect(onReverseOnlyChange).toHaveBeenCalledWith(true);
+    await waitFor(() => {
+      expect(onReverseOnlyChange).toHaveBeenCalledWith(true);
+    }, { timeout: 2000 });
   });
 });
