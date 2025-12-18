@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PriceDisplay } from '@/components/features/tokens/PriceDisplay';
 import { SpreadIndicator } from '@/components/features/tokens/SpreadIndicator';
+import { SpreadChart } from '@/components/features/spreads/SpreadChart';
 import { getSourcesForChain } from '@/constants/sources';
 import { useSpreadData } from '@/api/hooks/useSpreadData';
 import { getMexcTradingLimits } from '@/api/endpoints/mexc-limits.api';
@@ -43,11 +44,20 @@ export function TokenDetailsModal({
   const [isLoadingLimits, setIsLoadingLimits] = useState(false);
 
   // Получаем данные спреда для графика
-  const {
-    data: spreadData,
-    isLoading: isLoadingSpread,
-    error: spreadError,
-  } = useSpreadData(token, '1h', isOpen && token !== null);
+  const { data: spreadData, isLoading: isLoadingSpread } = useSpreadData(
+    token,
+    '1h',
+    isOpen && token !== null
+  );
+
+  // Определяем источники для графика (по умолчанию для chain)
+  const defaultSources = useMemo(() => {
+    if (!token) return { source1: null, source2: null };
+    if (token.chain === 'solana') {
+      return { source1: 'jupiter' as const, source2: 'mexc' as const };
+    }
+    return { source1: 'pancakeswap' as const, source2: 'mexc' as const };
+  }, [token]);
 
   // Получаем доступные источники для chain
   const availableSources = useMemo(() => {
@@ -88,7 +98,10 @@ export function TokenDetailsModal({
     if (!token || !isOpen) return;
 
     // Загружаем лимиты только для BSC или если доступен MEXC
-    if (token.chain === 'bsc' || availableSources.some((s) => s.id === 'mexc')) {
+    if (
+      token.chain === 'bsc' ||
+      availableSources.some((s) => s.id === 'mexc')
+    ) {
       setIsLoadingLimits(true);
       // Формируем symbol для MEXC (обычно BASEUSDT, например BTCUSDT)
       const mexcSymbol = `${token.symbol}USDT`;
@@ -164,11 +177,12 @@ export function TokenDetailsModal({
       onClose={onClose}
       title={`${token.symbol} Details`}
       size="xl"
+      className="max-w-[95vw] sm:max-w-4xl"
     >
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-3 sm:space-y-4">
         {/* Секция 1: Основная информация */}
-        <Card className="p-4 sm:p-6">
-          <h3 className="text-lg font-semibold mb-4 text-dark-950 dark:text-dark-50">
+        <Card className="p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 text-dark-950 dark:text-dark-50">
             Basic Information
           </h3>
           <div className="space-y-3">
@@ -194,7 +208,7 @@ export function TokenDetailsModal({
                   Address:
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-dark-950 dark:text-dark-50 truncate max-w-[200px]">
+                  <span className="font-mono text-xs text-dark-950 dark:text-dark-50 truncate max-w-[120px] sm:max-w-[200px]">
                     {token.address}
                   </span>
                   <button
@@ -243,36 +257,23 @@ export function TokenDetailsModal({
         </Card>
 
         {/* Секция 2: Маленький график спреда */}
-        <Card className="p-4 sm:p-6">
-          <h3 className="text-lg font-semibold mb-4 text-dark-950 dark:text-dark-50">
+        <Card className="p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 text-dark-950 dark:text-dark-50">
             Spread Chart
           </h3>
-          <div className="h-[250px] flex items-center justify-center bg-light-100 dark:bg-dark-900 rounded-lg">
-            {isLoadingSpread ? (
-              <LoadingSpinner size="md" />
-            ) : spreadError ? (
-              <p className="text-sm text-error-600 dark:text-error-400">
-                Error loading chart data
-              </p>
-            ) : spreadData ? (
-              <p className="text-sm text-light-600 dark:text-dark-400">
-                Chart will be displayed here (SpreadChart component to be implemented)
-                <br />
-                <span className="text-xs">
-                  Data points: {spreadData.history.length}
-                </span>
-              </p>
-            ) : (
-              <p className="text-sm text-light-600 dark:text-dark-400">
-                No chart data available
-              </p>
-            )}
+          <div className="h-[250px] sm:h-[300px]">
+            <SpreadChart
+              spreadData={spreadData || null}
+              source1={defaultSources.source1}
+              source2={defaultSources.source2}
+              isLoading={isLoadingSpread}
+            />
           </div>
         </Card>
 
         {/* Секция 3: Иконки бирж (кликабельные) */}
-        <Card className="p-4 sm:p-6">
-          <h3 className="text-lg font-semibold mb-4 text-dark-950 dark:text-dark-50">
+        <Card className="p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 text-dark-950 dark:text-dark-50">
             Exchanges
           </h3>
           <div className="flex items-center gap-3 flex-wrap">
@@ -306,8 +307,8 @@ export function TokenDetailsModal({
         {/* Секция 4: Лимит на покупку MEXC */}
         {(token.chain === 'bsc' ||
           availableSources.some((s) => s.id === 'mexc')) && (
-          <Card className="p-4 sm:p-6">
-            <h3 className="text-lg font-semibold mb-4 text-dark-950 dark:text-dark-50">
+          <Card className="p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 text-dark-950 dark:text-dark-50">
               MEXC Trading Limits
             </h3>
             {isLoadingLimits ? (
@@ -366,8 +367,8 @@ export function TokenDetailsModal({
         )}
 
         {/* Секция 5: Редактирование спреда */}
-        <Card className="p-4 sm:p-6">
-          <h3 className="text-lg font-semibold mb-4 text-dark-950 dark:text-dark-50">
+        <Card className="p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 text-dark-950 dark:text-dark-50">
             Custom Spread Settings
           </h3>
           <div className="space-y-4">

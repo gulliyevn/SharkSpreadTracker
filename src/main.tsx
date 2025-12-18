@@ -61,10 +61,7 @@ window.addEventListener('unhandledrejection', (event) => {
     event.reason?.stack?.includes('extension://') ||
     event.reason?.message?.includes('contentScript')
   ) {
-    logger.warn(
-      'Browser extension promise rejection (ignored):',
-      event.reason
-    );
+    logger.warn('Browser extension promise rejection (ignored):', event.reason);
     event.preventDefault();
     return;
   }

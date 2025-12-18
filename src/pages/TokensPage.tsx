@@ -3,7 +3,14 @@ import { Container } from '@/components/layout/Container';
 import { TokenSearch } from '@/components/features/tokens/TokenSearch';
 import { TokenFilters } from '@/components/features/tokens/TokenFilters';
 import { TokenSelector } from '@/components/features/tokens/TokenSelector';
-import { ChainFilter, type ChainFilterValue } from '@/components/features/tokens/ChainFilter';
+import {
+  ChainFilter,
+  type ChainFilterValue,
+} from '@/components/features/tokens/ChainFilter';
+import {
+  SortSelector,
+  type SortOption,
+} from '@/components/features/tokens/SortSelector';
 import { ExchangeIndicator } from '@/components/features/tokens/ExchangeIndicator';
 import { TokenCardSkeleton } from '@/components/features/tokens/TokenCardSkeleton';
 import { TokenGrid } from '@/components/features/tokens/TokenGrid';
@@ -32,6 +39,14 @@ export function TokensPage() {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [chainFilter, setChainFilter] = useState<ChainFilterValue>('all');
   const [editingToken, setEditingToken] = useState<Token | null>(null);
+
+  // Загружаем настройки сортировки из localStorage
+  const [sortOption, setSortOption] = useState<SortOption>(() => {
+    const saved = localStorage.getItem('token-sort-option');
+    return saved === 'spread' || saved === 'name' || saved === 'price'
+      ? saved
+      : 'spread';
+  });
 
   // Загружаем токены из API
   const { data: tokens = [], isLoading, error } = useTokens();
@@ -95,24 +110,48 @@ export function TokensPage() {
       filtered = filtered.filter((token) => (token.reverseSpread || 0) > 0);
     }
 
-    // Сортировка по спреду (по убыванию)
-    // Токены с высоким спредом → первые в списке
-    // Вторичная сортировка: по алфавиту (если спред одинаковый)
+    // Сортировка в зависимости от выбранной опции
     filtered.sort((a, b) => {
-      const spreadA = Math.max(a.directSpread || 0, a.reverseSpread || 0);
-      const spreadB = Math.max(b.directSpread || 0, b.reverseSpread || 0);
-      
-      // Сначала по спреду (по убыванию)
-      if (spreadB !== spreadA) {
-        return spreadB - spreadA;
+      if (sortOption === 'spread') {
+        // Сортировка по спреду (по убыванию)
+        const spreadA = Math.max(a.directSpread || 0, a.reverseSpread || 0);
+        const spreadB = Math.max(b.directSpread || 0, b.reverseSpread || 0);
+
+        if (spreadB !== spreadA) {
+          return spreadB - spreadA;
+        }
+
+        // Вторичная сортировка: по алфавиту
+        return a.symbol.localeCompare(b.symbol);
+      } else if (sortOption === 'name') {
+        // Сортировка по имени (по алфавиту)
+        return a.symbol.localeCompare(b.symbol);
+      } else if (sortOption === 'price') {
+        // Сортировка по цене (по убыванию)
+        const priceA = a.price || 0;
+        const priceB = b.price || 0;
+
+        if (priceB !== priceA) {
+          return priceB - priceA;
+        }
+
+        // Вторичная сортировка: по алфавиту
+        return a.symbol.localeCompare(b.symbol);
       }
-      
-      // Затем по алфавиту (если спред одинаковый)
-      return a.symbol.localeCompare(b.symbol);
+
+      return 0;
     });
 
     return filtered;
-  }, [tokens, chainFilter, searchTerm, minSpread, showDirectOnly, showReverseOnly]);
+  }, [
+    tokens,
+    chainFilter,
+    searchTerm,
+    minSpread,
+    showDirectOnly,
+    showReverseOnly,
+    sortOption,
+  ]);
 
   // Трекинг просмотра страницы
   useEffect(() => {
@@ -148,6 +187,12 @@ export function TokensPage() {
     }
   }, []);
 
+  const handleSortChange = useCallback((value: SortOption) => {
+    setSortOption(value);
+    localStorage.setItem('token-sort-option', value);
+    trackTokenFilter('sort', value);
+  }, []);
+
   const handleTokenSelect = useCallback((token: Token) => {
     setSelectedToken(token);
     trackTokenSelected(token.symbol, token.chain);
@@ -169,9 +214,12 @@ export function TokensPage() {
   // Получаем данные для редактируемого токена
   const editingTokenData = useMemo(() => {
     if (!editingToken) return null;
-    return filteredTokens.find(
-      (t) => t.symbol === editingToken.symbol && t.chain === editingToken.chain
-    ) || null;
+    return (
+      filteredTokens.find(
+        (t) =>
+          t.symbol === editingToken.symbol && t.chain === editingToken.chain
+      ) || null
+    );
   }, [editingToken, filteredTokens]);
 
   const handleChainFilterChange = useCallback((value: ChainFilterValue) => {
@@ -229,6 +277,14 @@ export function TokensPage() {
                   onReverseOnlyChange={handleReverseOnlyChange}
                 />
               </div>
+            </div>
+
+            {/* Сортировка */}
+            <div className="flex items-center gap-3">
+              <div className="text-sm font-medium text-light-700 dark:text-dark-300 whitespace-nowrap">
+                Sort:
+              </div>
+              <SortSelector value={sortOption} onChange={handleSortChange} />
             </div>
 
             {/* Индикатор обмена и счетчик */}

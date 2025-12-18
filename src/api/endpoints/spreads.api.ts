@@ -9,17 +9,18 @@ import { getAllPrices, type AllPrices } from './prices.api';
 import { calculateSpread } from '@/utils/calculations';
 import { SpreadResponseSchema } from '../schemas';
 import { logger } from '@/utils/logger';
+import { loadSpreadHistory, updateSpreadHistory } from '@/utils/spreadHistory';
 
 /**
  * Получить данные спреда для токена
  * @param token - Токен (symbol и chain)
- * @param _timeframe - Таймфрейм для исторических данных (пока не используется)
+ * @param timeframe - Таймфрейм для исторических данных
  * @param signal - AbortSignal для отмены запросов (опционально)
  * @returns SpreadResponse с текущими и историческими данными
  */
 export async function getSpreadData(
   token: Token,
-  _timeframe: TimeframeOption = '1h',
+  timeframe: TimeframeOption = '1h',
   signal?: AbortSignal
 ): Promise<SpreadResponse> {
   const { symbol, chain } = token;
@@ -37,9 +38,20 @@ export async function getSpreadData(
     pancakeswap_price: currentPrices.pancakeswap?.price ?? null,
   };
 
-  // Для исторических данных пока возвращаем пустой массив
-  // В будущем можно добавить кэширование и сбор истории
-  const history: SpreadDataPoint[] = [];
+  // Сохраняем текущие данные в историю
+  const currentDataPoint: SpreadDataPoint = {
+    timestamp: current.timestamp,
+    mexc_price: current.mexc_price,
+    mexc_bid: current.mexc_bid,
+    mexc_ask: current.mexc_ask,
+    jupiter_price: current.jupiter_price,
+    pancakeswap_price: current.pancakeswap_price,
+  };
+
+  updateSpreadHistory(token, currentDataPoint, timeframe);
+
+  // Загружаем историю из localStorage
+  const history: SpreadDataPoint[] = loadSpreadHistory(token, timeframe);
 
   // Определяем доступность источников
   const sources = {

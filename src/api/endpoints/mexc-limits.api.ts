@@ -25,8 +25,8 @@ export async function getMexcTradingLimits(
   try {
     // MEXC API - получение информации о бирже
     // Используем spot API /api/v3/exchangeInfo для получения лимитов
-    const endpoint = import.meta.env.DEV 
-      ? '/v3/exchangeInfo' 
+    const endpoint = import.meta.env.DEV
+      ? '/v3/exchangeInfo'
       : '/api/v3/exchangeInfo';
     const response = await mexcClient.get(endpoint, { signal });
 

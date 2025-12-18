@@ -26,7 +26,11 @@ export interface TokenGridProps {
  * но CSS Grid показал отличную производительность даже для больших списков,
  * поэтому виртуализация не требуется.
  */
-export function TokenGrid({ tokens, onFavoriteToggle, onEdit }: TokenGridProps) {
+export function TokenGrid({
+  tokens,
+  onFavoriteToggle,
+  onEdit,
+}: TokenGridProps) {
   const [columnCount, setColumnCount] = useState(3);
 
   // Определяем количество колонок в зависимости от ширины экрана

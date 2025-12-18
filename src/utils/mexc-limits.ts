@@ -6,7 +6,9 @@ import type { MexcSymbol } from '@/api/schemas/mexc.schema';
  * @param symbol - Символ MEXC с filters
  * @returns Лимиты на покупку или null, если не найдены
  */
-export function extractMexcLimits(symbol: MexcSymbol): MexcTradingLimits | null {
+export function extractMexcLimits(
+  symbol: MexcSymbol
+): MexcTradingLimits | null {
   if (!symbol.filters || !Array.isArray(symbol.filters)) {
     return null;
   }
@@ -15,7 +17,11 @@ export function extractMexcLimits(symbol: MexcSymbol): MexcTradingLimits | null 
 
   // Ищем MIN_NOTIONAL фильтр
   const minNotionalFilter = symbol.filters.find(
-    (f) => f && typeof f === 'object' && 'filterType' in f && f.filterType === 'MIN_NOTIONAL'
+    (f) =>
+      f &&
+      typeof f === 'object' &&
+      'filterType' in f &&
+      f.filterType === 'MIN_NOTIONAL'
   );
   if (minNotionalFilter && 'minNotional' in minNotionalFilter) {
     const minNotional = parseFloat(minNotionalFilter.minNotional as string);
@@ -26,7 +32,11 @@ export function extractMexcLimits(symbol: MexcSymbol): MexcTradingLimits | null 
 
   // Ищем LOT_SIZE фильтр
   const lotSizeFilter = symbol.filters.find(
-    (f) => f && typeof f === 'object' && 'filterType' in f && f.filterType === 'LOT_SIZE'
+    (f) =>
+      f &&
+      typeof f === 'object' &&
+      'filterType' in f &&
+      f.filterType === 'LOT_SIZE'
   );
   if (lotSizeFilter && 'minQty' in lotSizeFilter) {
     const minQty = parseFloat(lotSizeFilter.minQty as string);

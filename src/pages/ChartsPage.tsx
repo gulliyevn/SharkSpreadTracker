@@ -1,7 +1,13 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Container } from '@/components/layout/Container';
-import { ChainFilter, type ChainFilterValue } from '@/components/features/tokens/ChainFilter';
+import {
+  ChainFilter,
+  type ChainFilterValue,
+} from '@/components/features/tokens/ChainFilter';
+import { ChartsLayout } from '@/components/features/spreads/ChartsLayout';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useTokens } from '@/api/hooks/useTokens';
 
 /**
@@ -10,7 +16,15 @@ import { useTokens } from '@/api/hooks/useTokens';
 export function ChartsPage() {
   const { t } = useLanguage();
   const [chainFilter, setChainFilter] = useState<ChainFilterValue>('all');
-  const { data: tokens = [] } = useTokens();
+  const { data: tokens = [], isLoading, error } = useTokens();
+
+  // Фильтруем токены по chain
+  const filteredTokens = useMemo(() => {
+    if (chainFilter === 'all') {
+      return tokens;
+    }
+    return tokens.filter((token) => token.chain === chainFilter);
+  }, [tokens, chainFilter]);
 
   // Подсчет токенов по chain
   const chainCounts = useMemo(() => {
@@ -51,33 +65,36 @@ export function ChartsPage() {
             </div>
           </div>
 
-          {/* Placeholder для графиков */}
-          <div className="bg-light-100 dark:bg-dark-800 rounded-xl p-6 sm:p-8 border border-light-200 dark:border-dark-700">
-            <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-              <div className="mb-4">
-                <svg
-                  className="w-16 h-16 sm:w-20 sm:h-20 text-light-400 dark:text-dark-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-2 text-dark-900 dark:text-dark-100">
-                {t('charts.comingSoon') || 'Charts Coming Soon'}
-              </h2>
-              <p className="text-sm sm:text-base text-light-600 dark:text-dark-400 max-w-md">
-                {t('charts.placeholder') ||
-                  'Spread charts will be displayed here. Select tokens and timeframes to analyze trading opportunities.'}
-              </p>
+          {/* Charts Layout */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner size="md" />
+              <span className="ml-3 text-light-600 dark:text-dark-400">
+                {t('common.loading') || 'Loading tokens...'}
+              </span>
             </div>
-          </div>
+          ) : error ? (
+            <EmptyState
+              icon="alert-circle"
+              title={t('api.errors.unknown') || 'Error loading tokens'}
+              description={
+                error instanceof Error
+                  ? error.message
+                  : 'Please check console for details'
+              }
+            />
+          ) : filteredTokens.length === 0 ? (
+            <EmptyState
+              icon="search"
+              title={t('tokens.noTokens') || 'No tokens found'}
+              description={
+                t('tokens.noTokensDescription') ||
+                'Try selecting a different chain'
+              }
+            />
+          ) : (
+            <ChartsLayout tokens={filteredTokens} />
+          )}
         </div>
       </Container>
     </div>

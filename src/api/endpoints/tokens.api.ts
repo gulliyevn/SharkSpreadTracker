@@ -40,7 +40,6 @@ interface DexScreenerResponse {
   pairs?: DexScreenerPair[];
 }
 
-
 /**
  * Получить все токены из Jupiter
  * Jupiter API: https://lite-api.jup.ag
@@ -61,12 +60,14 @@ export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
     // Если есть API ключ, пробуем новый API, но он требует дополнительных запросов для метаданных
     const hasApiKey = !!import.meta.env.VITE_JUPITER_API_KEY;
     const isNewApi = SOURCE_URLS.JUPITER.includes('api.jup.ag');
-    
+
     // Пока используем старый эндпоинт /tokens, который возвращает полные объекты
     // TODO: В будущем нужно будет использовать /tokens/v2/mints/tradable + запросы метаданных
     const endpoint = '/tokens';
-    
-    logger.debug(`Jupiter API: using endpoint ${endpoint}, hasApiKey: ${hasApiKey}, isNewApi: ${isNewApi}`);
+
+    logger.debug(
+      `Jupiter API: using endpoint ${endpoint}, hasApiKey: ${hasApiKey}, isNewApi: ${isNewApi}`
+    );
     const response = await jupiterClient.get(endpoint, { signal });
 
     if (!response.data || !Array.isArray(response.data)) {
@@ -87,8 +88,10 @@ export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
         });
       }
     });
-    
-    logger.debug(`Jupiter API: parsed ${result.length} tokens from ${tokens.length} items`);
+
+    logger.debug(
+      `Jupiter API: parsed ${result.length} tokens from ${tokens.length} items`
+    );
     return result;
   } catch (error: unknown) {
     // Если эндпоинт не найден, пробуем альтернативный
@@ -156,7 +159,8 @@ export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
 
       try {
         // DexScreener API использует /latest/dex/search?q={query} для поиска
-        const searchPath = '/latest/dex/search?q=' + encodeURIComponent(tokenSymbol);
+        const searchPath =
+          '/latest/dex/search?q=' + encodeURIComponent(tokenSymbol);
         const response = await pancakeClient.get<DexScreenerResponse>(
           searchPath,
           { signal }
@@ -226,10 +230,10 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
     // MEXC API - получение информации о бирже
     // Для spot trading используем /api/v3/exchangeInfo
     // Contract API использует другой формат, попробуем сначала spot API
-    const endpoint = import.meta.env.DEV 
-      ? '/v3/exchangeInfo' 
+    const endpoint = import.meta.env.DEV
+      ? '/v3/exchangeInfo'
       : '/api/v3/exchangeInfo';
-    
+
     logger.debug(`MEXC API: using endpoint ${endpoint}`);
     const response = await mexcClient.get(endpoint, { signal });
 
@@ -279,7 +283,8 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
           chain = 'solana';
         }
 
-        const tokenSymbol = symbol.baseAsset?.toUpperCase() || symbol.symbol.toUpperCase();
+        const tokenSymbol =
+          symbol.baseAsset?.toUpperCase() || symbol.symbol.toUpperCase();
         if (tokenSymbol) {
           tokensMap.set(`${tokenSymbol}-${chain}`, {
             symbol: tokenSymbol,
@@ -297,8 +302,8 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
     if (initialStatusCode === 404 || initialErrorCode === 'ECONNREFUSED') {
       try {
         // Альтернативный эндпоинт для MEXC (contract API)
-        const fallbackEndpoint = import.meta.env.DEV 
-          ? '/v1/contract/exchangeInfo' 
+        const fallbackEndpoint = import.meta.env.DEV
+          ? '/v1/contract/exchangeInfo'
           : '/api/v1/contract/exchangeInfo';
         logger.debug(`MEXC API: trying fallback endpoint ${fallbackEndpoint}`);
         const response = await mexcClient.get(fallbackEndpoint, { signal });

@@ -164,7 +164,7 @@ export async function getMexcPrice(
     // MEXC API для получения тикера
     // Эндпоинт: /api/v3/ticker/price или /api/v3/ticker/bookTicker
     // В dev-режиме baseURL уже содержит /api/mexc, поэтому используем /v3/ticker/bookTicker
-    const endpoint = import.meta.env.DEV 
+    const endpoint = import.meta.env.DEV
       ? `/v3/ticker/bookTicker?symbol=${symbol}`
       : `/api/v3/ticker/bookTicker?symbol=${symbol}`;
     const response = await mexcClient.get(endpoint, { signal });
@@ -178,7 +178,9 @@ export async function getMexcPrice(
         const fallbackEndpoint = import.meta.env.DEV
           ? `/v3/ticker/price?symbol=${symbol}`
           : `/api/v3/ticker/price?symbol=${symbol}`;
-        const tickerResponse = await mexcClient.get(fallbackEndpoint, { signal });
+        const tickerResponse = await mexcClient.get(fallbackEndpoint, {
+          signal,
+        });
         const priceStr = tickerResponse.data?.price;
         if (priceStr) {
           const price = parseFloat(priceStr);

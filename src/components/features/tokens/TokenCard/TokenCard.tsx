@@ -49,7 +49,8 @@ export const TokenCard = memo(function TokenCard({
 
   // Вычисляем максимальный спред для динамического ring
   const maxSpread = Math.max(directSpread || 0, reverseSpread || 0);
-  const ringOpacity = maxSpread > 5 ? 0.6 : maxSpread > 2 ? 0.4 : maxSpread > 0.5 ? 0.2 : 0.05;
+  const ringOpacity =
+    maxSpread > 5 ? 0.6 : maxSpread > 2 ? 0.4 : maxSpread > 0.5 ? 0.2 : 0.05;
 
   const handleFavoriteToggle = useCallback(() => {
     onFavoriteToggle?.(token);
@@ -196,10 +197,7 @@ export const TokenCard = memo(function TokenCard({
             aria-label={`Open ${source.label} exchange`}
           >
             <span
-              className={cn(
-                'text-lg sm:text-xl',
-                source.colorTailwind
-              )}
+              className={cn('text-lg sm:text-xl', source.colorTailwind)}
               role="img"
               aria-label={source.label}
             >

@@ -20,9 +20,7 @@ export const SOURCE_URLS = {
     (import.meta.env.DEV ? '/api/jupiter' : 'https://api.jup.ag'),
   PANCAKE:
     import.meta.env.VITE_PANCAKE_URL ||
-    (import.meta.env.DEV
-      ? '/api/pancake'
-      : 'https://api.dexscreener.com'),
+    (import.meta.env.DEV ? '/api/pancake' : 'https://api.dexscreener.com'),
   MEXC:
     import.meta.env.VITE_MEXC_REST_URL ||
     (import.meta.env.DEV ? '/api/mexc' : 'https://api.mexc.com'),

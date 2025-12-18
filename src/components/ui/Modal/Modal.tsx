@@ -141,6 +141,7 @@ export function Modal({
           'bg-light-50 dark:bg-dark-800',
           'border border-light-300 dark:border-dark-700',
           'animate-in fade-in-0 zoom-in-95 duration-200',
+          'max-h-[90vh] flex flex-col',
           sizeClasses[size],
           className
         )}
@@ -148,11 +149,11 @@ export function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-light-200 dark:border-dark-700">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-light-200 dark:border-dark-700 flex-shrink-0">
             {title && (
               <h2
                 id="modal-title"
-                className="text-lg sm:text-xl font-semibold text-dark-950 dark:text-dark-50"
+                className="text-base sm:text-lg font-semibold text-dark-950 dark:text-dark-50 truncate pr-2"
               >
                 {title}
               </h2>
@@ -161,7 +162,7 @@ export function Modal({
               <button
                 onClick={onClose}
                 className={cn(
-                  'ml-auto p-1.5 rounded-md transition-colors',
+                  'ml-auto p-1.5 rounded-md transition-colors flex-shrink-0',
                   'text-light-600 dark:text-dark-400',
                   'hover:bg-light-200 dark:hover:bg-dark-700',
                   'hover:text-dark-950 dark:hover:text-dark-50'
@@ -174,8 +175,10 @@ export function Modal({
           </div>
         )}
 
-        {/* Content */}
-        <div className="p-4 sm:p-6">{children}</div>
+        {/* Content - скроллируемый */}
+        <div className="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0">
+          {children}
+        </div>
       </div>
     </div>
   );
