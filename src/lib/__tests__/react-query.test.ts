@@ -7,7 +7,7 @@ describe('react-query', () => {
     const defaultOptions = queryClient.getDefaultOptions();
 
     expect(defaultOptions.queries).toBeDefined();
-    expect(defaultOptions.queries?.staleTime).toBe(5000);
+    expect(defaultOptions.queries?.staleTime).toBe(30000);
     expect(defaultOptions.queries?.gcTime).toBe(10 * 60 * 1000);
     expect(defaultOptions.queries?.retry).toBe(3);
     expect(defaultOptions.queries?.refetchOnWindowFocus).toBe(false);

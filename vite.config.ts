@@ -12,19 +12,30 @@ export default defineConfig({
     },
   },
   build: {
+    // Оптимизация сборки
+    minify: 'esbuild', // esbuild быстрее чем terser
+    target: 'es2020', // Современный target для меньшего размера
     rollupOptions: {
       output: {
         manualChunks: {
-          // Выделяем vendor библиотеки
+          // Выделяем vendor библиотеки для лучшего кэширования
           'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
           'query-vendor': ['@tanstack/react-query'],
           'chart-vendor': ['recharts'],
           'i18n-vendor': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           'ui-vendor': ['lucide-react', 'react-icons'],
+          // Выделяем axios отдельно, так как он используется везде
+          'axios-vendor': ['axios'],
         },
+        // Оптимизация имен файлов для лучшего кэширования
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
     chunkSizeWarningLimit: 600,
+    // Увеличиваем лимит для source maps (если нужны)
+    sourcemap: false, // Отключаем source maps для production (ускоряет сборку)
   },
   server: {
     port: 3000,
@@ -54,7 +65,7 @@ export default defineConfig({
               }
             }
           });
-          proxy.on('error', (err, req, res) => {
+          proxy.on('error', (err, _req, _res) => {
             console.error('[Proxy] Jupiter API error:', err.message);
             // Если прокси не работает, можно вернуть ошибку или использовать fallback
           });

@@ -60,16 +60,21 @@ export function sanitizeNumber(value: unknown): number | null {
 /**
  * Защита от слишком частых запросов (rate limiting)
  *
- * ⚠️ ВНИМАНИЕ: RateLimiter в настоящее время НЕ используется в API calls.
- * Класс покрыт тестами и может быть интегрирован в будущем для защиты от rate limiting
- * внешних API (Jupiter, PancakeSwap, MEXC).
+ * ✅ RateLimiter интегрирован во все API вызовы:
+ * - Jupiter API (jupiter-api)
+ * - PancakeSwap API (pancakeswap-api)
+ * - MEXC API (mexc-api)
+ *
+ * Используется через:
+ * - Прямые проверки в API endpoints
+ * - RequestQueue для автоматического exponential backoff
  *
  * Пример использования:
  * ```ts
  * if (rateLimiter.isAllowed('jupiter-api')) {
  *   // выполнить запрос
  * } else {
- *   // вернуть ошибку rate limit
+ *   // вернуть ошибку rate limit или использовать exponential backoff
  * }
  * ```
  */

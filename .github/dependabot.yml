@@ -1,0 +1,49 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "gulliyevn"
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Group updates for minor and patch versions
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignore major version updates for critical packages
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@tanstack/react-query"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "github-actions"
+      - "automated"
+

@@ -28,6 +28,7 @@ interface QueuedRequest<T = unknown> {
   resolve: (value: T) => void;
   reject: (error: unknown) => void;
   timestamp: number;
+  rateLimitKey?: string; // Ключ для rate limiter
 }
 
 /**
@@ -88,6 +89,7 @@ class RequestQueue {
         resolve,
         reject,
         timestamp: Date.now(),
+        rateLimitKey,
       };
 
       // Проверка rate limit перед добавлением в очередь
@@ -143,20 +145,21 @@ class RequestQueue {
       const rateLimitKey = this.getRateLimitKey(request);
       if (rateLimitKey && !rateLimiter.isAllowed(rateLimitKey)) {
         // Rate limit превышен, возвращаем в очередь с задержкой
+        const newBackoffMs = Math.min(
+          request.backoffMs * 2,
+          this.config.maxBackoffMs
+        );
         this.queue.push({
           ...request,
-          backoffMs: Math.min(
-            request.backoffMs * 2,
-            this.config.maxBackoffMs
-          ),
+          backoffMs: newBackoffMs,
         });
         this.sortQueue();
         this.processing.delete(request.id);
         
-        // Планируем повторную попытку
+        // Планируем повторную попытку (используем setTimeout для избежания рекурсии)
         setTimeout(() => {
           this.process();
-        }, request.backoffMs);
+        }, newBackoffMs);
         return;
       }
 
@@ -168,17 +171,18 @@ class RequestQueue {
       if (this.isRateLimitError(error)) {
         if (request.retries < request.maxRetries) {
           request.retries++;
-          request.backoffMs = Math.min(
+          const newBackoffMs = Math.min(
             request.backoffMs * 2,
             this.config.maxBackoffMs
           );
+          request.backoffMs = newBackoffMs;
           
-          // Возвращаем в очередь с задержкой
+          // Возвращаем в очередь с задержкой (используем setTimeout для избежания рекурсии)
           setTimeout(() => {
             this.queue.push(request);
             this.sortQueue();
             this.process();
-          }, request.backoffMs);
+          }, newBackoffMs);
         } else {
           request.reject(error);
         }
@@ -188,18 +192,18 @@ class RequestQueue {
       }
     } finally {
       this.processing.delete(request.id);
-      // Обрабатываем следующий запрос
-      this.process();
+      // Обрабатываем следующий запрос (используем setTimeout для избежания рекурсии)
+      setTimeout(() => {
+        this.process();
+      }, 0);
     }
   }
 
   /**
    * Получить ключ rate limiter из запроса (если есть)
    */
-  private getRateLimitKey(_request: QueuedRequest<unknown>): string | null {
-    // Можно добавить логику определения ключа из запроса
-    // Пока возвращаем null, ключ передается через options
-    return null;
+  private getRateLimitKey(request: QueuedRequest<unknown>): string | null {
+    return request.rateLimitKey || null;
   }
 
   /**

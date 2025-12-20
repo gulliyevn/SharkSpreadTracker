@@ -27,18 +27,18 @@ describe('prices.api', () => {
 
   describe('getJupiterPrice', () => {
     it('should fetch Jupiter price successfully', async () => {
+      const mockAddress = 'So11111111111111111111111111111111111111112';
       const mockResponse = {
         data: {
-          BTC: {
-            price: 50000,
-            time: Date.now(),
+          [mockAddress]: {
+            usdPrice: 50000,
           },
         },
       };
 
       vi.mocked(jupiterClient.get).mockResolvedValue(mockResponse);
 
-      const result = await getJupiterPrice('BTC');
+      const result = await getJupiterPrice('BTC', mockAddress);
 
       expect(result).toBeDefined();
       expect(result?.price).toBe(50000);

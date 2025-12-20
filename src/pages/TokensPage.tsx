@@ -12,6 +12,7 @@ import {
   type SortOption,
 } from '@/components/features/tokens/SortSelector';
 import { ExchangeIndicator } from '@/components/features/tokens/ExchangeIndicator';
+import { Progress } from '@/components/ui/Progress';
 import { TokenCardSkeleton } from '@/components/features/tokens/TokenCardSkeleton';
 import { TokenGrid } from '@/components/features/tokens/TokenGrid';
 import { TokenDetailsModal } from '@/components/features/tokens/TokenDetailsModal';
@@ -282,7 +283,7 @@ export function TokensPage() {
             {/* Сортировка */}
             <div className="flex items-center gap-3">
               <div className="text-sm font-medium text-light-700 dark:text-dark-300 whitespace-nowrap">
-                Sort:
+                {t('filters.sort') || 'Sort:'}
               </div>
               <SortSelector value={sortOption} onChange={handleSortChange} />
             </div>
@@ -290,18 +291,24 @@ export function TokensPage() {
             {/* Индикатор обмена и счетчик */}
             <div className="flex items-center justify-between">
               <ExchangeIndicator sourceChain="bsc" targetExchange="MEXC" />
-              <div className="text-sm sm:text-base font-medium text-light-600 dark:text-dark-400">
+              <div className="flex-1 max-w-xs ml-4">
                 {isLoading ? (
-                  '...'
+                  <div className="text-sm sm:text-base font-medium text-light-600 dark:text-dark-400">
+                    {t('common.loading') || 'Loading...'}
+                  </div>
+                ) : loadedCount > 0 && loadedCount < totalCount ? (
+                  <Progress
+                    value={loadedCount}
+                    max={totalCount}
+                    size="sm"
+                    showLabel
+                    label={`${loadedCount}/${totalCount} ${t('common.loaded') || 'loaded'}`}
+                    variant="primary"
+                  />
                 ) : (
-                  <>
+                  <div className="text-sm sm:text-base font-medium text-light-600 dark:text-dark-400">
                     {filteredTokens.length} {t('common.total') || 'total'}
-                    {loadedCount > 0 && loadedCount < totalCount && (
-                      <span className="ml-2 text-xs text-light-500 dark:text-dark-500">
-                        ({loadedCount}/{totalCount} loaded)
-                      </span>
-                    )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>

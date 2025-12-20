@@ -7,15 +7,32 @@ import { API_CONFIG } from '@/constants/api';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5000, // 5 секунд
-      gcTime: 10 * 60 * 1000, // 10 минут (было cacheTime)
+      staleTime: 30 * 1000, // 30 секунд (было 5 секунд) - данные считаются свежими 30 сек
+      gcTime: 10 * 60 * 1000, // 10 минут (время хранения в кэше)
       retry: API_CONFIG.RETRY_ATTEMPTS,
       retryDelay: (attemptIndex) => {
         // Экспоненциальная задержка: 1s, 2s, 4s
         return Math.min(1000 * 2 ** attemptIndex, 30000);
       },
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
+      refetchOnWindowFocus: false, // Отключено для снижения нагрузки
+      refetchOnReconnect: true, // Перезагружаем при восстановлении соединения
+      // Адаптивный refetch - уменьшает частоту для неактивных вкладок
+      refetchInterval: (query) => {
+        // Получаем refetchInterval из query state или options
+        const queryRefetchInterval = (query.state.dataUpdatedAt && 'refetchInterval' in query.options)
+          ? (query.options as { refetchInterval?: number | false }).refetchInterval
+          : undefined;
+        
+        if (queryRefetchInterval && typeof queryRefetchInterval === 'number') {
+          const isPageVisible = document.visibilityState === 'visible';
+          if (!isPageVisible) {
+            // Для неактивных вкладок увеличиваем интервал в 5 раз
+            return queryRefetchInterval * 5;
+          }
+          return queryRefetchInterval;
+        }
+        return false;
+      },
     },
     mutations: {
       retry: 1,

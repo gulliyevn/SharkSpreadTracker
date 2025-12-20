@@ -33,8 +33,6 @@ test.describe('ChartsPage', () => {
     await expect(mainContent).toBeVisible();
 
     // Ищем элементы графика (SVG, canvas, или placeholder)
-    const chartElement = page.locator('svg, canvas, [data-testid*="chart" i], [role="img"]').first();
-    
     // График может быть не сразу виден, если токен не выбран
     // Проверяем что хотя бы контент страницы виден
     await expect(mainContent).toBeVisible();

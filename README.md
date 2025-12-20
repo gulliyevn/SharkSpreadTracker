@@ -258,9 +258,14 @@ src/
 
 ## 📚 Документация
 
+- [DEVELOPER_GUIDE.md](./MD/DEVELOPER_GUIDE.md) - **руководство для разработчиков** (начало здесь!)
 - [ARCHITECTURE.md](./MD/ARCHITECTURE.md) - архитектура проекта
+- [API_DOCUMENTATION.md](./MD/API_DOCUMENTATION.md) - документация API
 - [TESTING.md](./MD/TESTING.md) - руководство по тестированию
-- [DEPLOY.md](./DEPLOY.md) - инструкция по деплою на Vercel
+- [DEPLOY.md](./MD/DEPLOY.md) - инструкция по деплою на Vercel
+- [VERCEL_MONITORING.md](./MD/VERCEL_MONITORING.md) - мониторинг Vercel
+- [BUILD_OPTIMIZATION.md](./MD/BUILD_OPTIMIZATION.md) - оптимизация сборки
+- [UX_STATES_GUIDE.md](./MD/UX_STATES_GUIDE.md) - руководство по состояниям UI
 - [TODO.md](./MD/TODO.md) - список задач
 
 ## 📊 ChartsPage - Графики спреда

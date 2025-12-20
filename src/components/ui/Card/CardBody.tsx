@@ -1,7 +1,7 @@
 import { HTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/utils/cn';
 
-export interface CardBodyProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardBodyProps = HTMLAttributes<HTMLDivElement>;
 
 /**
  * Body карточки

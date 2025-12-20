@@ -1,0 +1,13 @@
+# robots.txt для Shark Spread Tracker
+
+User-agent: *
+Allow: /
+
+# Запрещаем индексацию служебных путей
+Disallow: /api/
+Disallow: /_next/
+Disallow: /test/
+
+# Sitemap
+Sitemap: https://shark-spread-tracker.vercel.app/sitemap.xml
+

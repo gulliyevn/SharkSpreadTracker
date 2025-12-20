@@ -142,6 +142,8 @@ npm run build
 1. Vercel Dashboard → Project → Analytics
 2. Включите Web Analytics
 
+**Подробнее:** См. [VERCEL_MONITORING.md](./VERCEL_MONITORING.md) для полной инструкции по мониторингу ресурсов Vercel.
+
 ### Error Tracking (опционально)
 Можно добавить Sentry:
 1. Установите `@sentry/react`

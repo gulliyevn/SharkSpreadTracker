@@ -389,7 +389,7 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
           if (symbol.symbol && isActive && symbol.baseAsset) {
             // Определяем блокчейн по contractAddress или другим полям
             // MEXC поддерживает оба блокчейна
-            let chain: 'solana' | 'bsc' = 'bsc';
+            const chain: 'solana' | 'bsc' = 'bsc';
 
             // Если есть contractAddress, можно определить блокчейн
             // Но для простоты, если нет явного указания, используем BSC

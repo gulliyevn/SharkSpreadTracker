@@ -14,7 +14,8 @@
     "total": "total",
     "retry": "Try Again",
     "goHome": "Go Home",
-    "details": "Details"
+    "details": "Details",
+    "loaded": "loaded"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -74,7 +75,8 @@
   "filters": {
     "minSpread": "OT:",
     "directOnly": "Only direct",
-    "reverseOnly": "Only reverse"
+    "reverseOnly": "Only reverse",
+    "sort": "Sort:"
   },
   "validation": {
     "invalidApiKey": "Invalid API key format",

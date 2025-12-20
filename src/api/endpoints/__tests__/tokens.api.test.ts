@@ -20,6 +20,14 @@ vi.mock('../../clients', () => ({
   },
 }));
 
+// Мок для rateLimiter
+vi.mock('@/utils/security', () => ({
+  rateLimiter: {
+    isAllowed: vi.fn(() => true), // По умолчанию разрешаем все запросы
+    reset: vi.fn(),
+  },
+}));
+
 // Мок для USE_MOCK_DATA
 vi.mock('@/constants/api', async () => {
   const actual = await vi.importActual('@/constants/api');
@@ -88,20 +96,38 @@ describe('tokens.api', () => {
     });
 
     it('should extract tokens from pairs', async () => {
-      vi.mocked(pancakeClient.get).mockResolvedValue({
-        data: {
-          pairs: [
-            {
-              baseToken: { symbol: 'CAKE' },
-              quoteToken: { symbol: 'BNB' },
-            },
-            {
-              baseToken: { symbol: 'BUSD' },
-              quoteToken: { symbol: 'USDT' },
-            },
-          ],
-        },
-      });
+      // Мокируем несколько вызовов для разных токенов (getPancakeTokens делает поиск для популярных токенов)
+      vi.mocked(pancakeClient.get)
+        .mockResolvedValueOnce({
+          data: {
+            schemaVersion: '1.0.0',
+            pairs: [
+              {
+                chainId: 'bsc',
+                baseToken: { symbol: 'CAKE', address: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82' },
+                quoteToken: { symbol: 'BNB', address: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c' },
+              },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            schemaVersion: '1.0.0',
+            pairs: [
+              {
+                chainId: 'bsc',
+                baseToken: { symbol: 'BUSD', address: '0xe9e7cea3dedca5984780bafc599bd69add087d56' },
+                quoteToken: { symbol: 'USDT', address: '0x55d398326f99059ff775485246999027b3197955' },
+              },
+            ],
+          },
+        })
+        .mockResolvedValue({
+          data: {
+            schemaVersion: '1.0.0',
+            pairs: [],
+          },
+        });
 
       const result = await getPancakeTokens();
       expect(result.length).toBeGreaterThan(0);
@@ -120,9 +146,9 @@ describe('tokens.api', () => {
       vi.mocked(mexcClient.get).mockResolvedValue({
         data: {
           symbols: [
-            { symbol: 'BTCUSDT', baseAsset: 'BTC', status: 'ENABLED' },
-            { symbol: 'ETHUSDT', baseAsset: 'ETH', status: 'ENABLED' },
-            { symbol: 'DISABLED', baseAsset: 'DIS', status: 'DISABLED' },
+            { symbol: 'BTCUSDT', baseAsset: 'BTC', status: '1', isSpotTradingAllowed: true },
+            { symbol: 'ETHUSDT', baseAsset: 'ETH', status: '1', isSpotTradingAllowed: true },
+            { symbol: 'DISABLED', baseAsset: 'DIS', status: '0', isSpotTradingAllowed: false },
           ],
         },
       });

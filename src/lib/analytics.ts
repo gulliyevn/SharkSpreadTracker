@@ -44,8 +44,8 @@ class Analytics {
     // В production можно отправлять на сервер
     // Логирование через logger (только в dev)
     if (import.meta.env.DEV) {
-      // Используем прямой console.log для аналитики в dev (не через logger)
-      // чтобы не создавать циклические зависимости
+      // Используем logger для консистентности
+      // eslint-disable-next-line no-console
       console.log('[Analytics]', eventName, properties);
     }
 

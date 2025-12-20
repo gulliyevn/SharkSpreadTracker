@@ -10,6 +10,7 @@ import './lib/i18n'; // Инициализация i18n
 import { checkUrlForLeaks } from './utils/data-leak-prevention';
 import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
+import { initWebVitals } from './lib/web-vitals';
 import { logger } from './utils/logger';
 import App from './App';
 import './styles/tailwind.css';
@@ -19,6 +20,9 @@ initSentry();
 
 // Инициализация аналитики
 initAnalytics();
+
+// Инициализация Web Vitals мониторинга (только в production)
+initWebVitals();
 
 // Проверка на утечки данных при загрузке
 checkUrlForLeaks();

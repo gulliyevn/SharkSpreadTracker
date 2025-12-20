@@ -139,7 +139,7 @@ export function TokenDetailsModal({
         setIsCopied(true);
         success('Address copied to clipboard');
         setTimeout(() => setIsCopied(false), 2000);
-      } catch (err) {
+      } catch {
         // Игнорируем ошибку
       }
       document.body.removeChild(textArea);

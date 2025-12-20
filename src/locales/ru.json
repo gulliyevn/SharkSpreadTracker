@@ -14,7 +14,8 @@
     "total": "всего",
     "retry": "Попробовать снова",
     "goHome": "На главную",
-    "details": "Детали"
+    "details": "Детали",
+    "loaded": "загружено"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -71,7 +72,8 @@
   "filters": {
     "minSpread": "OT:",
     "directOnly": "Только прямой",
-    "reverseOnly": "Только обратный"
+    "reverseOnly": "Только обратный",
+    "sort": "Сортировка:"
   },
   "validation": {
     "invalidApiKey": "Неверный формат API ключа",

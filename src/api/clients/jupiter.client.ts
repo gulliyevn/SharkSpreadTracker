@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance } from 'axios';
 import { SOURCE_URLS, API_CONFIG } from '@/constants/api';
+import { logger } from '@/utils/logger';
 
 /**
  * Axios клиент для Jupiter API
@@ -22,8 +23,8 @@ export const jupiterClient: AxiosInstance = axios.create({
 if (import.meta.env.DEV) {
   const apiKey = import.meta.env.VITE_JUPITER_API_KEY;
   if (apiKey) {
-    console.log('[Jupiter Client] API key is set (length:', apiKey.length, ')');
+    logger.debug('[Jupiter Client] API key is set (length:', apiKey.length, ')');
   } else {
-    console.warn('[Jupiter Client] API key (VITE_JUPITER_API_KEY) is missing!');
+    logger.warn('[Jupiter Client] API key (VITE_JUPITER_API_KEY) is missing!');
   }
 }

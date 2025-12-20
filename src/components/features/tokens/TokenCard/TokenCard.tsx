@@ -67,7 +67,7 @@ export const TokenCard = memo(function TokenCard({
       setIsCopied(true);
       success('Address copied to clipboard');
       setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
+    } catch {
       // Fallback для старых браузеров
       const textArea = document.createElement('textarea');
       textArea.value = token.address;
@@ -80,7 +80,7 @@ export const TokenCard = memo(function TokenCard({
         setIsCopied(true);
         success('Address copied to clipboard');
         setTimeout(() => setIsCopied(false), 2000);
-      } catch (err) {
+      } catch {
         // Игнорируем ошибку
       }
       document.body.removeChild(textArea);

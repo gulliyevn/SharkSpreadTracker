@@ -7,10 +7,10 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import '@/lib/i18n';
 
-// Мок для useTokens
-const mockUseTokens = vi.fn();
-vi.mock('@/api/hooks/useTokens', () => ({
-  useTokens: () => mockUseTokens(),
+// Мок для useTokensWithSpreads
+const mockUseTokensWithSpreads = vi.fn();
+vi.mock('@/api/hooks/useTokensWithSpreads', () => ({
+  useTokensWithSpreads: () => mockUseTokensWithSpreads(),
 }));
 
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -36,10 +36,12 @@ describe('TokensPage', () => {
   });
 
   it('should render TokensPage', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: false,
       error: null,
+      loadedCount: 0,
+      totalCount: 0,
     });
 
     render(
@@ -55,10 +57,12 @@ describe('TokensPage', () => {
   });
 
   it('should display loading spinner when loading', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: true,
       error: null,
+      loadedCount: 0,
+      totalCount: 0,
     });
 
     render(
@@ -79,10 +83,12 @@ describe('TokensPage', () => {
       { symbol: 'ETH', chain: 'bsc' as const },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
     });
 
     render(
@@ -118,10 +124,12 @@ describe('TokensPage', () => {
       },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
     });
 
     render(
@@ -157,10 +165,12 @@ describe('TokensPage', () => {
       },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
     });
 
     render(
@@ -179,10 +189,12 @@ describe('TokensPage', () => {
   });
 
   it('should display empty state when no tokens loaded (without mock fallback)', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: false,
       error: null,
+      loadedCount: 0,
+      totalCount: 0,
     });
 
     render(
@@ -197,7 +209,7 @@ describe('TokensPage', () => {
   });
 
   it('should display error message when API fails', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: false,
       error: new Error('Failed to fetch tokens'),
@@ -230,10 +242,12 @@ describe('TokensPage', () => {
       { symbol: 'BNB', chain: 'bsc' as const },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
     });
 
     render(
@@ -254,10 +268,12 @@ describe('TokensPage', () => {
   it('should handle analytics tracking on token select', async () => {
     const mockTokens = [{ symbol: 'BTC', chain: 'solana' as const }];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
     });
 
     render(
@@ -272,10 +288,12 @@ describe('TokensPage', () => {
   });
 
   it('should handle empty tokens array gracefully', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: false,
       error: null,
+      loadedCount: 0,
+      totalCount: 0,
     });
 
     render(
@@ -290,10 +308,12 @@ describe('TokensPage', () => {
   });
 
   it('should show loading state correctly', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: true,
       error: null,
+      loadedCount: 0,
+      totalCount: 0,
     });
 
     render(

@@ -14,7 +14,8 @@
     "total": "toplam",
     "retry": "Tekrar Dene",
     "goHome": "Ana Sayfaya Git",
-    "details": "Detaylar"
+    "details": "Detaylar",
+    "loaded": "yüklendi"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -71,7 +72,8 @@
   "filters": {
     "minSpread": "OT:",
     "directOnly": "Sadece doğrudan",
-    "reverseOnly": "Sadece ters"
+    "reverseOnly": "Sadece ters",
+    "sort": "Sırala:"
   },
   "validation": {
     "invalidApiKey": "Geçersiz API anahtarı formatı",

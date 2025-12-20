@@ -21,6 +21,13 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
+    // Запрещаем console.* в production коде (разрешено только с eslint-disable)
+    'no-console': [
+      'warn',
+      {
+        allow: ['warn', 'error'], // Разрешаем console.warn и console.error
+      },
+    ],
   },
 };
 

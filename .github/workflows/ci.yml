@@ -39,6 +39,17 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Check bundle size
+        run: |
+          BUNDLE_SIZE=$(du -sb dist | cut -f1)
+          BUNDLE_SIZE_MB=$((BUNDLE_SIZE / 1024 / 1024))
+          echo "Bundle size: ${BUNDLE_SIZE_MB} MB"
+          if [ $BUNDLE_SIZE_MB -gt 5 ]; then
+            echo "⚠️ Bundle size exceeds 5 MB limit!"
+            exit 1
+          fi
+          echo "✅ Bundle size is within limits"
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
