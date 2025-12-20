@@ -129,5 +129,55 @@ describe('ThemeContext', () => {
 
       consoleSpy.mockRestore();
     });
+
+    it('should handle system theme changes', () => {
+      const setStoredTheme = vi.fn();
+      const mockMediaQuery = {
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      };
+      vi.mocked(useLocalStorage).mockReturnValue(['system', setStoredTheme]);
+      mockMatchMedia.mockReturnValue(mockMediaQuery);
+
+      const { unmount } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      // Симулируем изменение системной темы
+      const changeHandler = mockMediaQuery.addEventListener.mock.calls.find(
+        (call) => call[0] === 'change'
+      )?.[1] as (e: MediaQueryListEvent) => void;
+
+      if (changeHandler) {
+        const mockEvent = {
+          matches: true,
+        } as MediaQueryListEvent;
+        changeHandler(mockEvent);
+      }
+
+      unmount();
+
+      // Проверяем что listener был удален
+      expect(mockMediaQuery.removeEventListener).toHaveBeenCalled();
+    });
+
+    it('should not listen to system theme when theme is not system', () => {
+      const setStoredTheme = vi.fn();
+      const mockMediaQuery = {
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      };
+      vi.mocked(useLocalStorage).mockReturnValue(['light', setStoredTheme]);
+      mockMatchMedia.mockReturnValue(mockMediaQuery);
+
+      renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      // Когда theme не 'system', listener не должен быть добавлен
+      expect(mockMediaQuery.addEventListener).not.toHaveBeenCalled();
+    });
   });
 });

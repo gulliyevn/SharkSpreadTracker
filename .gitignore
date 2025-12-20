@@ -17,6 +17,7 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+*.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
@@ -32,6 +33,8 @@ dist-ssr
 # Testing
 coverage
 .nyc_output
+playwright-report/
+test-results/
 
 # Vercel
 .vercel
@@ -43,4 +46,5 @@ build
 MD/TODO.md
 MD/AUDIT_REPORT.md
 MD/FRONTEND_ANALYSIS.md
+MD/PROJECT_PROMPT.md
 

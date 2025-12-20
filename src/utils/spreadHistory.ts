@@ -1,5 +1,6 @@
 import type { SpreadDataPoint, Token, TimeframeOption } from '@/types';
 import { TIMEFRAMES } from '@/constants/timeframes';
+import { logger } from './logger';
 
 /**
  * Ключ для localStorage
@@ -71,7 +72,7 @@ export function saveSpreadHistoryPoint(
     // Сохраняем в localStorage
     localStorage.setItem(key, JSON.stringify(trimmed));
   } catch (error) {
-    console.error('Failed to save spread history point:', error);
+    logger.error('Failed to save spread history point:', error);
   }
 }
 
@@ -113,7 +114,7 @@ export function loadSpreadHistory(
 
     return filtered;
   } catch (error) {
-    console.error('Failed to load spread history:', error);
+    logger.error('Failed to load spread history:', error);
     return [];
   }
 }
@@ -147,7 +148,7 @@ export function clearSpreadHistory(
       });
     }
   } catch (error) {
-    console.error('Failed to clear spread history:', error);
+    logger.error('Failed to clear spread history:', error);
   }
 }
 

@@ -87,5 +87,13 @@
     "description": "Spread grafiklerini görüntüleyin ve ticaret fırsatlarını analiz edin",
     "comingSoon": "Grafikler yakında",
     "placeholder": "Spread grafikleri burada görüntülenecek. Ticaret fırsatlarını analiz etmek için tokenler ve zaman dilimleri seçin."
+  },
+  "apiKeys": {
+    "warning": {
+      "title": "API Anahtarları Uyarısı",
+      "missing": "Eksik anahtarlar:",
+      "invalid": "Geçersiz anahtarlar:",
+      "hint": "Anahtarları .env dosyasına ekleyin. Detaylar için dokümantasyona bakın."
+    }
   }
 }

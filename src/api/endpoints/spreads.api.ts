@@ -125,33 +125,65 @@ export function calculateSpreads(prices: AllPrices): {
 }
 
 /**
- * Получить спреды для списка токенов
+ * Получить спреды и цены для списка токенов
  * @param tokens - Массив токенов
  * @param signal - AbortSignal для отмены запросов (опционально)
- * @returns Массив токенов с рассчитанными спредами
+ * @param maxTokens - Максимальное количество токенов для обработки (по умолчанию 100)
+ * @returns Массив токенов с рассчитанными спредами и ценами
  */
 export async function getSpreadsForTokens(
   tokens: Token[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  maxTokens: number = 100
 ): Promise<
-  Array<Token & { directSpread: number | null; reverseSpread: number | null }>
+  Array<
+    Token & {
+      directSpread: number | null;
+      reverseSpread: number | null;
+      price: number | null;
+    }
+  >
 > {
+  // Ограничиваем количество токенов для обработки
+  const tokensToProcess = tokens.slice(0, maxTokens);
+  logger.info(
+    `Getting spreads for ${tokensToProcess.length} tokens (out of ${tokens.length} total)`
+  );
+
   // Получаем цены для всех токенов параллельно (с ограничением)
   const BATCH_SIZE = 10; // Ограничиваем количество параллельных запросов
   const results: Array<
-    Token & { directSpread: number | null; reverseSpread: number | null }
+    Token & {
+      directSpread: number | null;
+      reverseSpread: number | null;
+      price: number | null;
+    }
   > = [];
 
-  for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
-    const batch = tokens.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < tokensToProcess.length; i += BATCH_SIZE) {
+    const batch = tokensToProcess.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.allSettled(
       batch.map(async (token) => {
         const prices = await getAllPrices(token, signal);
         const spreads = calculateSpreads(prices);
+
+        // Получаем среднюю цену из доступных источников
+        const priceSources = [
+          prices.mexc?.price,
+          prices.jupiter?.price,
+          prices.pancakeswap?.price,
+        ].filter((p): p is number => p !== null && p !== undefined);
+
+        const avgPrice =
+          priceSources.length > 0
+            ? priceSources.reduce((sum, p) => sum + p, 0) / priceSources.length
+            : null;
+
         return {
           ...token,
           directSpread: spreads.directSpread,
           reverseSpread: spreads.reverseSpread,
+          price: avgPrice,
         };
       })
     );
@@ -161,7 +193,15 @@ export async function getSpreadsForTokens(
         results.push(result.value);
       }
     });
+
+    // Логируем прогресс
+    if ((i + BATCH_SIZE) % 50 === 0 || i + BATCH_SIZE >= tokensToProcess.length) {
+      logger.debug(
+        `Processed ${Math.min(i + BATCH_SIZE, tokensToProcess.length)}/${tokensToProcess.length} tokens`
+      );
+    }
   }
 
+  logger.info(`Successfully processed ${results.length} tokens with spreads and prices`);
   return results;
 }

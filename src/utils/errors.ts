@@ -153,6 +153,29 @@ export function isTimeoutError(error: unknown): boolean {
 }
 
 /**
+ * Проверить, является ли ошибка отмененным запросом (CanceledError)
+ * Axios отменяет запросы через AbortSignal, создавая CanceledError
+ */
+export function isCanceledError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
+      error.name === 'CanceledError' ||
+      error.message.includes('canceled') ||
+      error.message.includes('aborted') ||
+      error.message.includes('Abort')
+    );
+  }
+  
+  // Проверка для Axios ошибок
+  if (isAxiosError(error)) {
+    const code = error.code;
+    return code === 'ERR_CANCELED' || code === 'ECONNABORTED';
+  }
+  
+  return false;
+}
+
+/**
  * Интерфейс для Axios ошибки
  */
 interface AxiosErrorLike {

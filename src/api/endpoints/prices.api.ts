@@ -1,13 +1,14 @@
 import { jupiterClient, pancakeClient, mexcClient } from '../clients';
 import type { Token } from '@/types';
 import {
-  JupiterPricesResponseSchema,
   DexScreenerResponseSchema,
   MexcTickerSchema,
 } from '../schemas';
 import { CHAIN_IDS } from '@/constants/chains';
 import { logger } from '@/utils/logger';
 import { rateLimiter } from '@/utils/security';
+import { isCanceledError } from '@/utils/errors';
+import { queuedRequest, RequestPriority } from '@/utils/request-queue';
 
 /**
  * Интерфейс для цены токена
@@ -43,45 +44,62 @@ export async function getJupiterPrice(
   address?: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
-  // Проверка rate limiting
-  if (!rateLimiter.isAllowed('jupiter-api')) {
-    logger.warn('Jupiter API rate limit exceeded');
-    return null;
-  }
+  return queuedRequest(
+    async () => {
+      // Проверка rate limiting
+      if (!rateLimiter.isAllowed('jupiter-api')) {
+        logger.warn('Jupiter API rate limit exceeded');
+        return null;
+      }
 
-  try {
-    // Jupiter API для получения цены
-    // Эндпоинт: /price/v1/quote или /v1/quote
-    const endpoint = address
-      ? `/price/v1/quote?ids=${address}`
-      : `/price/v1/quote?ids=${symbol}`;
+      try {
+        // Jupiter API V3 для получения цены
+        // Эндпоинт: /price/v3?ids={address}
+        // Требует address (mint address токена)
+        if (!address) {
+          logger.debug(`Jupiter price: address required for ${symbol}, returning null`);
+          return null;
+        }
 
-    const response = await jupiterClient.get(endpoint, { signal });
+        // Используем Price API V3
+        const endpoint = `/price/v3?ids=${address}`;
+        const response = await jupiterClient.get(endpoint, { signal });
 
-    // Валидация через Zod
-    const validated = JupiterPricesResponseSchema.safeParse(response.data);
+        // Price API V3 возвращает объект с ключами-адресами и значениями-ценами
+        if (!response.data || typeof response.data !== 'object') {
+          logger.debug(`Jupiter price: invalid response for ${symbol}`);
+          return null;
+        }
 
-    if (!validated.success) {
-      logger.warn('Jupiter price validation failed:', validated.error);
-      return null;
+        const priceData = response.data as Record<string, { usdPrice?: number } | null>;
+        const tokenPrice = priceData[address];
+
+        if (!tokenPrice || !tokenPrice.usdPrice || tokenPrice.usdPrice <= 0) {
+          logger.debug(`Jupiter price: no valid price for ${symbol}`);
+          return null;
+        }
+
+        return {
+          price: tokenPrice.usdPrice,
+          timestamp: Date.now(),
+          source: 'jupiter',
+        };
+      } catch (error) {
+        // Игнорируем CanceledError
+        if (isCanceledError(error)) {
+          logger.debug('Jupiter price request was canceled');
+          return null;
+        }
+        logger.error('Error fetching Jupiter price:', error);
+        return null;
+      }
+    },
+    {
+      priority: RequestPriority.NORMAL,
+      maxRetries: 2,
+      rateLimitKey: 'jupiter-api',
     }
-
-    const prices = validated.data;
-    const priceEntry = Object.values(prices)[0];
-
-    if (!priceEntry || priceEntry.price === null) {
-      return null;
-    }
-
-    return {
-      price: priceEntry.price,
-      timestamp: Date.now(),
-      source: 'jupiter',
-    };
-  } catch (error) {
-    logger.error('Error fetching Jupiter price:', error);
-    return null;
-  }
+  );
 }
 
 /**
@@ -93,56 +111,72 @@ export async function getPancakePrice(
   symbol: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
-  // Проверка rate limiting
-  if (!rateLimiter.isAllowed('pancakeswap-api')) {
-    logger.warn('PancakeSwap API rate limit exceeded');
-    return null;
-  }
+  return queuedRequest(
+    async () => {
+      // Проверка rate limiting
+      if (!rateLimiter.isAllowed('pancakeswap-api')) {
+        logger.warn('PancakeSwap API rate limit exceeded');
+        return null;
+      }
 
-  try {
-    // DexScreener API для получения цены
-    // Эндпоинт: /latest/dex/tokens/{address} или поиск по символу
-    // Для BSC используем поиск по символу
-    const response = await pancakeClient.get(`/latest/dex/search?q=${symbol}`, {
-      signal,
-    });
+      try {
+        // DexScreener API для получения цены
+        // Эндпоинт: /latest/dex/tokens/{address} или поиск по символу
+        // Для BSC используем поиск по символу
+        // Важно: кодируем символ для безопасной передачи в URL
+        const encodedSymbol = encodeURIComponent(symbol);
+        const response = await pancakeClient.get(`/latest/dex/search?q=${encodedSymbol}`, {
+          signal,
+        });
 
-    // Валидация через Zod
-    const validated = DexScreenerResponseSchema.safeParse(response.data);
+        // Валидация через Zod
+        const validated = DexScreenerResponseSchema.safeParse(response.data);
 
-    if (!validated.success) {
-      logger.warn('PancakeSwap price validation failed:', validated.error);
-      return null;
+        if (!validated.success) {
+          logger.warn('PancakeSwap price validation failed:', validated.error);
+          return null;
+        }
+
+        const data = validated.data;
+        const pairs = data.pairs || [];
+
+        // Ищем пару с нужным символом на BSC
+        const pair = pairs.find(
+          (p) =>
+            p.baseToken?.symbol?.toUpperCase() === symbol.toUpperCase() &&
+            CHAIN_IDS.BSC.includes(p.chainId as (typeof CHAIN_IDS.BSC)[number])
+        );
+
+        if (!pair || !pair.priceUsd) {
+          return null;
+        }
+
+        const price = parseFloat(pair.priceUsd);
+        if (isNaN(price) || price <= 0) {
+          return null;
+        }
+
+        return {
+          price,
+          timestamp: Date.now(),
+          source: 'pancakeswap',
+        };
+      } catch (error) {
+        // Игнорируем CanceledError
+        if (isCanceledError(error)) {
+          logger.debug('PancakeSwap price request was canceled');
+          return null;
+        }
+        logger.error('Error fetching PancakeSwap price:', error);
+        return null;
+      }
+    },
+    {
+      priority: RequestPriority.NORMAL,
+      maxRetries: 2,
+      rateLimitKey: 'pancakeswap-api',
     }
-
-    const data = validated.data;
-    const pairs = data.pairs || [];
-
-    // Ищем пару с нужным символом на BSC
-    const pair = pairs.find(
-      (p) =>
-        p.baseToken?.symbol?.toUpperCase() === symbol.toUpperCase() &&
-        CHAIN_IDS.BSC.includes(p.chainId as (typeof CHAIN_IDS.BSC)[number])
-    );
-
-    if (!pair || !pair.priceUsd) {
-      return null;
-    }
-
-    const price = parseFloat(pair.priceUsd);
-    if (isNaN(price) || price <= 0) {
-      return null;
-    }
-
-    return {
-      price,
-      timestamp: Date.now(),
-      source: 'pancakeswap',
-    };
-  } catch (error) {
-    logger.error('Error fetching PancakeSwap price:', error);
-    return null;
-  }
+  );
 }
 
 /**
@@ -154,72 +188,109 @@ export async function getMexcPrice(
   symbol: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
-  // Проверка rate limiting
-  if (!rateLimiter.isAllowed('mexc-api')) {
-    logger.warn('MEXC API rate limit exceeded');
-    return null;
-  }
-
-  try {
-    // MEXC API для получения тикера
-    // Эндпоинт: /api/v3/ticker/price или /api/v3/ticker/bookTicker
-    // В dev-режиме baseURL уже содержит /api/mexc, поэтому используем /v3/ticker/bookTicker
-    const endpoint = import.meta.env.DEV
-      ? `/v3/ticker/bookTicker?symbol=${symbol}`
-      : `/api/v3/ticker/bookTicker?symbol=${symbol}`;
-    const response = await mexcClient.get(endpoint, { signal });
-
-    // Валидация через Zod
-    const validated = MexcTickerSchema.safeParse(response.data);
-
-    if (!validated.success) {
-      // Если bookTicker не работает, пробуем обычный ticker
-      try {
-        const fallbackEndpoint = import.meta.env.DEV
-          ? `/v3/ticker/price?symbol=${symbol}`
-          : `/api/v3/ticker/price?symbol=${symbol}`;
-        const tickerResponse = await mexcClient.get(fallbackEndpoint, {
-          signal,
-        });
-        const priceStr = tickerResponse.data?.price;
-        if (priceStr) {
-          const price = parseFloat(priceStr);
-          if (!isNaN(price) && price > 0) {
-            return {
-              price,
-              timestamp: Date.now(),
-              source: 'mexc',
-            };
-          }
-        }
-      } catch (tickerError) {
-        logger.error('Error fetching MEXC ticker price:', tickerError);
+  return queuedRequest(
+    async () => {
+      // Проверка rate limiting
+      if (!rateLimiter.isAllowed('mexc-api')) {
+        logger.warn('MEXC API rate limit exceeded');
+        return null;
       }
 
-      logger.warn('MEXC price validation failed:', validated.error);
-      return null;
+      try {
+        // MEXC API для получения тикера
+        // Эндпоинт: /api/v3/ticker/price или /api/v3/ticker/bookTicker
+        // В dev-режиме baseURL уже содержит /api/mexc, поэтому используем /v3/ticker/bookTicker
+        // Важно: /v3/ticker/bookTicker может возвращать массив или объект
+        const endpoint = import.meta.env.DEV
+          ? `/v3/ticker/bookTicker?symbol=${symbol}`
+          : `/api/v3/ticker/bookTicker?symbol=${symbol}`;
+        const response = await mexcClient.get(endpoint, { signal });
+
+        // Обрабатываем случай, когда API возвращает массив вместо объекта
+        let tickerData = response.data;
+        if (Array.isArray(tickerData)) {
+          // Если массив, берем первый элемент
+          tickerData = tickerData.length > 0 ? tickerData[0] : null;
+          if (!tickerData) {
+            logger.debug(`MEXC: bookTicker returned empty array for ${symbol}`);
+            // Пробуем fallback
+          } else {
+            logger.debug(`MEXC: bookTicker returned array, using first element for ${symbol}`);
+          }
+        }
+
+        // Валидация через Zod
+        const validated = tickerData ? MexcTickerSchema.safeParse(tickerData) : { success: false, error: null };
+
+        if (!validated.success) {
+          // Если bookTicker не работает, пробуем обычный ticker
+          try {
+            const fallbackEndpoint = import.meta.env.DEV
+              ? `/v3/ticker/price?symbol=${symbol}`
+              : `/api/v3/ticker/price?symbol=${symbol}`;
+            const tickerResponse = await mexcClient.get(fallbackEndpoint, {
+              signal,
+            });
+            const priceStr = tickerResponse.data?.price;
+            if (priceStr) {
+              const price = parseFloat(priceStr);
+              if (!isNaN(price) && price > 0) {
+                return {
+                  price,
+                  timestamp: Date.now(),
+                  source: 'mexc',
+                };
+              }
+            }
+          } catch (tickerError) {
+            // Игнорируем CanceledError
+            if (isCanceledError(tickerError)) {
+              logger.debug('MEXC ticker price request was canceled');
+              return null;
+            }
+            logger.error('Error fetching MEXC ticker price:', tickerError);
+          }
+
+          logger.warn('MEXC price validation failed:', validated.error);
+          return null;
+        }
+
+        if (!validated.success || !('data' in validated)) {
+          return null;
+        }
+
+        const ticker = validated.data;
+        const price = parseFloat(ticker.price);
+        const bidPrice = ticker.bidPrice ? parseFloat(ticker.bidPrice) : null;
+        const askPrice = ticker.askPrice ? parseFloat(ticker.askPrice) : null;
+
+        if (isNaN(price) || price <= 0) {
+          return null;
+        }
+
+        return {
+          price,
+          bid: bidPrice && !isNaN(bidPrice) && bidPrice > 0 ? bidPrice : null,
+          ask: askPrice && !isNaN(askPrice) && askPrice > 0 ? askPrice : null,
+          timestamp: Date.now(),
+          source: 'mexc',
+        };
+      } catch (error) {
+        // Игнорируем CanceledError
+        if (isCanceledError(error)) {
+          logger.debug('MEXC price request was canceled');
+          return null;
+        }
+        logger.error('Error fetching MEXC price:', error);
+        return null;
+      }
+    },
+    {
+      priority: RequestPriority.NORMAL,
+      maxRetries: 2,
+      rateLimitKey: 'mexc-api',
     }
-
-    const ticker = validated.data;
-    const price = parseFloat(ticker.price);
-    const bidPrice = ticker.bidPrice ? parseFloat(ticker.bidPrice) : null;
-    const askPrice = ticker.askPrice ? parseFloat(ticker.askPrice) : null;
-
-    if (isNaN(price) || price <= 0) {
-      return null;
-    }
-
-    return {
-      price,
-      bid: bidPrice && !isNaN(bidPrice) && bidPrice > 0 ? bidPrice : null,
-      ask: askPrice && !isNaN(askPrice) && askPrice > 0 ? askPrice : null,
-      timestamp: Date.now(),
-      source: 'mexc',
-    };
-  } catch (error) {
-    logger.error('Error fetching MEXC price:', error);
-    return null;
-  }
+  );
 }
 
 /**

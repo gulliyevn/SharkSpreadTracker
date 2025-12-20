@@ -90,5 +90,13 @@
     "description": "View spread charts and analyze trading opportunities",
     "comingSoon": "Charts Coming Soon",
     "placeholder": "Spread charts will be displayed here. Select tokens and timeframes to analyze trading opportunities."
+  },
+  "apiKeys": {
+    "warning": {
+      "title": "API Keys Warning",
+      "missing": "Missing keys:",
+      "invalid": "Invalid keys:",
+      "hint": "Add keys to .env file. See documentation for details."
+    }
   }
 }

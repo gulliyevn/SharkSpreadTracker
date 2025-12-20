@@ -11,8 +11,19 @@ export const jupiterClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
     // Jupiter API требует x-api-key заголовок (не Authorization)
+    // API ключ обязателен для api.jup.ag (lite-api.jup.ag deprecated)
     ...(import.meta.env.VITE_JUPITER_API_KEY && {
       'x-api-key': import.meta.env.VITE_JUPITER_API_KEY,
     }),
   },
 });
+
+// Логируем для диагностики (только в dev)
+if (import.meta.env.DEV) {
+  const apiKey = import.meta.env.VITE_JUPITER_API_KEY;
+  if (apiKey) {
+    console.log('[Jupiter Client] API key is set (length:', apiKey.length, ')');
+  } else {
+    console.warn('[Jupiter Client] API key (VITE_JUPITER_API_KEY) is missing!');
+  }
+}

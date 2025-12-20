@@ -79,7 +79,7 @@ describe('useSpreadCalculation', () => {
     expect(result.current?.timestamp).toBe(mockCurrentData.timestamp);
   });
 
-  it('should calculate spread using weighted algorithm', () => {
+  it('should calculate spread using weighted algorithm with mexc as source2', () => {
     const dataWithBidAsk: CurrentData = {
       timestamp: Date.now(),
       mexc_price: 50000,
@@ -104,6 +104,76 @@ describe('useSpreadCalculation', () => {
     // directSpread: (mexc - jupiter) / jupiter * 100 = (50000 - 50100) / 50100 * 100 = -0.1996%
     expect(result.current?.directSpread).toBeCloseTo(-0.2, 1);
     // reverseSpread: (jupiter - mexc) / mexc * 100 = (50100 - 50000) / 50000 * 100 = 0.2%
+    expect(result.current?.reverseSpread).toBeCloseTo(0.2, 1);
+  });
+
+  it('should calculate spread using weighted algorithm with mexc as source1', () => {
+    const dataWithBidAsk: CurrentData = {
+      timestamp: Date.now(),
+      mexc_price: 50000,
+      mexc_bid: 49950,
+      mexc_ask: 50050,
+      jupiter_price: 50100,
+      pancakeswap_price: null,
+    };
+
+    const options: SpreadCalculationOptions = {
+      source1: 'mexc',
+      source2: 'jupiter',
+      algorithm: 'weighted',
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculation(dataWithBidAsk, options)
+    );
+
+    expect(result.current).not.toBeNull();
+    // Используется среднее между bid и ask для mexc: (49950 + 50050) / 2 = 50000
+    // directSpread: (jupiter - mexc) / mexc * 100 = (50100 - 50000) / 50000 * 100 = 0.2%
+    expect(result.current?.directSpread).toBeCloseTo(0.2, 1);
+    // reverseSpread: (mexc - jupiter) / jupiter * 100 = (50000 - 50100) / 50100 * 100 = -0.1996%
+    expect(result.current?.reverseSpread).toBeCloseTo(-0.2, 1);
+  });
+
+  it('should calculate spread using weighted algorithm when bid or ask is null', () => {
+    const dataWithPartialBidAsk: CurrentData = {
+      timestamp: Date.now(),
+      mexc_price: 50000,
+      mexc_bid: null,
+      mexc_ask: 50050,
+      jupiter_price: 50100,
+      pancakeswap_price: null,
+    };
+
+    const options: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+      algorithm: 'weighted',
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculation(dataWithPartialBidAsk, options)
+    );
+
+    expect(result.current).not.toBeNull();
+    // Когда bid или ask null, используется mexc_price
+    expect(result.current?.directSpread).toBeCloseTo(-0.2, 1);
+  });
+
+  it('should calculate spread using median algorithm', () => {
+    const options: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+      algorithm: 'median',
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculation(mockCurrentData, options)
+    );
+
+    expect(result.current).not.toBeNull();
+    // Median algorithm использует стандартный расчет
+    expect(result.current?.directSpread).toBeCloseTo(-0.2, 1);
     expect(result.current?.reverseSpread).toBeCloseTo(0.2, 1);
   });
 
@@ -174,6 +244,48 @@ describe('useSpreadCalculation', () => {
     expect(result.current?.directSpread).toBeCloseTo(-0.2, 1);
     // reverseSpread: (pancakeswap - mexc) / mexc * 100 = (50100 - 50000) / 50000 * 100 = 0.2%
     expect(result.current?.reverseSpread).toBeCloseTo(0.2, 1);
+  });
+
+  it('should use custom cacheKey when provided', () => {
+    const options1: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+      cacheKey: 'custom-key-1',
+    };
+
+    const options2: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+      cacheKey: 'custom-key-2',
+    };
+
+    const { result: result1 } = renderHook(() =>
+      useSpreadCalculation(mockCurrentData, options1)
+    );
+
+    const { result: result2 } = renderHook(() =>
+      useSpreadCalculation(mockCurrentData, options2)
+    );
+
+    // Разные cacheKey должны давать одинаковые результаты, но не использовать кэш друг друга
+    expect(result1.current).not.toBeNull();
+    expect(result2.current).not.toBeNull();
+    expect(result1.current?.directSpread).toBe(result2.current?.directSpread);
+  });
+
+  it('should handle default algorithm when not specified', () => {
+    const options: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+      // algorithm не указан, должен использоваться 'standard'
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculation(mockCurrentData, options)
+    );
+
+    expect(result.current).not.toBeNull();
+    expect(result.current?.directSpread).toBeCloseTo(-0.2, 1);
   });
 });
 
@@ -296,6 +408,42 @@ describe('useSpreadCalculations', () => {
     result.current.forEach((calc) => {
       expect(calc.directSpread).not.toBeNull();
       expect(calc.timestamp).toBeGreaterThan(0);
+    });
+  });
+
+  it('should return empty array when source2 is null', () => {
+    const options: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: null,
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculations([mockCurrentData], options)
+    );
+
+    expect(result.current).toEqual([]);
+  });
+
+  it('should handle different algorithms in batch processing', () => {
+    const dataPoints: CurrentData[] = [
+      { ...mockCurrentData, timestamp: Date.now() - 2000 },
+      { ...mockCurrentData, timestamp: Date.now() - 1000 },
+      { ...mockCurrentData, timestamp: Date.now() },
+    ];
+
+    const optionsWeighted: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+      algorithm: 'weighted',
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculations(dataPoints, optionsWeighted)
+    );
+
+    expect(result.current).toHaveLength(3);
+    result.current.forEach((calc) => {
+      expect(calc.directSpread).not.toBeNull();
     });
   });
 });

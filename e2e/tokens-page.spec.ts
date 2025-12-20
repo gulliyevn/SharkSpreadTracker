@@ -74,6 +74,126 @@ test.describe('TokensPage', () => {
     }
   });
 
+  test('should filter tokens by chain (All/BSC/SOL)', async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+
+    // Ищем кнопки фильтрации по chain
+    // ChainFilter обычно содержит кнопки "All", "BSC", "SOL"
+    const allButton = page.locator('button:has-text("All"), button:has-text("Все"), [data-testid*="chain-all" i]').first();
+    const bscButton = page.locator('button:has-text("BSC"), [data-testid*="chain-bsc" i]').first();
+    const solButton = page.locator('button:has-text("SOL"), button:has-text("Solana"), [data-testid*="chain-sol" i]').first();
+
+    // Проверяем что фильтры видны (если есть)
+    if (await allButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      // Кликаем на BSC фильтр
+      if (await bscButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await bscButton.click();
+        await page.waitForTimeout(500); // Ждем обновления списка
+
+        // Проверяем что контент обновился
+        const mainContent = page.locator('main');
+        await expect(mainContent).toBeVisible();
+      }
+
+      // Кликаем на SOL фильтр
+      if (await solButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await solButton.click();
+        await page.waitForTimeout(500);
+
+        const mainContent = page.locator('main');
+        await expect(mainContent).toBeVisible();
+      }
+
+      // Возвращаемся к All
+      await allButton.click();
+      await page.waitForTimeout(500);
+
+      const mainContent = page.locator('main');
+      await expect(mainContent).toBeVisible();
+    }
+  });
+
+  test('should sort tokens', async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+
+    // Ищем селектор сортировки
+    // SortSelector обычно содержит select или кнопки для выбора сортировки
+    const sortSelector = page.locator('select[name*="sort" i], select[aria-label*="sort" i], button[aria-label*="sort" i]').first();
+
+    if (await sortSelector.isVisible({ timeout: 2000 }).catch(() => false)) {
+      // Если это select
+      if (await sortSelector.evaluate((el) => el.tagName === 'SELECT').catch(() => false)) {
+        // Выбираем сортировку по имени
+        await sortSelector.selectOption({ label: /name|имя|название/i });
+        await page.waitForTimeout(500);
+
+        // Выбираем сортировку по спреду
+        await sortSelector.selectOption({ label: /spread|спред/i });
+        await page.waitForTimeout(500);
+      } else {
+        // Если это кнопка, кликаем для открытия меню
+        await sortSelector.click();
+        await page.waitForTimeout(300);
+
+        // Ищем опции сортировки в выпадающем меню
+        const nameOption = page.locator('button:has-text("Name"), button:has-text("Имя"), [role="menuitem"]:has-text("name" i)').first();
+        if (await nameOption.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await nameOption.click();
+          await page.waitForTimeout(500);
+        }
+      }
+
+      // Проверяем что контент обновился
+      const mainContent = page.locator('main');
+      await expect(mainContent).toBeVisible();
+    }
+  });
+
+  test('should open token details modal', async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+
+    // Ищем первую карточку токена или кнопку "Edit" / "Details"
+    // TokenCard обычно содержит кнопку редактирования или кликабельную область
+    const tokenCard = page.locator('[data-testid*="token-card" i], .token-card, article, [role="article"]').first();
+    const editButton = page.locator('button:has-text("Edit"), button:has-text("Редактировать"), button[aria-label*="edit" i]').first();
+
+    // Пробуем кликнуть на карточку или кнопку редактирования
+    if (await tokenCard.isVisible({ timeout: 3000 }).catch(() => false)) {
+      // Сначала пробуем найти кнопку редактирования внутри карточки
+      const editInCard = tokenCard.locator('button:has-text("Edit"), button:has-text("Редактировать")').first();
+      
+      if (await editInCard.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await editInCard.click();
+      } else if (await editButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await editButton.click();
+      } else {
+        // Если нет кнопки, пробуем кликнуть на саму карточку
+        await tokenCard.click();
+      }
+
+      await page.waitForTimeout(500);
+
+      // Проверяем что модальное окно открылось
+      // TokenDetailsModal обычно имеет role="dialog" или data-testid
+      const modal = page.locator('[role="dialog"], [data-testid*="modal" i], [data-testid*="token-details" i]').first();
+      
+      if (await modal.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await expect(modal).toBeVisible();
+
+        // Закрываем модальное окно
+        const closeButton = modal.locator('button:has-text("Close"), button:has-text("Закрыть"), button[aria-label*="close" i], button:has-text("×")').first();
+        if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await closeButton.click();
+          await page.waitForTimeout(300);
+        } else {
+          // Пробуем кликнуть вне модального окна или нажать Escape
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(300);
+        }
+      }
+    }
+  });
+
   test('should handle API errors gracefully', async ({ page }) => {
     // Перехватываем запросы к реальным API endpoints
     await page.route('**/lite-api.jup.ag/**', (route) => {

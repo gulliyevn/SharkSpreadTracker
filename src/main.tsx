@@ -23,6 +23,21 @@ initAnalytics();
 // Проверка на утечки данных при загрузке
 checkUrlForLeaks();
 
+// Валидация API ключей при запуске (только логирование в dev режиме)
+if (import.meta.env.DEV) {
+  import('./utils/api-keys-validator').then(({ validateApiKeys, getApiKeysStatusMessage }) => {
+    const status = validateApiKeys();
+    const statusMessage = getApiKeysStatusMessage();
+
+    if (statusMessage.hasWarnings) {
+      logger.warn('API Keys Status:', statusMessage.message);
+      logger.info('API Keys Validation:', status);
+    } else {
+      logger.info('All API keys are valid');
+    }
+  });
+}
+
 // Глобальный обработчик ошибок для перехвата ошибок из расширений браузера
 // и других источников, которые не попадают в React ErrorBoundary
 window.addEventListener('error', (event) => {

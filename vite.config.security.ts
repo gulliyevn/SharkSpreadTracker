@@ -19,7 +19,7 @@ export function securityHeaders(): Plugin {
         // 'unsafe-eval' удалён для безопасности
         res.setHeader(
           'Content-Security-Policy',
-          "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://lite-api.jup.ag https://api.dexscreener.com https://contract.mexc.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
+          "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://lite-api.jup.ag https://api.jup.ag https://api.dexscreener.com https://api.mexc.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
         );
         // XSS Protection
         res.setHeader('X-XSS-Protection', '1; mode=block');

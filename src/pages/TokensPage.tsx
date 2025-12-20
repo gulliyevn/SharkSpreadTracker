@@ -17,7 +17,7 @@ import { TokenGrid } from '@/components/features/tokens/TokenGrid';
 import { TokenDetailsModal } from '@/components/features/tokens/TokenDetailsModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useTokens } from '@/api/hooks/useTokens';
+import { useTokensWithSpreads } from '@/api/hooks/useTokensWithSpreads';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   analytics,
@@ -48,8 +48,8 @@ export function TokensPage() {
       : 'spread';
   });
 
-  // Загружаем токены из API
-  const { data: tokens = [], isLoading, error } = useTokens();
+  // Загружаем токены из API с ценами и спредами (постепенно)
+  const { data: tokens = [], isLoading, error, loadedCount, totalCount } = useTokensWithSpreads();
 
   // Уникальные токены для селектора (убираем дубликаты по symbol-chain)
   const uniqueTokensForSelector = useMemo(() => {
@@ -296,6 +296,11 @@ export function TokensPage() {
                 ) : (
                   <>
                     {filteredTokens.length} {t('common.total') || 'total'}
+                    {loadedCount > 0 && loadedCount < totalCount && (
+                      <span className="ml-2 text-xs text-light-500 dark:text-dark-500">
+                        ({loadedCount}/{totalCount} loaded)
+                      </span>
+                    )}
                   </>
                 )}
               </div>
