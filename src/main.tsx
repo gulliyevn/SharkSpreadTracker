@@ -12,6 +12,10 @@ import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
 import { initWebVitals } from './lib/web-vitals';
 import { logger } from './utils/logger';
+import { backendHealthMonitor } from './utils/backend-health';
+import { API_MODE } from './api/adapters/api-adapter';
+// Инициализируем IndexedDB при загрузке приложения
+import './utils/indexeddb';
 import App from './App';
 import './styles/tailwind.css';
 
@@ -23,6 +27,11 @@ initAnalytics();
 
 // Инициализация Web Vitals мониторинга (только в production)
 initWebVitals();
+
+// Запуск периодического health check для бэкенда (если используется backend/hybrid/auto режим)
+if (API_MODE === 'backend' || API_MODE === 'hybrid' || API_MODE === 'auto') {
+  backendHealthMonitor.start();
+}
 
 // Проверка на утечки данных при загрузке
 checkUrlForLeaks();

@@ -13,6 +13,8 @@ import { useSpreadData } from '@/api/hooks/useSpreadData';
 import { getMexcTradingLimits } from '@/api/endpoints/mexc-limits.api';
 import { useToast } from '@/contexts/ToastContext';
 import { cn } from '@/utils/cn';
+import { createJupiterSwapUrlWithUSDC } from '@/utils/jupiter-swap';
+import { createPancakeSwapUrlWithBUSD } from '@/utils/pancakeswap-swap';
 import type { Token } from '@/types';
 import type { MexcTradingLimits } from '@/types';
 
@@ -66,14 +68,27 @@ export function TokenDetailsModal({
   }, [token]);
 
   // URL для бирж
-  const exchangeUrls = useMemo<Record<string, string>>(
-    () => ({
+  const exchangeUrls = useMemo<Record<string, string>>(() => {
+    const urls: Record<string, string> = {
       mexc: 'https://www.mexc.com',
-      jupiter: 'https://jup.ag',
-      pancakeswap: 'https://pancakeswap.finance',
-    }),
-    []
-  );
+    };
+    
+    // Для Jupiter создаем swap URL если есть адрес токена
+    if (token?.address && token.chain === 'solana') {
+      urls.jupiter = createJupiterSwapUrlWithUSDC(token.address, 'buy');
+    } else {
+      urls.jupiter = 'https://jup.ag';
+    }
+    
+    // Для PancakeSwap создаем swap URL если есть адрес токена
+    if (token?.address && token.chain === 'bsc') {
+      urls.pancakeswap = createPancakeSwapUrlWithBUSD(token.address, 'buy');
+    } else {
+      urls.pancakeswap = 'https://pancakeswap.finance';
+    }
+    
+    return urls;
+  }, [token]);
 
   // Загружаем настройки спреда из localStorage
   useEffect(() => {

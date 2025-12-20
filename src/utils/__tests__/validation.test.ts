@@ -52,10 +52,43 @@ describe('validation', () => {
 
     it('should return true for valid symbol', () => {
       expect(validateTokenSymbol('BTC')).toBe(true);
+      expect(validateTokenSymbol('ETH')).toBe(true);
+      expect(validateTokenSymbol('SOL')).toBe(true);
+      expect(validateTokenSymbol('CAKE')).toBe(true);
+      expect(validateTokenSymbol('USDT')).toBe(true);
     });
 
     it('should trim whitespace', () => {
       expect(validateTokenSymbol('  SOL  ')).toBe(true);
+    });
+
+    it('should return false for numeric-only symbols', () => {
+      expect(validateTokenSymbol('4')).toBe(false);
+      expect(validateTokenSymbol('420')).toBe(false);
+      expect(validateTokenSymbol('67')).toBe(false);
+      expect(validateTokenSymbol('123')).toBe(false);
+    });
+
+    it('should return false for symbols starting with numbers and ending with USDT', () => {
+      expect(validateTokenSymbol('420USDT')).toBe(false);
+      expect(validateTokenSymbol('4USDT')).toBe(false);
+      expect(validateTokenSymbol('67USDT')).toBe(false);
+    });
+
+    it('should return false for symbols that are too short', () => {
+      expect(validateTokenSymbol('A')).toBe(false);
+      expect(validateTokenSymbol('B')).toBe(false);
+    });
+
+    it('should return false for symbols that are too long', () => {
+      expect(validateTokenSymbol('A'.repeat(21))).toBe(false);
+      expect(validateTokenSymbol('VERYLONGSYMBOLNAME12345')).toBe(false);
+    });
+
+    it('should return true for valid symbols with numbers in the middle', () => {
+      expect(validateTokenSymbol('USDC')).toBe(true);
+      expect(validateTokenSymbol('WBTC')).toBe(true);
+      expect(validateTokenSymbol('1INCH')).toBe(true);
     });
   });
 

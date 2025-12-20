@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { sanitizeNumber } from '@/utils/security';
 import { cn } from '@/utils/cn';
 
 interface TokenFiltersProps {
@@ -35,7 +36,11 @@ export function TokenFilters({
           min="0"
           step="0.1"
           value={minSpread}
-          onChange={(e) => onMinSpreadChange(parseFloat(e.target.value) || 0)}
+          onChange={(e) => {
+            // Санитизация числового ввода
+            const sanitized = sanitizeNumber(e.target.value);
+            onMinSpreadChange(sanitized !== null ? sanitized : 0);
+          }}
           className={cn(
             'w-16 sm:w-20 px-2 py-1 rounded border text-xs sm:text-sm',
             'bg-light-50 dark:bg-dark-800 border-light-300 dark:border-dark-700',
@@ -57,7 +62,8 @@ export function TokenFilters({
           }
         }}
         className={cn(
-          'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors',
+          'px-3 py-2.5 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation',
+          'min-h-[44px] flex items-center justify-center', // Минимум 44px высота для touch targets
           'border',
           showDirectOnly
             ? 'bg-primary-600 border-primary-600 text-white'
@@ -75,7 +81,8 @@ export function TokenFilters({
           }
         }}
         className={cn(
-          'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors',
+          'px-3 py-2.5 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation',
+          'min-h-[44px] flex items-center justify-center', // Минимум 44px высота для touch targets
           'border',
           showReverseOnly
             ? 'bg-primary-600 border-primary-600 text-white'

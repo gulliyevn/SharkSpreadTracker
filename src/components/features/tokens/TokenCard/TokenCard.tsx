@@ -6,6 +6,8 @@ import { PriceDisplay } from '@/components/features/tokens/PriceDisplay';
 import { SpreadIndicator } from '@/components/features/tokens/SpreadIndicator';
 import { getSourcesForChain } from '@/constants/sources';
 import { useToast } from '@/contexts/ToastContext';
+import { createJupiterSwapUrlWithUSDC } from '@/utils/jupiter-swap';
+import { createPancakeSwapUrlWithBUSD } from '@/utils/pancakeswap-swap';
 
 interface TokenCardProps {
   token: Token;
@@ -41,10 +43,14 @@ export const TokenCard = memo(function TokenCard({
   const exchangeUrls = useMemo<Record<string, string>>(
     () => ({
       mexc: 'https://www.mexc.com',
-      jupiter: 'https://jup.ag',
-      pancakeswap: 'https://pancakeswap.finance',
+      jupiter: token.address && token.chain === 'solana'
+        ? createJupiterSwapUrlWithUSDC(token.address, 'buy')
+        : 'https://jup.ag',
+      pancakeswap: token.address && token.chain === 'bsc'
+        ? createPancakeSwapUrlWithBUSD(token.address, 'buy')
+        : 'https://pancakeswap.finance',
     }),
-    []
+    [token]
   );
 
   // Вычисляем максимальный спред для динамического ring
@@ -102,7 +108,7 @@ export const TokenCard = memo(function TokenCard({
   }, [onEdit, token]);
 
   return (
-    <div
+    <article
       className={cn(
         'group relative bg-light-50 dark:bg-dark-800 border border-light-200 dark:border-dark-700 rounded-lg p-3 sm:p-4',
         'hover:border-primary-500 dark:hover:border-primary-500 transition-all duration-200',
@@ -119,6 +125,7 @@ export const TokenCard = memo(function TokenCard({
       }
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      aria-label={`Token ${token.symbol} on ${token.chain}`}
     >
       <div className="flex items-start justify-between mb-2">
         {/* Левая часть: звезда, название и кнопка копирования */}
@@ -126,7 +133,8 @@ export const TokenCard = memo(function TokenCard({
           <button
             onClick={handleFavoriteToggle}
             className={cn(
-              'flex-shrink-0 p-0.5 transition-colors',
+              'flex-shrink-0 p-2 transition-colors touch-manipulation',
+              'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
               isFavorite
                 ? 'text-yellow-500'
                 : 'text-light-400 dark:text-dark-500 hover:text-yellow-500'
@@ -150,7 +158,8 @@ export const TokenCard = memo(function TokenCard({
             <button
               onClick={handleCopyAddress}
               className={cn(
-                'flex-shrink-0 p-1 rounded transition-colors',
+                'flex-shrink-0 p-2 rounded transition-colors touch-manipulation',
+                'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
                 isCopied
                   ? 'text-green-500 dark:text-green-400'
                   : 'text-light-500 dark:text-dark-400 hover:text-primary-500 dark:hover:text-primary-400'
@@ -190,7 +199,8 @@ export const TokenCard = memo(function TokenCard({
             key={source.id}
             onClick={() => handleExchangeClick(source.id)}
             className={cn(
-              'p-1.5 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors',
+              'p-2 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation',
+              'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
               'hover:scale-110 active:scale-95'
             )}
             title={`Open ${source.label}`}
@@ -209,7 +219,7 @@ export const TokenCard = memo(function TokenCard({
         {onEdit && (
           <button
             onClick={handleEdit}
-            className="p-1.5 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors"
+            className="p-2 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Edit token settings"
             aria-label="Edit token settings"
           >
@@ -217,6 +227,6 @@ export const TokenCard = memo(function TokenCard({
           </button>
         )}
       </div>
-    </div>
+    </article>
   );
 });

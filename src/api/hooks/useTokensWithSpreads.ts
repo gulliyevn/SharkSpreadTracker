@@ -3,6 +3,7 @@ import { useTokens } from './useTokens';
 import { getSpreadsForTokens } from '../endpoints/spreads.api';
 import type { TokenWithData } from '../endpoints/tokens.api';
 import { logger } from '@/utils/logger';
+import { networkMonitor } from '@/utils/network-monitor';
 
 const INITIAL_BATCH_SIZE = 50; // Первая порция токенов для загрузки данных
 const BATCH_SIZE = 25; // Размер последующих батчей
@@ -12,9 +13,8 @@ const BATCH_SIZE = 25; // Размер последующих батчей
  * Загружает данные постепенно, начиная с первых N токенов
  */
 export function useTokensWithSpreads() {
-  const { data: tokens = [], isLoading, error } = useTokens();
+  const { data: tokens = [], isLoading, error, refetch } = useTokens();
   const [tokensWithData, setTokensWithData] = useState<TokenWithData[]>([]);
-  const [isLoadingSpreads, setIsLoadingSpreads] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
 
   // Загружаем данные для токенов постепенно
@@ -22,11 +22,9 @@ export function useTokensWithSpreads() {
     async (tokensToLoad: TokenWithData[], startIndex: number = 0) => {
       if (tokensToLoad.length === 0) return;
 
-      setIsLoadingSpreads(true);
       try {
         const batch = tokensToLoad.slice(startIndex, startIndex + BATCH_SIZE);
         if (batch.length === 0) {
-          setIsLoadingSpreads(false);
           return;
         }
 
@@ -58,18 +56,18 @@ export function useTokensWithSpreads() {
 
         setLoadedCount(startIndex + batch.length);
 
-        // Загружаем следующий батч через небольшую задержку
+        // Загружаем следующий батч через адаптивную задержку
+        // На медленных сетях увеличиваем задержку
         if (startIndex + batch.length < tokensToLoad.length) {
+          const delay = networkMonitor.isSlowNetwork() ? 1500 : 500; // 1.5s для медленных сетей, 500ms для быстрых
           setTimeout(() => {
             loadSpreadsForTokens(tokensToLoad, startIndex + batch.length);
-          }, 500); // Задержка 500ms между батчами
+          }, delay);
         } else {
-          setIsLoadingSpreads(false);
           logger.info(`Finished loading spreads for all ${tokensToLoad.length} tokens`);
         }
       } catch (error) {
         logger.error('Error loading spreads for tokens', error);
-        setIsLoadingSpreads(false);
       }
     },
     []
@@ -99,10 +97,11 @@ export function useTokensWithSpreads() {
   }, [tokens, loadSpreadsForTokens, tokensWithData.length]);
 
   return {
-    data: tokensWithData,
-    isLoading: isLoading || isLoadingSpreads,
+    data: tokensWithData.length > 0 ? tokensWithData : tokens, // Показываем токены сразу, даже если спреды еще загружаются
+    isLoading: isLoading, // isLoading только для первоначальной загрузки токенов, не для спредов
     error,
     loadedCount,
     totalCount: tokens.length,
+    refetch, // Добавляем refetch для retry механизма
   };
 }

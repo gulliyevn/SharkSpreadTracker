@@ -36,6 +36,32 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       retry: 1,
+      // Инвалидируем кэш после успешных мутаций
+      onSuccess: () => {
+        // Автоматическая инвалидация будет настроена в конкретных мутациях
+      },
     },
   },
 });
+
+// Периодическая очистка старого кэша (каждые 5 минут)
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const cache = queryClient.getQueryCache();
+    const queries = cache.getAll();
+    const now = Date.now();
+    const maxAge = 10 * 60 * 1000; // 10 минут (gcTime)
+
+    queries.forEach((query) => {
+      const dataUpdatedAt = query.state.dataUpdatedAt || 0;
+      // Удаляем только успешные запросы, которые старше maxAge
+      if (
+        now - dataUpdatedAt > maxAge &&
+        query.state.status === 'success' &&
+        query.state.fetchStatus !== 'fetching'
+      ) {
+        cache.remove(query);
+      }
+    });
+  }, 5 * 60 * 1000); // Каждые 5 минут
+}

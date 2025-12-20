@@ -9,6 +9,11 @@ import { logger } from '@/utils/logger';
 import { rateLimiter } from '@/utils/security';
 import { isCanceledError } from '@/utils/errors';
 import { queuedRequest, RequestPriority } from '@/utils/request-queue';
+import {
+  requestDeduplicator,
+  createDeduplicationKey,
+} from '@/utils/request-deduplication';
+import { validateTokenSymbol } from '@/utils/validation';
 
 /**
  * Интерфейс для цены токена
@@ -44,13 +49,17 @@ export async function getJupiterPrice(
   address?: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
-  return queuedRequest(
-    async () => {
-      // Проверка rate limiting
-      if (!rateLimiter.isAllowed('jupiter-api')) {
-        logger.warn('Jupiter API rate limit exceeded');
-        return null;
-      }
+  // Дедупликация запросов
+  const dedupKey = createDeduplicationKey('jupiter-price', { symbol, address });
+  
+  return requestDeduplicator.deduplicate(dedupKey, () =>
+    queuedRequest(
+      async () => {
+        // Проверка rate limiting
+        if (!rateLimiter.isAllowed('jupiter-api')) {
+          logger.warn('Jupiter API rate limit exceeded');
+          return null;
+        }
 
       try {
         // Jupiter API V3 для получения цены
@@ -98,7 +107,7 @@ export async function getJupiterPrice(
       priority: RequestPriority.NORMAL,
       maxRetries: 2,
       rateLimitKey: 'jupiter-api',
-    }
+    })
   );
 }
 
@@ -111,13 +120,23 @@ export async function getPancakePrice(
   symbol: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
-  return queuedRequest(
-    async () => {
-      // Проверка rate limiting
-      if (!rateLimiter.isAllowed('pancakeswap-api')) {
-        logger.warn('PancakeSwap API rate limit exceeded');
-        return null;
-      }
+  // Валидация символа перед запросом
+  if (!validateTokenSymbol(symbol)) {
+    logger.debug(`PancakeSwap price: invalid symbol "${symbol}", skipping request`);
+    return null;
+  }
+  
+  // Дедупликация запросов
+  const dedupKey = createDeduplicationKey('pancake-price', { symbol });
+  
+  return requestDeduplicator.deduplicate(dedupKey, () =>
+    queuedRequest(
+      async () => {
+        // Проверка rate limiting
+        if (!rateLimiter.isAllowed('pancakeswap-api')) {
+          logger.warn('PancakeSwap API rate limit exceeded');
+          return null;
+        }
 
       try {
         // DexScreener API для получения цены
@@ -175,7 +194,7 @@ export async function getPancakePrice(
       priority: RequestPriority.NORMAL,
       maxRetries: 2,
       rateLimitKey: 'pancakeswap-api',
-    }
+    })
   );
 }
 
@@ -188,13 +207,24 @@ export async function getMexcPrice(
   symbol: string,
   signal?: AbortSignal
 ): Promise<TokenPrice | null> {
-  return queuedRequest(
-    async () => {
-      // Проверка rate limiting
-      if (!rateLimiter.isAllowed('mexc-api')) {
-        logger.warn('MEXC API rate limit exceeded');
-        return null;
-      }
+  // Валидация символа перед запросом
+  // Для MEXC символ может быть в формате "BTCUSDT", но не "420USDT"
+  if (!validateTokenSymbol(symbol)) {
+    logger.debug(`MEXC price: invalid symbol "${symbol}", skipping request`);
+    return null;
+  }
+  
+  // Дедупликация запросов
+  const dedupKey = createDeduplicationKey('mexc-price', { symbol });
+  
+  return requestDeduplicator.deduplicate(dedupKey, () =>
+    queuedRequest(
+      async () => {
+        // Проверка rate limiting
+        if (!rateLimiter.isAllowed('mexc-api')) {
+          logger.warn('MEXC API rate limit exceeded');
+          return null;
+        }
 
       try {
         // MEXC API для получения тикера
@@ -289,7 +319,7 @@ export async function getMexcPrice(
       priority: RequestPriority.NORMAL,
       maxRetries: 2,
       rateLimitKey: 'mexc-api',
-    }
+    })
   );
 }
 
@@ -302,6 +332,26 @@ export async function getAllPrices(
   token: Token,
   signal?: AbortSignal
 ): Promise<AllPrices> {
+  // Валидация символа токена перед запросами
+  if (!validateTokenSymbol(token.symbol)) {
+    logger.warn(`getAllPrices: invalid symbol "${token.symbol}" (chain: ${token.chain}), skipping API requests`);
+    return {
+      symbol: token.symbol,
+      chain: token.chain,
+      jupiter: null,
+      pancakeswap: null,
+      mexc: null,
+      timestamp: Date.now(),
+    };
+  }
+  
+  // Дедупликация запросов для getAllPrices
+  const dedupKey = createDeduplicationKey('all-prices', {
+    symbol: token.symbol,
+    chain: token.chain,
+  });
+  
+  return requestDeduplicator.deduplicate(dedupKey, async () => {
   const { symbol, chain } = token;
   const timestamp = Date.now();
 
@@ -315,7 +365,16 @@ export async function getAllPrices(
     chain === 'bsc' ? getPancakePrice(symbol, signal) : Promise.resolve(null),
     // MEXC для обоих блокчейнов (нужно правильно сформировать символ)
     // Формируем символ для MEXC: {SYMBOL}USDT
-    getMexcPrice(`${symbol.toUpperCase()}USDT`, signal),
+    // Валидация символа происходит внутри getMexcPrice
+    (() => {
+      const mexcSymbol = `${symbol.toUpperCase()}USDT`;
+      // Предварительная валидация перед запросом
+      if (!validateTokenSymbol(mexcSymbol)) {
+        logger.debug(`getAllPrices: invalid MEXC symbol "${mexcSymbol}" for token "${symbol}", skipping`);
+        return Promise.resolve(null);
+      }
+      return getMexcPrice(mexcSymbol, signal);
+    })(),
   ]);
 
   const jupiterPrice =
@@ -324,12 +383,13 @@ export async function getAllPrices(
     results[1].status === 'fulfilled' ? results[1].value : null;
   const mexcPrice = results[2].status === 'fulfilled' ? results[2].value : null;
 
-  return {
-    symbol,
-    chain,
-    jupiter: jupiterPrice,
-    pancakeswap: pancakePrice,
-    mexc: mexcPrice,
-    timestamp,
-  };
+    return {
+      symbol,
+      chain,
+      jupiter: jupiterPrice,
+      pancakeswap: pancakePrice,
+      mexc: mexcPrice,
+      timestamp,
+    };
+  });
 }

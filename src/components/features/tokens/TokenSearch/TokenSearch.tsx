@@ -2,6 +2,7 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { sanitizeString } from '@/utils/security';
 import { cn } from '@/utils/cn';
 
 interface TokenSearchProps {
@@ -34,21 +35,31 @@ export function TokenSearch({
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          // Санитизация пользовательского ввода для защиты от XSS
+          const sanitized = sanitizeString(e.target.value);
+          onChange(sanitized);
+        }}
         placeholder={
           placeholder ||
           t('tokens.searchPlaceholder') ||
           'Search token (BTC, SOL)...'
         }
+        aria-label={t('tokens.searchPlaceholder') || 'Search for tokens'}
+        aria-describedby="token-search-description"
         className={cn(
-          'w-full pl-10 pr-4 py-2 sm:py-2.5 rounded-lg border',
+          'w-full pl-10 pr-4 py-3 sm:py-2.5 rounded-lg border',
           'bg-light-50 dark:bg-dark-800 border-light-300 dark:border-dark-700',
           'text-sm sm:text-base text-dark-950 dark:text-dark-50',
           'placeholder:text-light-500 dark:placeholder:text-dark-500',
           'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-          'transition-all'
+          'transition-all min-h-[44px] sm:min-h-auto', // Минимум 44px высота для touch на мобильных
+          'touch-manipulation' // Оптимизация для touch-устройств
         )}
       />
+      <span id="token-search-description" className="sr-only">
+        {t('tokens.searchDescription') || 'Search tokens by symbol or name'}
+      </span>
     </div>
   );
 }

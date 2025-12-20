@@ -38,6 +38,15 @@
     <link rel="icon" type="image/png" href="/assets/SharkLogo.png" />
     <link rel="apple-touch-icon" href="/assets/SharkLogo.png" />
     
+    <!-- Preload критических ресурсов -->
+    <link rel="preload" href="/assets/SharkLogo.png" as="image" type="image/png" />
+    
+    <!-- DNS prefetch для внешних API (улучшает время первого запроса) -->
+    <link rel="dns-prefetch" href="https://lite-api.jup.ag" />
+    <link rel="dns-prefetch" href="https://api.jup.ag" />
+    <link rel="dns-prefetch" href="https://api.dexscreener.com" />
+    <link rel="dns-prefetch" href="https://contract.mexc.com" />
+    
     <!-- Preconnect для быстрой загрузки шрифтов -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

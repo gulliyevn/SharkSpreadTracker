@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { PriceDisplay } from '@/components/features/tokens/PriceDisplay';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { CurrentPricesPanelSkeleton } from '../CurrentPricesPanelSkeleton';
 import { SOURCES } from '@/constants/sources';
 import { cn } from '@/utils/cn';
 import type { Token } from '@/types';
@@ -15,8 +16,9 @@ export interface CurrentPricesPanelProps {
 
 /**
  * Панель текущих цен для всех источников
+ * Оптимизирован с помощью React.memo для предотвращения лишних ререндеров
  */
-export function CurrentPricesPanel({
+export const CurrentPricesPanel = memo(function CurrentPricesPanel({
   token,
   spreadData,
   isLoading = false,
@@ -33,16 +35,7 @@ export function CurrentPricesPanel({
   }
 
   if (isLoading) {
-    return (
-      <Card className={cn('p-4', className)}>
-        <h3 className="text-sm font-semibold mb-3 text-dark-950 dark:text-dark-50">
-          Current Prices - {token.symbol}
-        </h3>
-        <div className="flex items-center justify-center py-4">
-          <LoadingSpinner size="sm" />
-        </div>
-      </Card>
-    );
+    return <CurrentPricesPanelSkeleton />;
   }
 
   if (!spreadData) {
@@ -195,4 +188,4 @@ export function CurrentPricesPanel({
       </div>
     </Card>
   );
-}
+});

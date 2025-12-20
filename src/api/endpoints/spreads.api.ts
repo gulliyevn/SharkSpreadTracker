@@ -10,6 +10,8 @@ import { calculateSpread } from '@/utils/calculations';
 import { SpreadResponseSchema } from '../schemas';
 import { logger } from '@/utils/logger';
 import { loadSpreadHistory, updateSpreadHistory } from '@/utils/spreadHistory';
+import { validateTokenSymbol } from '@/utils/validation';
+import { networkMonitor } from '@/utils/network-monitor';
 
 /**
  * Получить данные спреда для токена
@@ -48,10 +50,13 @@ export async function getSpreadData(
     pancakeswap_price: current.pancakeswap_price,
   };
 
-  updateSpreadHistory(token, currentDataPoint, timeframe);
+  // Сохраняем историю асинхронно (не ждем завершения)
+  updateSpreadHistory(token, currentDataPoint, timeframe).catch((error) => {
+    logger.error('Failed to update spread history:', error);
+  });
 
-  // Загружаем историю из localStorage
-  const history: SpreadDataPoint[] = loadSpreadHistory(token, timeframe);
+  // Загружаем историю из IndexedDB (или localStorage как fallback)
+  const history: SpreadDataPoint[] = await loadSpreadHistory(token, timeframe);
 
   // Определяем доступность источников
   const sources = {
@@ -144,14 +149,28 @@ export async function getSpreadsForTokens(
     }
   >
 > {
+  // Фильтруем токены с некорректными символами перед обработкой
+  const validTokens = tokens.filter((token) => validateTokenSymbol(token.symbol));
+  const invalidCount = tokens.length - validTokens.length;
+  if (invalidCount > 0) {
+    const invalidSymbols = tokens
+      .filter((token) => !validateTokenSymbol(token.symbol))
+      .map((t) => t.symbol)
+      .slice(0, 10); // Показываем первые 10 некорректных символов
+    logger.warn(
+      `Filtered out ${invalidCount} tokens with invalid symbols: ${invalidSymbols.join(', ')}${invalidCount > 10 ? '...' : ''}`
+    );
+  }
+  
   // Ограничиваем количество токенов для обработки
-  const tokensToProcess = tokens.slice(0, maxTokens);
+  const tokensToProcess = validTokens.slice(0, maxTokens);
   logger.info(
-    `Getting spreads for ${tokensToProcess.length} tokens (out of ${tokens.length} total)`
+    `Getting spreads for ${tokensToProcess.length} tokens (out of ${validTokens.length} valid, ${tokens.length} total)`
   );
 
   // Получаем цены для всех токенов параллельно (с ограничением)
-  const BATCH_SIZE = 10; // Ограничиваем количество параллельных запросов
+  // Адаптируем размер батча в зависимости от состояния сети
+  const BATCH_SIZE = networkMonitor.isSlowNetwork() ? 5 : 10; // Меньше параллельных запросов на медленных сетях
   const results: Array<
     Token & {
       directSpread: number | null;

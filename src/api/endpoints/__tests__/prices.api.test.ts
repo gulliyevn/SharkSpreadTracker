@@ -20,6 +20,22 @@ vi.mock('../../clients', () => ({
   },
 }));
 
+// Мок для requestDeduplicator
+vi.mock('@/utils/request-deduplication', () => ({
+  requestDeduplicator: {
+    deduplicate: vi.fn((_key, fn) => fn()),
+  },
+  createDeduplicationKey: vi.fn((endpoint, params) => {
+    const sortedParams = params
+      ? Object.keys(params)
+          .sort()
+          .map((key) => `${key}=${JSON.stringify(params[key])}`)
+          .join('&')
+      : '';
+    return `${endpoint}${sortedParams ? `?${sortedParams}` : ''}`;
+  }),
+}));
+
 describe('prices.api', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -6,6 +6,7 @@ import { MOCK_TOKENS } from '../mockData/tokens.mock';
 import { logger } from '@/utils/logger';
 import { rateLimiter } from '@/utils/security';
 import { queuedRequest, RequestPriority } from '@/utils/request-queue';
+import { validateTokenSymbol } from '@/utils/validation';
 
 // Определяем, используется ли прокси
 const USE_PROXY = import.meta.env.VITE_USE_PROXY !== 'false';
@@ -118,9 +119,11 @@ export async function getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
               // Token API V2 возвращает токены с полем 'id' (mint address), а не 'address'
               // Также поддерживаем старый формат для обратной совместимости
               const mintAddress = item.id || (item as unknown as { address?: string }).address;
-              if (item.symbol && mintAddress) {
+              const symbol = item.symbol?.toUpperCase();
+              // Валидация символа перед добавлением
+              if (symbol && mintAddress && validateTokenSymbol(symbol)) {
                 result.push({
-                  symbol: item.symbol.toUpperCase(),
+                  symbol,
                   chain: 'solana' as const,
                   address: mintAddress, // Сохраняем mint address для Jupiter токенов
                 });
@@ -211,14 +214,16 @@ export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
         const tokensMap = new Map<string, Token>();
 
         // Получаем данные для популярных токенов через очередь
-        const tokenPromises = popularTokens.map((tokenSymbol) =>
-          queuedRequest(
-            async () => {
-              // Проверка rate limiting для каждого запроса
-              if (!rateLimiter.isAllowed('pancakeswap-api')) {
-                logger.warn(`PancakeSwap API rate limit exceeded for ${tokenSymbol}`);
-                return null;
-              }
+        const tokenPromises = popularTokens
+          .filter((tokenSymbol) => validateTokenSymbol(tokenSymbol)) // Фильтруем некорректные символы
+          .map((tokenSymbol) =>
+            queuedRequest(
+              async () => {
+                // Проверка rate limiting для каждого запроса
+                if (!rateLimiter.isAllowed('pancakeswap-api')) {
+                  logger.warn(`PancakeSwap API rate limit exceeded for ${tokenSymbol}`);
+                  return null;
+                }
 
               try {
                 // DexScreener API использует /latest/dex/search?q={query} для поиска
@@ -265,26 +270,32 @@ export async function getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
                 if (pair.baseToken?.symbol) {
                   const symbol = pair.baseToken.symbol.toUpperCase();
                   const address = pair.baseToken.address;
-                  // Сохраняем только если еще нет или если есть address (приоритет address)
-                  if (!tokensMap.has(symbol) || address) {
-                    tokensMap.set(symbol, {
-                      symbol,
-                      chain: 'bsc' as const,
-                      address: address || tokensMap.get(symbol)?.address,
-                    });
+                  // Валидация символа перед добавлением
+                  if (validateTokenSymbol(symbol)) {
+                    // Сохраняем только если еще нет или если есть address (приоритет address)
+                    if (!tokensMap.has(symbol) || address) {
+                      tokensMap.set(symbol, {
+                        symbol,
+                        chain: 'bsc' as const,
+                        address: address || tokensMap.get(symbol)?.address,
+                      });
+                    }
                   }
                 }
                 // Обрабатываем quoteToken
                 if (pair.quoteToken?.symbol) {
                   const symbol = pair.quoteToken.symbol.toUpperCase();
                   const address = pair.quoteToken.address;
-                  // Сохраняем только если еще нет или если есть address (приоритет address)
-                  if (!tokensMap.has(symbol) || address) {
-                    tokensMap.set(symbol, {
-                      symbol,
-                      chain: 'bsc' as const,
-                      address: address || tokensMap.get(symbol)?.address,
-                    });
+                  // Валидация символа перед добавлением
+                  if (validateTokenSymbol(symbol)) {
+                    // Сохраняем только если еще нет или если есть address (приоритет address)
+                    if (!tokensMap.has(symbol) || address) {
+                      tokensMap.set(symbol, {
+                        symbol,
+                        chain: 'bsc' as const,
+                        address: address || tokensMap.get(symbol)?.address,
+                      });
+                    }
                   }
                 }
               });
@@ -337,12 +348,12 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
         // MEXC API - получение информации о бирже
         // Правильный эндпоинт: /api/v3/exchangeInfo
         // В dev-режиме с прокси: baseURL = /api/mexc, эндпоинт = /v3/exchangeInfo
-        // Прокси переписывает: /api/mexc/v3/exchangeInfo -> api.mexc.com/api/v3/exchangeInfo
-        // В dev-режиме без прокси: baseURL = api.mexc.com, эндпоинт = /api/v3/exchangeInfo
-        // В production: baseURL = api.mexc.com, эндпоинт = /api/v3/exchangeInfo
+        // Прокси переписывает: /api/mexc/v3/exchangeInfo -> contract.mexc.com/api/v3/exchangeInfo
+        // В dev-режиме без прокси: baseURL = contract.mexc.com, эндпоинт = /api/v3/exchangeInfo
+        // В production: baseURL = contract.mexc.com, эндпоинт = /api/v3/exchangeInfo
         const endpoint = import.meta.env.DEV && USE_PROXY
           ? '/v3/exchangeInfo' // С прокси: прокси перепишет /api/mexc/v3/exchangeInfo -> /api/v3/exchangeInfo
-          : '/api/v3/exchangeInfo'; // Без прокси: полный путь от корня api.mexc.com
+          : '/api/v3/exchangeInfo'; // Без прокси: полный путь от корня contract.mexc.com
 
         logger.debug(`MEXC API: using endpoint ${endpoint}`);
         const response = await mexcClient.get(endpoint, { signal });
@@ -352,6 +363,10 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
           logger.warn('MEXC API: response is not an object', response.data);
           return [];
         }
+
+        // Валидация через Zod схему отключена, так как API возвращает данные,
+        // которые не всегда соответствуют строгой схеме (например, baseAssetPrecision может быть 0)
+        // Используем raw данные с ручной проверкой структуры
 
         const data = response.data as { symbols?: unknown[] };
         if (!data.symbols || !Array.isArray(data.symbols)) {
@@ -385,6 +400,11 @@ export async function getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
           const isActive =
             (symbol.status === '1' || symbol.status === 1) &&
             symbol.isSpotTradingAllowed !== false;
+
+          // Валидация символа токена перед добавлением
+          if (!validateTokenSymbol(symbol.baseAsset)) {
+            return; // Пропускаем токены с некорректными символами (например, "420", "4")
+          }
 
           if (symbol.symbol && isActive && symbol.baseAsset) {
             // Определяем блокчейн по contractAddress или другим полям
@@ -473,33 +493,47 @@ export async function getAllTokens(
       mexc: mexcTokens.length,
       total: jupiterTokens.length + pancakeTokens.length + mexcTokens.length,
     });
+    
+    // Подсчитываем некорректные токены для отладки
+    const invalidJupiter = jupiterTokens.filter((t) => !validateTokenSymbol(t.symbol)).length;
+    const invalidPancake = pancakeTokens.filter((t) => !validateTokenSymbol(t.symbol)).length;
+    const invalidMexc = mexcTokens.filter((t) => !validateTokenSymbol(t.symbol)).length;
+    if (invalidJupiter > 0 || invalidPancake > 0 || invalidMexc > 0) {
+      logger.debug(`Filtered invalid tokens: Jupiter=${invalidJupiter}, Pancake=${invalidPancake}, MEXC=${invalidMexc}`);
+    }
 
     // Объединяем все токены, убираем дубликаты
     const allTokensMap = new Map<string, TokenWithData>();
 
-    // Добавляем токены из Jupiter (Solana)
-    jupiterTokens.forEach((token) => {
-      const key = `${token.symbol}-${token.chain}`;
-      if (!allTokensMap.has(key)) {
-        allTokensMap.set(key, { ...token });
-      }
-    });
+    // Добавляем токены из Jupiter (Solana) с валидацией
+    jupiterTokens
+      .filter((token) => validateTokenSymbol(token.symbol))
+      .forEach((token) => {
+        const key = `${token.symbol}-${token.chain}`;
+        if (!allTokensMap.has(key)) {
+          allTokensMap.set(key, { ...token });
+        }
+      });
 
-    // Добавляем токены из PancakeSwap (BSC)
-    pancakeTokens.forEach((token) => {
-      const key = `${token.symbol}-${token.chain}`;
-      if (!allTokensMap.has(key)) {
-        allTokensMap.set(key, { ...token });
-      }
-    });
+    // Добавляем токены из PancakeSwap (BSC) с валидацией
+    pancakeTokens
+      .filter((token) => validateTokenSymbol(token.symbol))
+      .forEach((token) => {
+        const key = `${token.symbol}-${token.chain}`;
+        if (!allTokensMap.has(key)) {
+          allTokensMap.set(key, { ...token });
+        }
+      });
 
-    // Добавляем токены из MEXC (оба блокчейна)
-    mexcTokens.forEach((token) => {
-      const key = `${token.symbol}-${token.chain}`;
-      if (!allTokensMap.has(key)) {
-        allTokensMap.set(key, { ...token });
-      }
-    });
+    // Добавляем токены из MEXC (оба блокчейна) с валидацией
+    mexcTokens
+      .filter((token) => validateTokenSymbol(token.symbol))
+      .forEach((token) => {
+        const key = `${token.symbol}-${token.chain}`;
+        if (!allTokensMap.has(key)) {
+          allTokensMap.set(key, { ...token });
+        }
+      });
 
     // Сортируем по символу для удобства
     const result = Array.from(allTokensMap.values()).sort((a, b) =>

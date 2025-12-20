@@ -6,8 +6,9 @@ import {
   type ChainFilterValue,
 } from '@/components/features/tokens/ChainFilter';
 import { ChartsLayout } from '@/components/features/spreads/ChartsLayout';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorDisplay } from '@/components/ui/ErrorDisplay';
+import { ChartsLayoutSkeleton } from '@/components/features/spreads/ChartsLayoutSkeleton';
 import { useTokens } from '@/api/hooks/useTokens';
 
 /**
@@ -16,7 +17,7 @@ import { useTokens } from '@/api/hooks/useTokens';
 export function ChartsPage() {
   const { t } = useLanguage();
   const [chainFilter, setChainFilter] = useState<ChainFilterValue>('all');
-  const { data: tokens = [], isLoading, error } = useTokens();
+  const { data: tokens = [], isLoading, error, refetch } = useTokens();
 
   // Фильтруем токены по chain
   const filteredTokens = useMemo(() => {
@@ -67,21 +68,15 @@ export function ChartsPage() {
 
           {/* Charts Layout */}
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <LoadingSpinner size="md" />
-              <span className="ml-3 text-light-600 dark:text-dark-400">
-                {t('common.loading') || 'Loading tokens...'}
-              </span>
-            </div>
+            <ChartsLayoutSkeleton />
           ) : error ? (
-            <EmptyState
-              icon="alert-circle"
-              title={t('api.errors.unknown') || 'Error loading tokens'}
-              description={
-                error instanceof Error
-                  ? error.message
-                  : 'Please check console for details'
-              }
+            <ErrorDisplay
+              error={error}
+              onReset={() => {
+                refetch();
+              }}
+              title={t('api.errors.loadTokens') || 'Error loading tokens'}
+              showDetails={false}
             />
           ) : filteredTokens.length === 0 ? (
             <EmptyState

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import {
   LineChart,
   Line,
@@ -59,8 +59,9 @@ function calculateSpreadForPoint(
 
 /**
  * График спреда с двумя линиями (Direct и Reverse spread)
+ * Оптимизирован с помощью React.memo для предотвращения лишних ререндеров
  */
-export function SpreadChart({
+export const SpreadChart = memo(function SpreadChart({
   spreadData,
   source1,
   source2,
@@ -315,4 +316,4 @@ export function SpreadChart({
       </div>
     </Card>
   );
-}
+});

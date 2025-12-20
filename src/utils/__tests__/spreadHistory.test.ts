@@ -8,10 +8,23 @@ import {
 } from '../spreadHistory';
 import type { Token, SpreadDataPoint, TimeframeOption } from '@/types';
 import { logger } from '../logger';
+import { indexedDBManager } from '../indexeddb';
 
 vi.mock('../logger', () => ({
   logger: {
     error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock('../indexeddb', () => ({
+  indexedDBManager: {
+    isAvailable: vi.fn(() => false), // По умолчанию используем localStorage для тестов
+    saveSpreadHistory: vi.fn(),
+    loadSpreadHistory: vi.fn(),
+    deleteSpreadHistory: vi.fn(),
   },
 }));
 
@@ -24,10 +37,12 @@ describe('spreadHistory', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    // Сбрасываем мок IndexedDB для каждого теста
+    vi.mocked(indexedDBManager.isAvailable).mockReturnValue(false);
   });
 
   describe('saveSpreadHistoryPoint', () => {
-    it('should save a data point to localStorage', () => {
+    it('should save a data point to localStorage', async () => {
       const dataPoint: SpreadDataPoint = {
         timestamp: Date.now(),
         mexc_price: 50000,
@@ -35,14 +50,14 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       };
 
-      saveSpreadHistoryPoint(mockToken, '1h', dataPoint);
+      await saveSpreadHistoryPoint(mockToken, '1h', dataPoint);
 
-      const saved = loadSpreadHistory(mockToken, '1h');
+      const saved = await loadSpreadHistory(mockToken, '1h');
       expect(saved).toHaveLength(1);
       expect(saved[0]).toEqual(dataPoint);
     });
 
-    it('should not save if interval has not passed', () => {
+    it('should not save if interval has not passed', async () => {
       const dataPoint1: SpreadDataPoint = {
         timestamp: Date.now(),
         mexc_price: 50000,
@@ -57,14 +72,14 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       };
 
-      saveSpreadHistoryPoint(mockToken, '1h', dataPoint1);
-      saveSpreadHistoryPoint(mockToken, '1h', dataPoint2);
+      await saveSpreadHistoryPoint(mockToken, '1h', dataPoint1);
+      await saveSpreadHistoryPoint(mockToken, '1h', dataPoint2);
 
-      const saved = loadSpreadHistory(mockToken, '1h');
+      const saved = await loadSpreadHistory(mockToken, '1h');
       expect(saved).toHaveLength(1); // Только первая точка сохранена
     });
 
-    it('should trim to max points', () => {
+    it('should trim to max points', async () => {
       const maxPoints = 60; // для '1m'
       const dataPoints: SpreadDataPoint[] = Array.from({ length: maxPoints + 10 }, (_, i) => ({
         timestamp: Date.now() + i * 60000, // каждая точка через минуту
@@ -73,15 +88,15 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       }));
 
-      dataPoints.forEach((point) => {
-        saveSpreadHistoryPoint(mockToken, '1m', point);
-      });
+      for (const point of dataPoints) {
+        await saveSpreadHistoryPoint(mockToken, '1m', point);
+      }
 
-      const saved = loadSpreadHistory(mockToken, '1m');
+      const saved = await loadSpreadHistory(mockToken, '1m');
       expect(saved.length).toBeLessThanOrEqual(maxPoints);
     });
 
-    it('should handle localStorage errors gracefully', () => {
+    it('should handle localStorage errors gracefully', async () => {
       // Мокаем localStorage.setItem чтобы выбросить ошибку
       const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('Storage quota exceeded');
@@ -94,9 +109,7 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       };
 
-      expect(() => {
-        saveSpreadHistoryPoint(mockToken, '1h', dataPoint);
-      }).not.toThrow();
+      await expect(saveSpreadHistoryPoint(mockToken, '1h', dataPoint)).resolves.not.toThrow();
 
       expect(vi.mocked(logger.error)).toHaveBeenCalled();
 
@@ -105,12 +118,12 @@ describe('spreadHistory', () => {
   });
 
   describe('loadSpreadHistory', () => {
-    it('should return empty array if no data exists', () => {
-      const result = loadSpreadHistory(mockToken, '1h');
+    it('should return empty array if no data exists', async () => {
+      const result = await loadSpreadHistory(mockToken, '1h');
       expect(result).toEqual([]);
     });
 
-    it('should load saved history', () => {
+    it('should load saved history', async () => {
       const dataPoint: SpreadDataPoint = {
         timestamp: Date.now(),
         mexc_price: 50000,
@@ -118,14 +131,14 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       };
 
-      saveSpreadHistoryPoint(mockToken, '1h', dataPoint);
-      const loaded = loadSpreadHistory(mockToken, '1h');
+      await saveSpreadHistoryPoint(mockToken, '1h', dataPoint);
+      const loaded = await loadSpreadHistory(mockToken, '1h');
 
       expect(loaded).toHaveLength(1);
       expect(loaded[0]).toEqual(dataPoint);
     });
 
-    it('should filter old points based on timeframe', () => {
+    it('should filter old points based on timeframe', async () => {
       const oldPoint: SpreadDataPoint = {
         timestamp: Date.now() - 8 * 24 * 60 * 60 * 1000, // 8 дней назад
         mexc_price: 40000,
@@ -144,31 +157,31 @@ describe('spreadHistory', () => {
       const key = `spread-history-${mockToken.symbol}-${mockToken.chain}-1h`;
       localStorage.setItem(key, JSON.stringify([oldPoint, newPoint]));
 
-      const loaded = loadSpreadHistory(mockToken, '1h');
+      const loaded = await loadSpreadHistory(mockToken, '1h');
       // Старая точка должна быть отфильтрована
       expect(loaded.length).toBeLessThanOrEqual(1);
     });
 
-    it('should handle invalid JSON gracefully', () => {
+    it('should handle invalid JSON gracefully', async () => {
       const key = `spread-history-${mockToken.symbol}-${mockToken.chain}-1h`;
       localStorage.setItem(key, 'invalid json');
 
-      const result = loadSpreadHistory(mockToken, '1h');
+      const result = await loadSpreadHistory(mockToken, '1h');
       expect(result).toEqual([]);
       expect(vi.mocked(logger.error)).toHaveBeenCalled();
     });
 
-    it('should handle non-array data gracefully', () => {
+    it('should handle non-array data gracefully', async () => {
       const key = `spread-history-${mockToken.symbol}-${mockToken.chain}-1h`;
       localStorage.setItem(key, JSON.stringify({ not: 'an array' }));
 
-      const result = loadSpreadHistory(mockToken, '1h');
+      const result = await loadSpreadHistory(mockToken, '1h');
       expect(result).toEqual([]);
     });
   });
 
   describe('clearSpreadHistory', () => {
-    it('should clear history for specific timeframe', () => {
+    it('should clear history for specific timeframe', async () => {
       const dataPoint: SpreadDataPoint = {
         timestamp: Date.now(),
         mexc_price: 50000,
@@ -176,42 +189,40 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       };
 
-      saveSpreadHistoryPoint(mockToken, '1h', dataPoint);
-      expect(loadSpreadHistory(mockToken, '1h')).toHaveLength(1);
+      await saveSpreadHistoryPoint(mockToken, '1h', dataPoint);
+      expect(await loadSpreadHistory(mockToken, '1h')).toHaveLength(1);
 
-      clearSpreadHistory(mockToken, '1h');
-      expect(loadSpreadHistory(mockToken, '1h')).toHaveLength(0);
+      await clearSpreadHistory(mockToken, '1h');
+      expect(await loadSpreadHistory(mockToken, '1h')).toHaveLength(0);
     });
 
-    it('should clear all timeframes when timeframe is not specified', () => {
+    it('should clear all timeframes when timeframe is not specified', async () => {
       const timeframes: TimeframeOption[] = ['1h', '4h', '1d'];
 
-      timeframes.forEach((tf) => {
+      for (const tf of timeframes) {
         const dataPoint: SpreadDataPoint = {
           timestamp: Date.now(),
           mexc_price: 50000,
           jupiter_price: 50100,
           pancakeswap_price: null,
         };
-        saveSpreadHistoryPoint(mockToken, tf, dataPoint);
-      });
+        await saveSpreadHistoryPoint(mockToken, tf, dataPoint);
+      }
 
-      clearSpreadHistory(mockToken);
+      await clearSpreadHistory(mockToken);
 
-      timeframes.forEach((tf) => {
-        expect(loadSpreadHistory(mockToken, tf)).toHaveLength(0);
-      });
+      for (const tf of timeframes) {
+        expect(await loadSpreadHistory(mockToken, tf)).toHaveLength(0);
+      }
     });
 
-    it('should handle errors gracefully', () => {
+    it('should handle errors gracefully', async () => {
       // Мокаем localStorage.removeItem чтобы выбросить ошибку
       const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
         throw new Error('Storage error');
       });
 
-      expect(() => {
-        clearSpreadHistory(mockToken, '1h');
-      }).not.toThrow();
+      await expect(clearSpreadHistory(mockToken, '1h')).resolves.not.toThrow();
 
       expect(vi.mocked(logger.error)).toHaveBeenCalled();
 
@@ -220,20 +231,20 @@ describe('spreadHistory', () => {
   });
 
   describe('loadAllSpreadHistory', () => {
-    it('should load history for all timeframes', () => {
+    it('should load history for all timeframes', async () => {
       const timeframes: TimeframeOption[] = ['1h', '4h', '1d'];
 
-      timeframes.forEach((tf) => {
+      for (const tf of timeframes) {
         const dataPoint: SpreadDataPoint = {
           timestamp: Date.now(),
           mexc_price: 50000,
           jupiter_price: 50100,
           pancakeswap_price: null,
         };
-        saveSpreadHistoryPoint(mockToken, tf, dataPoint);
-      });
+        await saveSpreadHistoryPoint(mockToken, tf, dataPoint);
+      }
 
-      const allHistory = loadAllSpreadHistory(mockToken);
+      const allHistory = await loadAllSpreadHistory(mockToken);
 
       expect(allHistory).toHaveProperty('1h');
       expect(allHistory).toHaveProperty('4h');
@@ -245,7 +256,7 @@ describe('spreadHistory', () => {
   });
 
   describe('updateSpreadHistory', () => {
-    it('should call saveSpreadHistoryPoint', () => {
+    it('should call saveSpreadHistoryPoint', async () => {
       const dataPoint: SpreadDataPoint = {
         timestamp: Date.now(),
         mexc_price: 50000,
@@ -253,9 +264,9 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       };
 
-      updateSpreadHistory(mockToken, dataPoint, '1h');
+      await updateSpreadHistory(mockToken, dataPoint, '1h');
 
-      const saved = loadSpreadHistory(mockToken, '1h');
+      const saved = await loadSpreadHistory(mockToken, '1h');
       expect(saved.length).toBeGreaterThan(0);
     });
   });

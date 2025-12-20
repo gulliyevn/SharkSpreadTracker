@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getSpreadData } from '../endpoints/spreads.api';
 import { REFRESH_INTERVALS } from '@/constants/api';
+import { networkMonitor } from '@/utils/network-monitor';
+import { useEffect, useState } from 'react';
 import type { Token, SpreadResponse, TimeframeOption } from '@/types';
 
 /**
@@ -14,6 +16,26 @@ export function useSpreadData(
   timeframe: TimeframeOption = '1h',
   enabled: boolean = true
 ) {
+  const [refreshInterval, setRefreshInterval] = useState<number>(REFRESH_INTERVALS.SPREAD_DATA);
+
+  // Адаптируем интервал обновления в зависимости от состояния сети
+  useEffect(() => {
+    const unsubscribe = networkMonitor.subscribe(() => {
+      const recommendedInterval = networkMonitor.getRecommendedRefreshInterval(
+        REFRESH_INTERVALS.SPREAD_DATA
+      );
+      setRefreshInterval(recommendedInterval);
+    });
+
+    // Устанавливаем начальный интервал
+    const initialInterval = networkMonitor.getRecommendedRefreshInterval(
+      REFRESH_INTERVALS.SPREAD_DATA
+    );
+    setRefreshInterval(initialInterval);
+
+    return unsubscribe;
+  }, []);
+
   return useQuery<SpreadResponse>({
     queryKey: ['spread', token?.symbol, token?.chain, timeframe],
     queryFn: ({ signal }) => {
@@ -23,8 +45,8 @@ export function useSpreadData(
       return getSpreadData(token, timeframe, signal);
     },
     enabled: enabled && token !== null,
-    staleTime: REFRESH_INTERVALS.SPREAD_DATA,
-    refetchInterval: REFRESH_INTERVALS.SPREAD_DATA,
+    staleTime: refreshInterval,
+    refetchInterval: enabled ? refreshInterval : false,
     retry: 3,
     retryDelay: 1000,
   });

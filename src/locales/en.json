@@ -30,7 +30,8 @@
       "serverError": "Server error. Please try again later.",
       "networkError": "Network connection problem. Check your connection.",
       "timeout": "Request timeout exceeded. Please try again.",
-      "unknown": "An unknown error occurred."
+      "unknown": "An unknown error occurred.",
+      "loadTokens": "Error loading tokens"
     }
   },
   "sources": {
@@ -68,6 +69,7 @@
     "noTokensWithSearch": "No tokens match your search",
     "noTokensDescription": "Try adjusting your filters or search query",
     "searchPlaceholder": "Search token (BTC, SOL)...",
+    "searchDescription": "Search tokens by symbol or name",
     "loadMore": "Load More",
     "scrollToLoad": "Scroll to load more...",
     "allLoaded": "All tokens loaded"

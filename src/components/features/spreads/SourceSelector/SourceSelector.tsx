@@ -124,6 +124,18 @@ export function SourceSelector({
             <button
               type="button"
               onClick={() => setIsOpen1(!isOpen1)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsOpen1(!isOpen1);
+                } else if (e.key === 'Escape' && isOpen1) {
+                  e.preventDefault();
+                  setIsOpen1(false);
+                }
+              }}
+              aria-label="Select source to buy from"
+              aria-expanded={isOpen1}
+              aria-haspopup="listbox"
               className={cn(
                 'w-full flex items-center justify-between gap-2',
                 'px-3 py-2 rounded-lg border transition-all',
@@ -175,7 +187,11 @@ export function SourceSelector({
                   'overflow-hidden'
                 )}
               >
-                <ul className="max-h-48 overflow-y-auto">
+                <ul 
+                  className="max-h-48 overflow-y-auto"
+                  role="listbox"
+                  aria-label="Available sources to buy from"
+                >
                   {availableSources
                     .filter((source) => source.id !== source2)
                     .map((source) => {
@@ -183,9 +199,16 @@ export function SourceSelector({
                       const isSelected = source1 === source.id;
 
                       return (
-                        <li key={source.id}>
+                        <li key={source.id} role="option" aria-selected={isSelected}>
                           <button
                             onClick={() => handleSelect1(source.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleSelect1(source.id);
+                              }
+                            }}
+                            aria-label={`Select ${source.label} (${exchangeType}) as source to buy from`}
                             className={cn(
                               'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors',
                               'text-left',
@@ -228,6 +251,18 @@ export function SourceSelector({
             <button
               type="button"
               onClick={() => setIsOpen2(!isOpen2)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsOpen2(!isOpen2);
+                } else if (e.key === 'Escape' && isOpen2) {
+                  e.preventDefault();
+                  setIsOpen2(false);
+                }
+              }}
+              aria-label="Select source to sell to"
+              aria-expanded={isOpen2}
+              aria-haspopup="listbox"
               className={cn(
                 'w-full flex items-center justify-between gap-2',
                 'px-3 py-2 rounded-lg border transition-all',
@@ -279,7 +314,11 @@ export function SourceSelector({
                   'overflow-hidden'
                 )}
               >
-                <ul className="max-h-48 overflow-y-auto">
+                <ul 
+                  className="max-h-48 overflow-y-auto"
+                  role="listbox"
+                  aria-label="Available sources to sell to"
+                >
                   {availableSources
                     .filter((source) => source.id !== source1)
                     .map((source) => {
@@ -287,9 +326,16 @@ export function SourceSelector({
                       const isSelected = source2 === source.id;
 
                       return (
-                        <li key={source.id}>
+                        <li key={source.id} role="option" aria-selected={isSelected}>
                           <button
                             onClick={() => handleSelect2(source.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleSelect2(source.id);
+                              }
+                            }}
+                            aria-label={`Select ${source.label} (${exchangeType}) as source to sell to`}
                             className={cn(
                               'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors',
                               'text-left',

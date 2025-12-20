@@ -1,4 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Мок для requestDeduplicator
+vi.mock('@/utils/request-deduplication', () => ({
+  requestDeduplicator: {
+    deduplicate: vi.fn((_key, fn) => fn()),
+  },
+  createDeduplicationKey: vi.fn((endpoint, params) => {
+    const sortedParams = params
+      ? Object.keys(params)
+          .sort()
+          .map((key) => `${key}=${JSON.stringify(params[key])}`)
+          .join('&')
+      : '';
+    return `${endpoint}${sortedParams ? `?${sortedParams}` : ''}`;
+  }),
+}));
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { usePancakeData } from '../usePancakeData';

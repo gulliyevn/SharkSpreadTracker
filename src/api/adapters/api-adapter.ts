@@ -1,11 +1,16 @@
 /**
  * API Adapter - абстракция для переключения между прямыми API вызовами и бэкендом
  * 
+ * АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ:
+ * - Если бэкенд недоступен (production упал), автоматически переключается на direct
+ * - В режиме 'auto' периодически проверяет доступность бэкенда и переключается обратно при восстановлении
+ * - В режиме 'backend' и 'hybrid' автоматически использует direct при ошибках бэкенда
+ * 
  * Использование:
  * - VITE_API_MODE=direct (по умолчанию) - прямые вызовы к внешним API
- * - VITE_API_MODE=backend - вызовы через бэкенд API Gateway
- * - VITE_API_MODE=hybrid - бэкенд с автоматическим fallback на direct при ошибке
- * - VITE_API_MODE=auto - автоматически определяет оптимальный режим (TODO: задача Ф4)
+ * - VITE_API_MODE=backend - вызовы через бэкенд API Gateway с автоматическим fallback на direct
+ * - VITE_API_MODE=hybrid - бэкенд с автоматическим fallback на direct при ошибке (Circuit Breaker)
+ * - VITE_API_MODE=auto - автоматически определяет оптимальный режим и переключается при изменении доступности
  * 
  * Настройки:
  * - VITE_BACKEND_URL - URL бэкенда (по умолчанию: https://api.your-backend.com)
@@ -113,69 +118,205 @@ class DirectApiAdapter implements IApiAdapter {
 
 /**
  * Backend API Adapter - использует бэкенд API Gateway
+ * Автоматически переключается на direct при ошибках (если включен fallback)
  */
 class BackendApiAdapter implements IApiAdapter {
   private baseURL: string;
+  private directAdapter: DirectApiAdapter | null;
+  private circuitBreaker: CircuitBreaker;
+  private fallbackEnabled: boolean;
 
-  constructor(baseURL: string) {
+  constructor(baseURL: string, enableFallback: boolean = true) {
     this.baseURL = baseURL;
+    this.fallbackEnabled = enableFallback;
+    this.circuitBreaker = new CircuitBreaker();
+    // Создаем direct adapter только если нужен fallback
+    this.directAdapter = enableFallback ? new DirectApiAdapter() : null;
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`Backend API error: ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Backend API error: ${response.statusText}`);
+      }
+
+      this.circuitBreaker.recordSuccess();
+      return response.json();
+    } catch (error) {
+      this.circuitBreaker.recordFailure();
+      throw error;
+    }
+  }
+
+  /**
+   * Выполняет запрос с автоматическим fallback на direct при ошибке
+   */
+  private async executeWithAutoFallback<T>(
+    backendCall: () => Promise<T>,
+    directCall: () => Promise<T>,
+    operationName: string
+  ): Promise<T> {
+    // Если fallback отключен или circuit breaker говорит использовать fallback
+    if (!this.fallbackEnabled || !this.directAdapter || this.circuitBreaker.shouldUseFallback()) {
+      if (this.directAdapter) {
+        try {
+          const result = await directCall();
+          this.circuitBreaker.recordSuccess();
+          return result;
+        } catch (error) {
+          console.error(`[BackendApiAdapter] Direct fallback failed for ${operationName}:`, error);
+          throw error;
+        }
+      }
+      throw new Error(`Backend unavailable and fallback disabled for ${operationName}`);
     }
 
-    return response.json();
+    // Пытаемся использовать бэкенд
+    try {
+      return await backendCall();
+    } catch (error) {
+      console.warn(`[BackendApiAdapter] Backend failed for ${operationName}, auto-switching to direct`);
+      
+      // Автоматический fallback на direct
+      if (this.directAdapter) {
+        try {
+          const result = await directCall();
+          console.info(`[BackendApiAdapter] Auto-switched to direct for ${operationName}`);
+          return result;
+        } catch (fallbackError) {
+          console.error(`[BackendApiAdapter] Direct fallback also failed for ${operationName}:`, fallbackError);
+          throw fallbackError;
+        }
+      }
+      throw error;
+    }
   }
 
   async getAllTokens(signal?: AbortSignal): Promise<TokenWithData[]> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<TokenWithData[]>('/api/tokens', { signal }),
+        () => this.directAdapter!.getAllTokens(signal),
+        'getAllTokens'
+      );
+    }
     return this.request<TokenWithData[]>('/api/tokens', { signal });
   }
 
   async getJupiterTokens(signal?: AbortSignal): Promise<Token[]> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<Token[]>('/api/tokens/jupiter', { signal }),
+        () => this.directAdapter!.getJupiterTokens(signal),
+        'getJupiterTokens'
+      );
+    }
     return this.request<Token[]>('/api/tokens/jupiter', { signal });
   }
 
   async getPancakeTokens(signal?: AbortSignal): Promise<Token[]> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<Token[]>('/api/tokens/pancake', { signal }),
+        () => this.directAdapter!.getPancakeTokens(signal),
+        'getPancakeTokens'
+      );
+    }
     return this.request<Token[]>('/api/tokens/pancake', { signal });
   }
 
   async getMexcTokens(signal?: AbortSignal): Promise<Token[]> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<Token[]>('/api/tokens/mexc', { signal }),
+        () => this.directAdapter!.getMexcTokens(signal),
+        'getMexcTokens'
+      );
+    }
     return this.request<Token[]>('/api/tokens/mexc', { signal });
   }
 
   async getAllPrices(token: Token, signal?: AbortSignal): Promise<AllPrices> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<AllPrices>(`/api/prices?symbol=${token.symbol}&chain=${token.chain}`, { signal }),
+        () => this.directAdapter!.getAllPrices(token, signal),
+        'getAllPrices'
+      );
+    }
     return this.request<AllPrices>(`/api/prices?symbol=${token.symbol}&chain=${token.chain}`, { signal });
   }
 
   async getJupiterPrice(symbol: string, address?: string, signal?: AbortSignal): Promise<TokenPrice | null> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        async () => {
+          const params = new URLSearchParams({ symbol });
+          if (address) params.set('address', address);
+          return this.request<TokenPrice | null>(`/api/prices/jupiter?${params}`, { signal });
+        },
+        () => this.directAdapter!.getJupiterPrice(symbol, address, signal),
+        'getJupiterPrice'
+      );
+    }
     const params = new URLSearchParams({ symbol });
     if (address) params.set('address', address);
     return this.request<TokenPrice | null>(`/api/prices/jupiter?${params}`, { signal });
   }
 
   async getPancakePrice(symbol: string, signal?: AbortSignal): Promise<TokenPrice | null> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<TokenPrice | null>(`/api/prices/pancake?symbol=${symbol}`, { signal }),
+        () => this.directAdapter!.getPancakePrice(symbol, signal),
+        'getPancakePrice'
+      );
+    }
     return this.request<TokenPrice | null>(`/api/prices/pancake?symbol=${symbol}`, { signal });
   }
 
   async getMexcPrice(symbol: string, signal?: AbortSignal): Promise<TokenPrice | null> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<TokenPrice | null>(`/api/prices/mexc?symbol=${symbol}`, { signal }),
+        () => this.directAdapter!.getMexcPrice(symbol, signal),
+        'getMexcPrice'
+      );
+    }
     return this.request<TokenPrice | null>(`/api/prices/mexc?symbol=${symbol}`, { signal });
   }
 
   async getSpreadData(token: Token, timeframe: TimeframeOption = '1h', signal?: AbortSignal): Promise<SpreadResponse> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<SpreadResponse>(`/api/spreads?symbol=${token.symbol}&chain=${token.chain}&timeframe=${timeframe}`, { signal }),
+        () => this.directAdapter!.getSpreadData(token, timeframe, signal),
+        'getSpreadData'
+      );
+    }
     return this.request<SpreadResponse>(`/api/spreads?symbol=${token.symbol}&chain=${token.chain}&timeframe=${timeframe}`, { signal });
   }
 
   async getSpreadsForTokens(tokens: Token[], signal?: AbortSignal, maxTokens: number = 100): Promise<Array<Token & { directSpread: number | null; reverseSpread: number | null; price: number | null }>> {
+    if (this.fallbackEnabled && this.directAdapter) {
+      return this.executeWithAutoFallback(
+        () => this.request<Array<Token & { directSpread: number | null; reverseSpread: number | null; price: number | null }>>(`/api/spreads/batch`, {
+          method: 'POST',
+          body: JSON.stringify({ tokens: tokens.slice(0, maxTokens) }),
+          signal,
+        }),
+        () => this.directAdapter!.getSpreadsForTokens(tokens, signal, maxTokens),
+        'getSpreadsForTokens'
+      );
+    }
     return this.request<Array<Token & { directSpread: number | null; reverseSpread: number | null; price: number | null }>>(`/api/spreads/batch`, {
       method: 'POST',
       body: JSON.stringify({ tokens: tokens.slice(0, maxTokens) }),
@@ -402,9 +543,10 @@ async function createApiAdapter(): Promise<IApiAdapter> {
     if (isBackendAvailable) {
       if (import.meta.env.DEV) {
         // eslint-disable-next-line no-console
-        console.log('[ApiAdapter] Auto mode: Backend is available, using BackendApiAdapter');
+        console.log('[ApiAdapter] Auto mode: Backend is available, using BackendApiAdapter with auto-fallback');
       }
-      return new BackendApiAdapter(BACKEND_URL);
+      // В auto режиме включаем автоматический fallback на direct
+      return new BackendApiAdapter(BACKEND_URL, true);
     } else {
       if (import.meta.env.DEV) {
         // eslint-disable-next-line no-console
@@ -415,12 +557,14 @@ async function createApiAdapter(): Promise<IApiAdapter> {
   }
   
   if (API_MODE === 'backend') {
-    return new BackendApiAdapter(BACKEND_URL);
+    // В режиме backend тоже включаем автоматический fallback на direct при ошибках
+    return new BackendApiAdapter(BACKEND_URL, true);
   }
   
   if (API_MODE === 'hybrid') {
+    // В hybrid режиме BackendApiAdapter тоже должен иметь fallback
     return new HybridApiAdapter(
-      new BackendApiAdapter(BACKEND_URL),
+      new BackendApiAdapter(BACKEND_URL, true),
       new DirectApiAdapter()
     );
   }
@@ -431,6 +575,54 @@ async function createApiAdapter(): Promise<IApiAdapter> {
 // Ленивая инициализация адаптера
 let apiAdapterPromise: Promise<IApiAdapter> | null = null;
 let apiAdapterInstance: IApiAdapter | null = null;
+let healthCheckInterval: number | null = null;
+
+/**
+ * Периодическая проверка здоровья бэкенда в auto режиме
+ * Если бэкенд восстановился, переключаемся обратно на него
+ */
+function startAutoModeHealthCheck() {
+  if (API_MODE !== 'auto') {
+    return;
+  }
+
+  // Очищаем предыдущий интервал, если есть
+  if (healthCheckInterval !== null) {
+    clearInterval(healthCheckInterval);
+  }
+
+  // Проверяем каждые 30 секунд
+  healthCheckInterval = window.setInterval(async () => {
+    try {
+      const isBackendAvailable = await checkBackendHealth();
+      
+      // Если бэкенд доступен, но мы используем direct - переключаемся обратно
+      if (isBackendAvailable && apiAdapterInstance instanceof DirectApiAdapter) {
+        if (import.meta.env.DEV) {
+          console.log('[ApiAdapter] Auto mode: Backend recovered, switching back to BackendApiAdapter');
+        }
+        // Пересоздаем адаптер
+        apiAdapterPromise = null;
+        apiAdapterInstance = null;
+        await getApiAdapter();
+      }
+      // Если бэкенд недоступен, но мы используем backend - переключаемся на direct
+      else if (!isBackendAvailable && apiAdapterInstance instanceof BackendApiAdapter) {
+        if (import.meta.env.DEV) {
+          console.log('[ApiAdapter] Auto mode: Backend unavailable, switching to DirectApiAdapter');
+        }
+        // Пересоздаем адаптер
+        apiAdapterPromise = null;
+        apiAdapterInstance = new DirectApiAdapter();
+      }
+    } catch (error) {
+      // Игнорируем ошибки проверки здоровья
+      if (import.meta.env.DEV) {
+        console.debug('[ApiAdapter] Health check error:', error);
+      }
+    }
+  }, 30000); // 30 секунд
+}
 
 /**
  * Получить экземпляр адаптера (с ленивой инициализацией)
@@ -449,6 +641,12 @@ async function getApiAdapter(): Promise<IApiAdapter> {
   // Начинаем инициализацию
   apiAdapterPromise = createApiAdapter();
   apiAdapterInstance = await apiAdapterPromise;
+  
+  // Запускаем периодическую проверку здоровья для auto режима (только в браузере)
+  if (API_MODE === 'auto' && typeof window !== 'undefined' && typeof window.setInterval !== 'undefined') {
+    startAutoModeHealthCheck();
+  }
+  
   return apiAdapterInstance;
 }
 
@@ -474,7 +672,7 @@ function getApiAdapterSync(): IApiAdapter {
   
   // Для других режимов создаём синхронно
   if (API_MODE === 'backend') {
-    apiAdapterInstance = new BackendApiAdapter(BACKEND_URL);
+    apiAdapterInstance = new BackendApiAdapter(BACKEND_URL, true);
     return apiAdapterInstance;
   }
   

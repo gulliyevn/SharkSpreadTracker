@@ -36,14 +36,23 @@ export const MexcFilterSchema = z.union([
 
 /**
  * Схема для символа MEXC
+ * MEXC API возвращает status как "1" (строка) или 1 (число) для активных токенов
+ * Также поддерживает старый формат "ENABLED"/"DISABLED" для обратной совместимости
+ * status может быть "2" (BREAK) в некоторых случаях
  */
 export const MexcSymbolSchema = z.object({
   symbol: z.string().min(1, 'Symbol is required'),
-  status: z.enum(['ENABLED', 'DISABLED', 'BREAK']),
+  status: z.union([
+    z.enum(['ENABLED', 'DISABLED', 'BREAK']), // Старый формат
+    z.enum(['1', '0', '2']), // Новый формат (строка): 1=активный, 0=неактивный, 2=BREAK
+    z.literal(1), // Новый формат (число) - активный
+    z.literal(0), // Новый формат (число) - неактивный
+    z.literal(2), // Новый формат (число) - BREAK
+  ]),
   baseAsset: z.string().optional(),
   quoteAsset: z.string().optional(),
-  baseAssetPrecision: z.number().int().positive().optional(),
-  quotePrecision: z.number().int().positive().optional(),
+  baseAssetPrecision: z.number().int().nonnegative().optional(), // Может быть 0
+  quotePrecision: z.number().int().nonnegative().optional(), // Может быть 0
   orderTypes: z.array(z.string()).optional(),
   icebergAllowed: z.boolean().optional(),
   ocoAllowed: z.boolean().optional(),

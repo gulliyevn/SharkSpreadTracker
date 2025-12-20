@@ -40,9 +40,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizeClasses = {
-      sm: 'px-2.5 py-1.5 text-xs',
-      md: 'px-4 py-2 text-sm',
-      lg: 'px-6 py-3 text-base',
+      sm: 'px-2.5 py-2.5 sm:py-1.5 text-xs min-h-[44px] sm:min-h-auto', // Минимум 44px для touch на мобильных
+      md: 'px-4 py-2.5 sm:py-2 text-sm min-h-[44px] sm:min-h-auto', // Минимум 44px для touch на мобильных
+      lg: 'px-6 py-3 text-base min-h-[44px] sm:min-h-auto', // Минимум 44px для touch на мобильных
     };
 
     return (

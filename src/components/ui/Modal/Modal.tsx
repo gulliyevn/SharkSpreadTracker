@@ -78,7 +78,7 @@ export function Modal({
     };
   }, [isOpen, onClose]);
 
-  // Блокировка скролла body при открытом модальном окне
+  // Блокировка скролла body и focus management при открытом модальном окне
   useEffect(() => {
     if (isOpen) {
       // Сохраняем текущий активный элемент
@@ -94,6 +94,42 @@ export function Modal({
         );
         focusableElement?.focus();
       }
+
+      // Focus trap: ловим Tab внутри модального окна
+      const handleTabKey = (e: KeyboardEvent) => {
+        if (e.key !== 'Tab' || !modalRef.current) return;
+
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (!firstElement || !lastElement) return;
+
+        if (e.shiftKey) {
+          // Shift + Tab
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          // Tab
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      };
+
+      document.addEventListener('keydown', handleTabKey);
+      return () => {
+        document.removeEventListener('keydown', handleTabKey);
+        document.body.style.overflow = '';
+      };
     } else {
       // Восстанавливаем скролл
       document.body.style.overflow = '';
@@ -162,7 +198,8 @@ export function Modal({
               <button
                 onClick={onClose}
                 className={cn(
-                  'ml-auto p-1.5 rounded-md transition-colors flex-shrink-0',
+                  'ml-auto p-2 rounded-md transition-colors flex-shrink-0 touch-manipulation',
+                  'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
                   'text-light-600 dark:text-dark-400',
                   'hover:bg-light-200 dark:hover:bg-dark-700',
                   'hover:text-dark-950 dark:hover:text-dark-50'

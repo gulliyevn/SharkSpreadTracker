@@ -12,24 +12,25 @@ export const API_CONFIG = {
 /**
  * URL источников данных
  * В dev-режиме используем прокси через Vite для обхода CORS
- * В production используем прямые URL
+ * В production используем Edge Functions для проксирования (решает CORS)
  */
 /**
  * Определяем, использовать ли прокси или прямые URL
  * Если прокси не работает (ERR_CONNECTION_REFUSED), используем прямые URL
+ * В production всегда используем Edge Functions (/api/*)
  */
 const USE_PROXY = import.meta.env.VITE_USE_PROXY !== 'false'; // По умолчанию true
 
 export const SOURCE_URLS = {
   JUPITER:
     import.meta.env.VITE_JUPITER_URL ||
-    (import.meta.env.DEV && USE_PROXY ? '/api/jupiter' : 'https://lite-api.jup.ag'),
+    (USE_PROXY ? '/api/jupiter' : 'https://lite-api.jup.ag'),
   PANCAKE:
     import.meta.env.VITE_PANCAKE_URL ||
-    (import.meta.env.DEV && USE_PROXY ? '/api/pancake' : 'https://api.dexscreener.com'),
+    (USE_PROXY ? '/api/pancake' : 'https://api.dexscreener.com'),
   MEXC:
     import.meta.env.VITE_MEXC_REST_URL ||
-    (import.meta.env.DEV && USE_PROXY ? '/api/mexc' : 'https://api.mexc.com'),
+    (USE_PROXY ? '/api/mexc' : 'https://contract.mexc.com'),
 } as const;
 
 /**

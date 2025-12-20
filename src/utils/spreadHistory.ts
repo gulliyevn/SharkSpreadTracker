@@ -1,6 +1,7 @@
 import type { SpreadDataPoint, Token, TimeframeOption } from '@/types';
 import { TIMEFRAMES } from '@/constants/timeframes';
 import { logger } from './logger';
+import { indexedDBManager } from './indexeddb';
 
 /**
  * Ключ для localStorage
@@ -34,55 +35,123 @@ const SAVE_INTERVALS: Record<TimeframeOption, number> = {
 };
 
 /**
- * Сохранить точку данных в историю
+ * Сохранить точку данных в историю (асинхронно, использует IndexedDB если доступен)
  * @param token - Токен
  * @param timeframe - Таймфрейм
  * @param dataPoint - Точка данных для сохранения
  */
-export function saveSpreadHistoryPoint(
+export async function saveSpreadHistoryPoint(
   token: Token,
   timeframe: TimeframeOption,
   dataPoint: SpreadDataPoint
-): void {
+): Promise<void> {
   try {
-    const key = getStorageKey(token, timeframe);
-    const existing = loadSpreadHistory(token, timeframe);
+    // Используем IndexedDB если доступен, иначе localStorage
+    if (indexedDBManager.isAvailable()) {
+      const existing = await loadSpreadHistory(token, timeframe);
 
-    // Проверяем, нужно ли сохранять (по интервалу)
-    if (existing.length > 0) {
-      const lastPoint = existing[existing.length - 1];
-      if (lastPoint) {
-        const interval = SAVE_INTERVALS[timeframe];
-        const timeDiff = dataPoint.timestamp - lastPoint.timestamp;
+      // Проверяем, нужно ли сохранять (по интервалу)
+      if (existing.length > 0) {
+        const lastPoint = existing[existing.length - 1];
+        if (lastPoint) {
+          const interval = SAVE_INTERVALS[timeframe];
+          const timeDiff = dataPoint.timestamp - lastPoint.timestamp;
 
-        // Если прошло недостаточно времени, не сохраняем
-        if (timeDiff < interval) {
-          return;
+          // Если прошло недостаточно времени, не сохраняем
+          if (timeDiff < interval) {
+            return;
+          }
         }
       }
+
+      // Добавляем новую точку
+      const updated = [...existing, dataPoint];
+
+      // Ограничиваем количество точек
+      const maxPoints = MAX_POINTS[timeframe];
+      const trimmed = updated.slice(-maxPoints);
+
+      // Сохраняем в IndexedDB
+      await indexedDBManager.saveSpreadHistory(token, timeframe, trimmed);
+    } else {
+      // Fallback на localStorage
+      const key = getStorageKey(token, timeframe);
+      const existing = loadSpreadHistorySync(token, timeframe);
+
+      // Проверяем, нужно ли сохранять (по интервалу)
+      if (existing.length > 0) {
+        const lastPoint = existing[existing.length - 1];
+        if (lastPoint) {
+          const interval = SAVE_INTERVALS[timeframe];
+          const timeDiff = dataPoint.timestamp - lastPoint.timestamp;
+
+          // Если прошло недостаточно времени, не сохраняем
+          if (timeDiff < interval) {
+            return;
+          }
+        }
+      }
+
+      // Добавляем новую точку
+      const updated = [...existing, dataPoint];
+
+      // Ограничиваем количество точек
+      const maxPoints = MAX_POINTS[timeframe];
+      const trimmed = updated.slice(-maxPoints);
+
+      // Сохраняем в localStorage
+      localStorage.setItem(key, JSON.stringify(trimmed));
     }
-
-    // Добавляем новую точку
-    const updated = [...existing, dataPoint];
-
-    // Ограничиваем количество точек
-    const maxPoints = MAX_POINTS[timeframe];
-    const trimmed = updated.slice(-maxPoints);
-
-    // Сохраняем в localStorage
-    localStorage.setItem(key, JSON.stringify(trimmed));
   } catch (error) {
     logger.error('Failed to save spread history point:', error);
   }
 }
 
 /**
- * Загрузить историю спреда из localStorage
+ * Загрузить историю спреда (асинхронно, использует IndexedDB если доступен)
  * @param token - Токен
  * @param timeframe - Таймфрейм
  * @returns Массив точек данных
  */
-export function loadSpreadHistory(
+export async function loadSpreadHistory(
+  token: Token,
+  timeframe: TimeframeOption
+): Promise<SpreadDataPoint[]> {
+  try {
+    // Используем IndexedDB если доступен, иначе localStorage
+    if (indexedDBManager.isAvailable()) {
+      const data = await indexedDBManager.loadSpreadHistory(token, timeframe);
+
+      // Фильтруем старые точки (старше чем нужно для таймфрейма)
+      const timeframeMinutes = TIMEFRAMES[timeframe].minutes;
+      const maxAge = timeframeMinutes * 60 * 1000 * MAX_POINTS[timeframe];
+      const now = Date.now();
+      const filtered = data.filter((point) => now - point.timestamp <= maxAge);
+
+      // Если отфильтровали точки, сохраняем обновленный список
+      if (filtered.length !== data.length) {
+        await indexedDBManager.saveSpreadHistory(token, timeframe, filtered);
+      }
+
+      return filtered;
+    } else {
+      // Fallback на синхронный localStorage
+      return loadSpreadHistorySync(token, timeframe);
+    }
+  } catch (error) {
+    logger.error('Failed to load spread history:', error);
+    // Fallback на localStorage при ошибке
+    return loadSpreadHistorySync(token, timeframe);
+  }
+}
+
+/**
+ * Загрузить историю спреда из localStorage (синхронно, для обратной совместимости)
+ * @param token - Токен
+ * @param timeframe - Таймфрейм
+ * @returns Массив точек данных
+ */
+function loadSpreadHistorySync(
   token: Token,
   timeframe: TimeframeOption
 ): SpreadDataPoint[] {
@@ -114,38 +183,44 @@ export function loadSpreadHistory(
 
     return filtered;
   } catch (error) {
-    logger.error('Failed to load spread history:', error);
+    logger.error('Failed to load spread history from localStorage:', error);
     return [];
   }
 }
 
 /**
- * Очистить историю для токена
+ * Очистить историю для токена (асинхронно, использует IndexedDB если доступен)
  * @param token - Токен
  * @param timeframe - Таймфрейм (опционально, если не указан - очищает все таймфреймы)
  */
-export function clearSpreadHistory(
+export async function clearSpreadHistory(
   token: Token,
   timeframe?: TimeframeOption
-): void {
+): Promise<void> {
   try {
-    if (timeframe) {
-      const key = getStorageKey(token, timeframe);
-      localStorage.removeItem(key);
+    // Используем IndexedDB если доступен, иначе localStorage
+    if (indexedDBManager.isAvailable()) {
+      await indexedDBManager.deleteSpreadHistory(token, timeframe);
     } else {
-      // Очищаем все таймфреймы
-      const timeframes: TimeframeOption[] = [
-        '1m',
-        '5m',
-        '15m',
-        '1h',
-        '4h',
-        '1d',
-      ];
-      timeframes.forEach((tf) => {
-        const key = getStorageKey(token, tf);
+      // Fallback на localStorage
+      if (timeframe) {
+        const key = getStorageKey(token, timeframe);
         localStorage.removeItem(key);
-      });
+      } else {
+        // Очищаем все таймфреймы
+        const timeframes: TimeframeOption[] = [
+          '1m',
+          '5m',
+          '15m',
+          '1h',
+          '4h',
+          '1d',
+        ];
+        timeframes.forEach((tf) => {
+          const key = getStorageKey(token, tf);
+          localStorage.removeItem(key);
+        });
+      }
     }
   } catch (error) {
     logger.error('Failed to clear spread history:', error);
@@ -153,33 +228,40 @@ export function clearSpreadHistory(
 }
 
 /**
- * Получить историю для всех таймфреймов
+ * Получить историю для всех таймфреймов (асинхронно)
  * @param token - Токен
  * @returns Объект с историей для каждого таймфрейма
  */
-export function loadAllSpreadHistory(
+export async function loadAllSpreadHistory(
   token: Token
-): Record<TimeframeOption, SpreadDataPoint[]> {
+): Promise<Record<TimeframeOption, SpreadDataPoint[]>> {
   const timeframes: TimeframeOption[] = ['1m', '5m', '15m', '1h', '4h', '1d'];
   const result: Record<string, SpreadDataPoint[]> = {};
 
-  timeframes.forEach((timeframe) => {
-    result[timeframe] = loadSpreadHistory(token, timeframe);
+  // Загружаем все таймфреймы параллельно
+  const promises = timeframes.map(async (timeframe) => {
+    const data = await loadSpreadHistory(token, timeframe);
+    return { timeframe, data };
+  });
+
+  const results = await Promise.all(promises);
+  results.forEach(({ timeframe, data }) => {
+    result[timeframe] = data;
   });
 
   return result as Record<TimeframeOption, SpreadDataPoint[]>;
 }
 
 /**
- * Обновить историю при получении новых данных
+ * Обновить историю при получении новых данных (асинхронно)
  * @param token - Токен
  * @param currentData - Текущие данные
  * @param timeframe - Таймфрейм
  */
-export function updateSpreadHistory(
+export async function updateSpreadHistory(
   token: Token,
   currentData: SpreadDataPoint,
   timeframe: TimeframeOption
-): void {
-  saveSpreadHistoryPoint(token, timeframe, currentData);
+): Promise<void> {
+  await saveSpreadHistoryPoint(token, timeframe, currentData);
 }

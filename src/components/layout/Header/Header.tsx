@@ -2,6 +2,7 @@ import { Moon, Sun, BarChart3, Coins } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useView } from '@/contexts/ViewContext';
+import { BackendStatus } from '@/components/features/backend/BackendStatus';
 import { cn } from '@/utils/cn';
 
 export function Header() {
@@ -26,6 +27,7 @@ export function Header() {
               width="40"
               height="40"
               decoding="async"
+              fetchPriority="high"
             />
             <h1 className="text-base sm:text-lg md:text-xl font-bold text-dark-950 dark:text-dark-50 hidden sm:block">
               {t('app.title')}
@@ -34,19 +36,22 @@ export function Header() {
 
           {/* Right side controls */}
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* Backend Status */}
+            <BackendStatus />
+
             {/* View Switcher - кнопка для графиков */}
             <button
               onClick={() =>
                 setView(currentView === 'charts' ? 'tokens' : 'charts')
               }
               className={cn(
-                'flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border transition-colors',
+                'flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3 py-2.5 sm:py-2 rounded-lg border transition-colors touch-manipulation',
+                'min-h-[44px] sm:min-h-auto', // Минимум 44px высота для touch на мобильных
                 'bg-light-200 dark:bg-dark-800 border-light-300 dark:border-dark-800',
                 'hover:bg-light-300 dark:hover:bg-dark-700 active:scale-95',
                 currentView === 'charts'
                   ? 'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
-                  : 'text-light-700 dark:text-dark-300 hover:text-light-900 dark:hover:text-dark-100',
-                'touch-manipulation'
+                  : 'text-light-700 dark:text-dark-300 hover:text-light-900 dark:hover:text-dark-100'
               )}
               title={
                 currentView === 'charts' ? 'Switch to tokens' : 'Open charts'
@@ -77,7 +82,8 @@ export function Header() {
               <button
                 onClick={() => changeLanguage('en')}
                 className={cn(
-                  'px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors min-w-[28px] sm:min-w-[32px]',
+                  'px-2 sm:px-1.5 md:px-2 py-2 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors touch-manipulation',
+                  'min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-auto flex items-center justify-center', // Минимум 44x44px для touch на мобильных
                   currentLanguage === 'en'
                     ? 'bg-primary-600 text-white'
                     : 'text-light-600 dark:text-dark-400 hover:text-light-800 dark:hover:text-dark-200 hover:bg-light-300 dark:hover:bg-dark-700'
@@ -90,7 +96,8 @@ export function Header() {
               <button
                 onClick={() => changeLanguage('ru')}
                 className={cn(
-                  'px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors min-w-[28px] sm:min-w-[32px]',
+                  'px-2 sm:px-1.5 md:px-2 py-2 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors touch-manipulation',
+                  'min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-auto flex items-center justify-center', // Минимум 44x44px для touch на мобильных
                   currentLanguage === 'ru'
                     ? 'bg-primary-600 text-white'
                     : 'text-light-600 dark:text-dark-400 hover:text-light-800 dark:hover:text-dark-200 hover:bg-light-300 dark:hover:bg-dark-700'
@@ -103,7 +110,8 @@ export function Header() {
               <button
                 onClick={() => changeLanguage('tr')}
                 className={cn(
-                  'px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors min-w-[28px] sm:min-w-[32px]',
+                  'px-2 sm:px-1.5 md:px-2 py-2 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors touch-manipulation',
+                  'min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-auto flex items-center justify-center', // Минимум 44x44px для touch на мобильных
                   currentLanguage === 'tr'
                     ? 'bg-primary-600 text-white'
                     : 'text-light-600 dark:text-dark-400 hover:text-light-800 dark:hover:text-dark-200 hover:bg-light-300 dark:hover:bg-dark-700'
@@ -121,9 +129,10 @@ export function Header() {
                 setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
               }
               className={cn(
-                'p-1 sm:p-1.5 md:p-2 rounded-lg border bg-light-200 dark:bg-dark-800 border-light-300 dark:border-dark-800 transition-colors',
+                'p-2 sm:p-1.5 md:p-2 rounded-lg border bg-light-200 dark:bg-dark-800 border-light-300 dark:border-dark-800 transition-colors',
                 'hover:bg-light-300 dark:hover:bg-dark-700 active:scale-95',
-                'touch-manipulation' // Оптимизация для touch-устройств
+                'touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch на мобильных
+                'sm:min-w-auto sm:min-h-auto' // На десктопе можно меньше
               )}
               title={
                 resolvedTheme === 'dark'

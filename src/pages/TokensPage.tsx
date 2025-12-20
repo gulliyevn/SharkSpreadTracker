@@ -18,6 +18,7 @@ import { TokenGrid } from '@/components/features/tokens/TokenGrid';
 import { TokenDetailsModal } from '@/components/features/tokens/TokenDetailsModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorDisplay } from '@/components/ui/ErrorDisplay';
 import { useTokensWithSpreads } from '@/api/hooks/useTokensWithSpreads';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -50,7 +51,7 @@ export function TokensPage() {
   });
 
   // Загружаем токены из API с ценами и спредами (постепенно)
-  const { data: tokens = [], isLoading, error, loadedCount, totalCount } = useTokensWithSpreads();
+  const { data: tokens = [], isLoading, error, loadedCount, totalCount, refetch } = useTokensWithSpreads();
 
   // Уникальные токены для селектора (убираем дубликаты по symbol-chain)
   const uniqueTokensForSelector = useMemo(() => {
@@ -332,16 +333,14 @@ export function TokensPage() {
           )}
 
           {error && (
-            <div className="text-center py-12">
-              <p className="text-error-600 dark:text-error-400 mb-2">
-                {t('api.errors.unknown') || 'Error loading tokens'}
-              </p>
-              <p className="text-xs text-light-500 dark:text-dark-500">
-                {error instanceof Error
-                  ? error.message
-                  : 'Please check console for details'}
-              </p>
-            </div>
+            <ErrorDisplay
+              error={error}
+              onReset={() => {
+                refetch();
+              }}
+              title={t('api.errors.loadTokens') || 'Error loading tokens'}
+              showDetails={false}
+            />
           )}
 
           {/* Список токенов */}

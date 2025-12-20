@@ -76,7 +76,8 @@ describe('CurrentPricesPanel', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/Current Prices - BTC/i)).toBeInTheDocument();
+    // Проверяем что отображается skeleton (CurrentPricesPanelSkeleton)
+    expect(screen.getByTestId('current-prices-panel-skeleton')).toBeInTheDocument();
   });
 
   it('should display prices for all available sources', () => {

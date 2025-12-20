@@ -30,7 +30,8 @@
       "serverError": "Sunucu hatası. Lütfen daha sonra tekrar deneyin.",
       "networkError": "İnternet bağlantı sorunu. Bağlantınızı kontrol edin.",
       "timeout": "İstek zaman aşımına uğradı. Lütfen tekrar deneyin.",
-      "unknown": "Bilinmeyen bir hata oluştu."
+      "unknown": "Bilinmeyen bir hata oluştu.",
+      "loadTokens": "Tokenler yüklenirken hata oluştu"
     }
   },
   "sources": {
@@ -65,6 +66,7 @@
     "selectToken": "Token Seç",
     "noTokens": "Kullanılabilir token yok",
     "searchPlaceholder": "Token ara (BTC, SOL)...",
+    "searchDescription": "Sembol veya isme göre token ara",
     "loadMore": "Daha fazla yükle",
     "scrollToLoad": "Daha fazla yüklemek için aşağı kaydırın...",
     "allLoaded": "Tüm tokenler yüklendi"

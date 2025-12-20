@@ -1,6 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getSpreadData, calculateSpreads } from '../spreads.api';
 import { getAllPrices } from '../prices.api';
+
+// Мок для requestDeduplicator
+vi.mock('@/utils/request-deduplication', () => ({
+  requestDeduplicator: {
+    deduplicate: vi.fn((_key, fn) => fn()),
+  },
+  createDeduplicationKey: vi.fn((endpoint, params) => {
+    const sortedParams = params
+      ? Object.keys(params)
+          .sort()
+          .map((key) => `${key}=${JSON.stringify(params[key])}`)
+          .join('&')
+      : '';
+    return `${endpoint}${sortedParams ? `?${sortedParams}` : ''}`;
+  }),
+}));
 import type { Token } from '@/types';
 
 vi.mock('../prices.api', () => ({

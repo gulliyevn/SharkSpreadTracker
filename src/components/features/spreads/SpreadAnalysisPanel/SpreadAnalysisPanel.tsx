@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -28,8 +29,9 @@ function calculateSpreadBetweenSources(
 
 /**
  * Панель анализа спреда с подсказками действий
+ * Оптимизирован с помощью React.memo для предотвращения лишних ререндеров
  */
-export function SpreadAnalysisPanel({
+export const SpreadAnalysisPanel = memo(function SpreadAnalysisPanel({
   source1,
   source2,
   spreadData,
@@ -183,4 +185,4 @@ export function SpreadAnalysisPanel({
       </div>
     </Card>
   );
-}
+});

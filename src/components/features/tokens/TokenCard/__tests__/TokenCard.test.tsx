@@ -1,4 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Мок для jupiter-swap
+vi.mock('@/utils/jupiter-swap', () => ({
+  createJupiterSwapUrlWithUSDC: vi.fn((address: string) => 
+    `https://jup.ag/swap?sell=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&buy=${address}`
+  ),
+  createJupiterSwapUrl: vi.fn((sell: string, buy: string) => 
+    `https://jup.ag/swap?sell=${sell}&buy=${buy}`
+  ),
+}));
+
+// Мок для pancakeswap-swap
+vi.mock('@/utils/pancakeswap-swap', () => ({
+  createPancakeSwapUrlWithBUSD: vi.fn((address: string) => 
+    `https://pancakeswap.finance/swap?outputCurrency=${address}`
+  ),
+  createPancakeSwapUrl: vi.fn((address: string) => 
+    `https://pancakeswap.finance/swap?outputCurrency=${address}`
+  ),
+}));
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

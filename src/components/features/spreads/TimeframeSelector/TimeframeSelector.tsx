@@ -38,7 +38,9 @@ export function TimeframeSelector({
                   ? 'bg-primary-500 text-white border-primary-500 shadow-md'
                   : 'bg-light-100 dark:bg-dark-800 border-light-300 dark:border-dark-700 text-dark-950 dark:text-dark-50 hover:bg-light-200 dark:hover:bg-dark-700 hover:border-primary-500 dark:hover:border-primary-500'
               )}
+              aria-label={`Select ${timeframe} timeframe`}
               aria-pressed={isSelected}
+              role="button"
             >
               {timeframe}
             </button>

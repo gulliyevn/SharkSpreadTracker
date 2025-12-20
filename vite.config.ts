@@ -57,13 +57,13 @@ export default defineConfig({
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             // Логируем заголовки для диагностики (только в dev)
             if (process.env.NODE_ENV === 'development') {
-              const apiKey = req.headers['x-api-key'];
-              if (apiKey) {
-                // eslint-disable-next-line no-console
-                console.log('[Proxy] Jupiter API: x-api-key header found');
-              } else {
-                console.warn('[Proxy] Jupiter API: x-api-key header missing!');
-              }
+            const apiKey = req.headers['x-api-key'];
+            if (apiKey) {
+              // eslint-disable-next-line no-console
+              console.log('[Proxy] Jupiter API: x-api-key header found');
+            } else {
+              console.warn('[Proxy] Jupiter API: x-api-key header missing!');
+            }
             }
           });
           proxy.on('error', (err, _req, _res) => {
