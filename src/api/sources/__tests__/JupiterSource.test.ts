@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JupiterSource } from '../JupiterSource';
 import { jupiterClient } from '../../clients';
-import { logger } from '@/utils/logger';
 import { rateLimiter } from '@/utils/security';
-import { queuedRequest } from '@/utils/request-queue';
 
 // Мокируем зависимости
 vi.mock('../../clients', () => ({
@@ -89,9 +87,9 @@ describe('JupiterSource', () => {
 
       const tokens = await source.getTokens();
       expect(tokens).toHaveLength(2);
-      expect(tokens[0].symbol).toBe('SOL');
-      expect(tokens[0].chain).toBe('solana');
-      expect(tokens[0].address).toBe('So11111111111111111111111111111111111111112');
+      expect(tokens[0]?.symbol).toBe('SOL');
+      expect(tokens[0]?.chain).toBe('solana');
+      expect(tokens[0]?.address).toBe('So11111111111111111111111111111111111111112');
     });
 
     it('should try multiple endpoints if first fails', async () => {

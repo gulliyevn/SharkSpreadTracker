@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MexcSource } from '../MexcSource';
 import { mexcClient } from '../../clients';
-import { rateLimiter } from '@/utils/security';
-import { isCanceledError } from '@/utils/errors';
 
 // Мокируем зависимости
 vi.mock('../../clients', () => ({
@@ -106,7 +104,7 @@ describe('MexcSource', () => {
 
       const tokens = await source.getTokens();
       expect(tokens.length).toBeGreaterThan(0);
-      expect(tokens[0].chain).toBe('bsc');
+      expect(tokens[0]?.chain).toBe('bsc');
     });
 
     it('should filter inactive tokens', async () => {

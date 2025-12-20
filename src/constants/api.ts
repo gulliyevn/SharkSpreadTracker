@@ -34,6 +34,16 @@ export const SOURCE_URLS = {
 } as const;
 
 /**
+ * WebSocket URL для real-time обновлений
+ * TODO: Настроить после получения документации от бэкенда
+ */
+export const WEBSOCKET_URL =
+  import.meta.env.VITE_WEBSOCKET_URL ||
+  (import.meta.env.VITE_BACKEND_URL
+    ? `${import.meta.env.VITE_BACKEND_URL.replace(/^https?/, 'wss')}/ws`
+    : 'wss://api.your-backend.com/ws');
+
+/**
  * Интервалы обновления данных (в миллисекундах)
  * Оптимизированы для снижения нагрузки на API
  */

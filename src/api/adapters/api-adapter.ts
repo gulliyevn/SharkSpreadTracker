@@ -1,13 +1,15 @@
 /**
  * API Adapter - абстракция для переключения между прямыми API вызовами и бэкендом
  * 
- * АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ:
- * - Если бэкенд недоступен (production упал), автоматически переключается на direct
- * - В режиме 'auto' периодически проверяет доступность бэкенда и переключается обратно при восстановлении
- * - В режиме 'backend' и 'hybrid' автоматически использует direct при ошибках бэкенда
+ * АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ (незаметно для пользователя):
+ * - Работает без бэкенда: использует прямые вызовы к внешним API
+ * - После подключения бэкенда: автоматически переключается на бэкенд
+ * - При падении бэкенда: незаметно переключается обратно на прямые вызовы
+ * - Периодически проверяет доступность бэкенда (каждые 30 секунд)
+ * - При восстановлении бэкенда: автоматически возвращается на бэкенд
  * 
  * Использование:
- * - VITE_API_MODE=direct (по умолчанию) - прямые вызовы к внешним API
+ * - VITE_API_MODE=direct (по умолчанию) - прямые вызовы к внешним API (без бэкенда)
  * - VITE_API_MODE=backend - вызовы через бэкенд API Gateway с автоматическим fallback на direct
  * - VITE_API_MODE=hybrid - бэкенд с автоматическим fallback на direct при ошибке (Circuit Breaker)
  * - VITE_API_MODE=auto - автоматически определяет оптимальный режим и переключается при изменении доступности
@@ -20,6 +22,13 @@
 import type { Token, SpreadResponse, TimeframeOption } from '@/types';
 import type { TokenWithData } from '../endpoints/tokens.api';
 import type { TokenPrice, AllPrices } from '../endpoints/prices.api';
+import { logger } from '@/utils/logger';
+import {
+  invalidateTokensCache,
+  invalidatePricesCache,
+  invalidateSpreadsCache,
+} from '@/utils/cache-utils';
+import { analytics } from '@/lib/analytics';
 
 export type ApiMode = 'direct' | 'backend' | 'hybrid' | 'auto';
 
@@ -38,6 +47,16 @@ export const API_MODE: ApiMode = (import.meta.env.VITE_API_MODE as ApiMode) || '
  * URL бэкенда (если используется режим backend)
  */
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://api.your-backend.com';
+
+/**
+ * Интервал health check в миллисекундах (настраивается через env)
+ */
+export const HEALTH_CHECK_INTERVAL = Number(import.meta.env.VITE_HEALTH_CHECK_INTERVAL) || 30000; // 30 секунд по умолчанию
+
+/**
+ * Время кэширования результата health check в миллисекундах
+ */
+const HEALTH_CHECK_CACHE_TTL = 5000; // 5 секунд
 
 /**
  * Интерфейс для API адаптера
@@ -136,13 +155,32 @@ class BackendApiAdapter implements IApiAdapter {
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
+      // Проверяем offline режим
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error('Network is offline');
+      }
+
+      // Добавляем таймаут для запроса (3 секунды по умолчанию)
+      const timeout = options?.signal || AbortSignal.timeout(3000);
+      
+      const startTime = Date.now();
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         ...options,
+        signal: timeout,
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,
         },
       });
+
+      const responseTime = Date.now() - startTime;
+      
+      // Если ответ слишком медленный (> 3 секунд), считаем бэкенд недоступным
+      if (responseTime > 3000) {
+        logger.warn(`[BackendApiAdapter] Slow response (${responseTime}ms), switching to direct`);
+        this.circuitBreaker.recordFailure();
+        throw new Error('Backend response too slow');
+      }
 
       if (!response.ok) {
         throw new Error(`Backend API error: ${response.statusText}`);
@@ -158,6 +196,7 @@ class BackendApiAdapter implements IApiAdapter {
 
   /**
    * Выполняет запрос с автоматическим fallback на direct при ошибке
+   * Переключение происходит незаметно для пользователя
    */
   private async executeWithAutoFallback<T>(
     backendCall: () => Promise<T>,
@@ -169,10 +208,17 @@ class BackendApiAdapter implements IApiAdapter {
       if (this.directAdapter) {
         try {
           const result = await directCall();
+          // Инвалидируем кэш при использовании fallback на direct
+          invalidateTokensCache();
+          invalidatePricesCache();
+          invalidateSpreadsCache();
+          // Успешный fallback - сбрасываем счетчик для следующей попытки бэкенда
           this.circuitBreaker.recordSuccess();
           return result;
         } catch (error) {
-          console.error(`[BackendApiAdapter] Direct fallback failed for ${operationName}:`, error);
+          if (import.meta.env.DEV) {
+            logger.error(`[BackendApiAdapter] Direct fallback failed for ${operationName}:`, error);
+          }
           throw error;
         }
       }
@@ -181,18 +227,34 @@ class BackendApiAdapter implements IApiAdapter {
 
     // Пытаемся использовать бэкенд
     try {
-      return await backendCall();
+      const result = await backendCall();
+      // Успешный запрос к бэкенду - сбрасываем circuit breaker
+      this.circuitBreaker.recordSuccess();
+      return result;
     } catch (error) {
-      console.warn(`[BackendApiAdapter] Backend failed for ${operationName}, auto-switching to direct`);
+      // Бэкенд недоступен - переключаемся на direct незаметно
+      if (import.meta.env.DEV) {
+        logger.warn(`[BackendApiAdapter] Backend failed for ${operationName}, auto-switching to direct`);
+      }
       
       // Автоматический fallback на direct
       if (this.directAdapter) {
         try {
           const result = await directCall();
-          console.info(`[BackendApiAdapter] Auto-switched to direct for ${operationName}`);
+          if (import.meta.env.DEV) {
+            logger.info(`[BackendApiAdapter] Auto-switched to direct for ${operationName}`);
+          }
+          // Инвалидируем кэш при переключении на direct
+          invalidateTokensCache();
+          invalidatePricesCache();
+          invalidateSpreadsCache();
+          // Успешный fallback - сбрасываем счетчик для следующей попытки бэкенда
+          this.circuitBreaker.recordSuccess();
           return result;
         } catch (fallbackError) {
-          console.error(`[BackendApiAdapter] Direct fallback also failed for ${operationName}:`, fallbackError);
+          if (import.meta.env.DEV) {
+            logger.error(`[BackendApiAdapter] Direct fallback also failed for ${operationName}:`, fallbackError);
+          }
           throw fallbackError;
         }
       }
@@ -329,14 +391,61 @@ class BackendApiAdapter implements IApiAdapter {
  * Проверка доступности бэкенда через health check
  * @internal - используется для auto режима и fallback механизма
  */
-export async function checkBackendHealth(): Promise<boolean> {
+export async function checkBackendHealth(useCache = true): Promise<boolean> {
   try {
+    // Проверяем offline режим
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      logger.debug('[checkBackendHealth] Network is offline, skipping health check');
+      return false;
+    }
+
+    // Проверяем кэш
+    if (useCache && healthCheckCache) {
+      const now = Date.now();
+      if (now - healthCheckCache.timestamp < HEALTH_CHECK_CACHE_TTL) {
+        logger.debug('[checkBackendHealth] Using cached result');
+        return healthCheckCache.result;
+      }
+    }
+
     const response = await fetch(`${BACKEND_URL}/health`, {
       method: 'GET',
       signal: AbortSignal.timeout(5000), // 5 секунд таймаут
     });
-    return response.ok;
-  } catch {
+    
+    const isHealthy = response.ok;
+    
+    // Кэшируем результат
+    healthCheckCache = {
+      result: isHealthy,
+      timestamp: Date.now(),
+    };
+    
+    // Отправляем событие в аналитику при неудачной проверке
+    if (!isHealthy) {
+      analytics.track('backend_health_check_failed', {
+        status: response.status,
+        statusText: response.statusText,
+        url: BACKEND_URL,
+      });
+    }
+    
+    return isHealthy;
+  } catch (error) {
+    logger.debug('[checkBackendHealth] Health check failed:', error);
+    
+    // Кэшируем отрицательный результат
+    healthCheckCache = {
+      result: false,
+      timestamp: Date.now(),
+    };
+    
+    // Отправляем событие в аналитику при ошибке
+    analytics.track('backend_health_check_failed', {
+      error: error instanceof Error ? error.message : 'unknown_error',
+      url: BACKEND_URL,
+    });
+    
     return false;
   }
 }
@@ -390,14 +499,12 @@ class HybridApiAdapter implements IApiAdapter {
   private directAdapter: DirectApiAdapter;
   private circuitBreaker: CircuitBreaker;
   private fallbackEnabled: boolean;
-  private logger: typeof console;
 
   constructor(backendAdapter: BackendApiAdapter, directAdapter: DirectApiAdapter) {
     this.backendAdapter = backendAdapter;
     this.directAdapter = directAdapter;
     this.circuitBreaker = new CircuitBreaker();
     this.fallbackEnabled = import.meta.env.VITE_API_FALLBACK_ENABLED !== 'false';
-    this.logger = console;
   }
 
   /**
@@ -412,13 +519,17 @@ class HybridApiAdapter implements IApiAdapter {
     if (!this.fallbackEnabled || this.circuitBreaker.shouldUseFallback()) {
       try {
         const result = await directCall();
+        // Инвалидируем кэш при использовании fallback на direct
+        invalidateTokensCache();
+        invalidatePricesCache();
+        invalidateSpreadsCache();
         // Если успешно, сбрасываем счетчик (может быть, бэкенд восстановился)
         if (this.fallbackEnabled) {
           this.circuitBreaker.recordSuccess();
         }
         return result;
       } catch (error) {
-        this.logger.error(`[HybridApiAdapter] Direct call failed for ${operationName}:`, error);
+        logger.error(`[HybridApiAdapter] Direct call failed for ${operationName}:`, error);
         throw error;
       }
     }
@@ -429,16 +540,20 @@ class HybridApiAdapter implements IApiAdapter {
       this.circuitBreaker.recordSuccess();
       return result;
     } catch (error) {
-      this.logger.warn(`[HybridApiAdapter] Backend call failed for ${operationName}, falling back to direct:`, error);
+      logger.warn(`[HybridApiAdapter] Backend call failed for ${operationName}, falling back to direct:`, error);
       this.circuitBreaker.recordFailure();
 
       // Fallback на direct
       try {
         const result = await directCall();
-        this.logger.info(`[HybridApiAdapter] Fallback to direct succeeded for ${operationName}`);
+        // Инвалидируем кэш при fallback на direct
+        invalidateTokensCache();
+        invalidatePricesCache();
+        invalidateSpreadsCache();
+        logger.info(`[HybridApiAdapter] Fallback to direct succeeded for ${operationName}`);
         return result;
       } catch (fallbackError) {
-        this.logger.error(`[HybridApiAdapter] Fallback to direct also failed for ${operationName}:`, fallbackError);
+        logger.error(`[HybridApiAdapter] Fallback to direct also failed for ${operationName}:`, fallbackError);
         throw fallbackError;
       }
     }
@@ -542,15 +657,13 @@ async function createApiAdapter(): Promise<IApiAdapter> {
     // Используем logger для консистентности (только в dev)
     if (isBackendAvailable) {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.log('[ApiAdapter] Auto mode: Backend is available, using BackendApiAdapter with auto-fallback');
+        logger.info('[ApiAdapter] Auto mode: Backend is available, using BackendApiAdapter with auto-fallback');
       }
       // В auto режиме включаем автоматический fallback на direct
       return new BackendApiAdapter(BACKEND_URL, true);
     } else {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.log('[ApiAdapter] Auto mode: Backend is not available, using DirectApiAdapter');
+        logger.info('[ApiAdapter] Auto mode: Backend is not available, using DirectApiAdapter');
       }
       return new DirectApiAdapter();
     }
@@ -577,12 +690,21 @@ let apiAdapterPromise: Promise<IApiAdapter> | null = null;
 let apiAdapterInstance: IApiAdapter | null = null;
 let healthCheckInterval: number | null = null;
 
+// Кэш для результата health check
+let healthCheckCache: { result: boolean; timestamp: number } | null = null;
+
+// Счетчик переключений для экспоненциального backoff
+let switchCount = 0;
+let lastSwitchTime = 0;
+
 /**
- * Периодическая проверка здоровья бэкенда в auto режиме
+ * Периодическая проверка здоровья бэкенда для автоматического переключения
+ * Работает в режимах: 'auto', 'backend', 'hybrid'
  * Если бэкенд восстановился, переключаемся обратно на него
  */
 function startAutoModeHealthCheck() {
-  if (API_MODE !== 'auto') {
+  // Работает только в режимах, где используется бэкенд
+  if (API_MODE === 'direct') {
     return;
   }
 
@@ -591,43 +713,132 @@ function startAutoModeHealthCheck() {
     clearInterval(healthCheckInterval);
   }
 
-  // Проверяем каждые 30 секунд
-  healthCheckInterval = window.setInterval(async () => {
+  // Вычисляем интервал с учетом экспоненциального backoff
+  const getHealthCheckInterval = (): number => {
+    const baseInterval = HEALTH_CHECK_INTERVAL;
+    const now = Date.now();
+    
+    // Если было много переключений недавно, увеличиваем интервал
+    if (switchCount > 0 && now - lastSwitchTime < 60000) {
+      // Экспоненциальный backoff: 30s, 60s, 120s, 240s (максимум 5 минут)
+      const backoffMultiplier = Math.min(Math.pow(2, switchCount - 1), 10);
+      return baseInterval * backoffMultiplier;
+    }
+    
+    // Если бэкенд стабилен (нет переключений за последние 5 минут), уменьшаем частоту
+    if (switchCount === 0 && now - lastSwitchTime > 300000) {
+      return baseInterval * 2; // Проверяем реже
+    }
+    
+    return baseInterval;
+  };
+
+  // Выполняем проверку с динамическим интервалом
+  const performHealthCheck = async () => {
     try {
+      // Пропускаем проверку в offline режиме
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        if (import.meta.env.DEV) {
+          logger.debug('[ApiAdapter] Skipping health check: network is offline');
+        }
+        return;
+      }
+
       const isBackendAvailable = await checkBackendHealth();
       
-      // Если бэкенд доступен, но мы используем direct - переключаемся обратно
-      if (isBackendAvailable && apiAdapterInstance instanceof DirectApiAdapter) {
-        if (import.meta.env.DEV) {
-          console.log('[ApiAdapter] Auto mode: Backend recovered, switching back to BackendApiAdapter');
+      // В режиме 'auto': переключаемся между BackendApiAdapter и DirectApiAdapter
+      if (API_MODE === 'auto') {
+        // Если бэкенд доступен, но мы используем direct - переключаемся обратно
+        if (isBackendAvailable && apiAdapterInstance instanceof DirectApiAdapter) {
+          if (import.meta.env.DEV) {
+            logger.info('[ApiAdapter] Auto mode: Backend recovered, switching back to BackendApiAdapter');
+          }
+          // Сбрасываем счетчик переключений при успешном восстановлении
+          switchCount = 0;
+          // Отправляем событие в аналитику
+          analytics.track('backend_recovered', {
+            mode: API_MODE,
+            previousMode: 'direct',
+          });
+          // Инвалидируем кэш при переключении с direct на backend
+          invalidateTokensCache();
+          invalidatePricesCache();
+          invalidateSpreadsCache();
+          // Пересоздаем адаптер
+          apiAdapterPromise = null;
+          apiAdapterInstance = null;
+          await getApiAdapter();
         }
-        // Пересоздаем адаптер
-        apiAdapterPromise = null;
-        apiAdapterInstance = null;
-        await getApiAdapter();
+        // Если бэкенд недоступен, но мы используем backend - переключаемся на direct
+        else if (!isBackendAvailable && apiAdapterInstance instanceof BackendApiAdapter) {
+          if (import.meta.env.DEV) {
+            logger.info('[ApiAdapter] Auto mode: Backend unavailable, switching to DirectApiAdapter');
+          }
+          // Увеличиваем счетчик переключений
+          switchCount++;
+          lastSwitchTime = Date.now();
+          // Отправляем событие в аналитику
+          analytics.track('backend_fallback_activated', {
+            mode: API_MODE,
+            reason: 'health_check_failed',
+            previousMode: 'backend',
+          });
+          // Инвалидируем кэш при переключении с backend на direct
+          invalidateTokensCache();
+          invalidatePricesCache();
+          invalidateSpreadsCache();
+          // Пересоздаем адаптер
+          apiAdapterPromise = null;
+          apiAdapterInstance = new DirectApiAdapter();
+        } else if (isBackendAvailable && apiAdapterInstance instanceof BackendApiAdapter) {
+          // Бэкенд стабилен - сбрасываем счетчик переключений
+          if (switchCount > 0) {
+            switchCount = 0;
+          }
+        }
       }
-      // Если бэкенд недоступен, но мы используем backend - переключаемся на direct
-      else if (!isBackendAvailable && apiAdapterInstance instanceof BackendApiAdapter) {
-        if (import.meta.env.DEV) {
-          console.log('[ApiAdapter] Auto mode: Backend unavailable, switching to DirectApiAdapter');
+      // В режимах 'backend' и 'hybrid': сбрасываем circuit breaker при восстановлении бэкенда
+      else if (API_MODE === 'backend' || API_MODE === 'hybrid') {
+        if (isBackendAvailable) {
+          // Если бэкенд восстановился, сбрасываем circuit breaker в BackendApiAdapter
+          // Это позволит следующему запросу попробовать использовать бэкенд
+          if (apiAdapterInstance instanceof BackendApiAdapter) {
+            // Circuit breaker сбросится автоматически при успешном запросе
+            // Но мы можем принудительно сбросить его здесь для более быстрого переключения
+            if (import.meta.env.DEV) {
+              logger.info('[ApiAdapter] Backend recovered, circuit breaker will reset on next successful request');
+            }
+          } else if (apiAdapterInstance instanceof HybridApiAdapter) {
+            // В hybrid режиме circuit breaker тоже сбросится при успешном запросе
+            if (import.meta.env.DEV) {
+              logger.info('[ApiAdapter] Backend recovered, will try backend on next request');
+            }
+          }
         }
-        // Пересоздаем адаптер
-        apiAdapterPromise = null;
-        apiAdapterInstance = new DirectApiAdapter();
       }
     } catch (error) {
       // Игнорируем ошибки проверки здоровья
       if (import.meta.env.DEV) {
-        console.debug('[ApiAdapter] Health check error:', error);
+        logger.debug('[ApiAdapter] Health check error:', error);
       }
     }
-  }, 30000); // 30 секунд
+    
+    // Планируем следующую проверку с динамическим интервалом
+    const nextInterval = getHealthCheckInterval();
+    if (healthCheckInterval !== null) {
+      clearTimeout(healthCheckInterval);
+    }
+    healthCheckInterval = window.setTimeout(performHealthCheck, nextInterval);
+  };
+  
+  // Запускаем первую проверку сразу
+  performHealthCheck();
 }
 
 /**
  * Получить экземпляр адаптера (с ленивой инициализацией)
  */
-async function getApiAdapter(): Promise<IApiAdapter> {
+export async function getApiAdapter(): Promise<IApiAdapter> {
   // Если уже инициализирован, возвращаем сразу
   if (apiAdapterInstance) {
     return apiAdapterInstance;
@@ -642,8 +853,9 @@ async function getApiAdapter(): Promise<IApiAdapter> {
   apiAdapterPromise = createApiAdapter();
   apiAdapterInstance = await apiAdapterPromise;
   
-  // Запускаем периодическую проверку здоровья для auto режима (только в браузере)
-  if (API_MODE === 'auto' && typeof window !== 'undefined' && typeof window.setInterval !== 'undefined') {
+  // Запускаем периодическую проверку здоровья для режимов с бэкендом (только в браузере)
+  if ((API_MODE === 'auto' || API_MODE === 'backend' || API_MODE === 'hybrid') && 
+      typeof window !== 'undefined' && typeof window.setInterval !== 'undefined') {
     startAutoModeHealthCheck();
   }
   
@@ -664,7 +876,7 @@ function getApiAdapterSync(): IApiAdapter {
   if (API_MODE === 'auto') {
     // Инициализируем в фоне
     getApiAdapter().catch((error) => {
-      console.error('[ApiAdapter] Failed to initialize adapter:', error);
+      logger.error('[ApiAdapter] Failed to initialize adapter:', error);
     });
     // Возвращаем direct как временный fallback
     return new DirectApiAdapter();

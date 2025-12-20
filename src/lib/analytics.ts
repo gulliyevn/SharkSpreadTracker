@@ -126,3 +126,28 @@ export const trackLanguageChange = (language: string): void => {
 export const trackThemeChange = (theme: 'light' | 'dark'): void => {
   analytics.track('theme_changed', { theme });
 };
+
+/**
+ * Хелперы для отслеживания событий API адаптера
+ */
+export const trackBackendFallback = (operation: string, reason: string, mode: string): void => {
+  analytics.track('backend_fallback_activated', {
+    operation,
+    reason,
+    mode,
+  });
+};
+
+export const trackBackendRecovery = (mode: string, previousMode: string): void => {
+  analytics.track('backend_recovered', {
+    mode,
+    previousMode,
+  });
+};
+
+export const trackBackendHealthCheckFailed = (error: string | number, url: string): void => {
+  analytics.track('backend_health_check_failed', {
+    error,
+    url,
+  });
+};

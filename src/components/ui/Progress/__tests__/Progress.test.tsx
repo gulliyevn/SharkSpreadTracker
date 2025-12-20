@@ -34,7 +34,7 @@ describe('Progress', () => {
   });
 
   it('should render with different sizes', () => {
-    const { rerender, container } = render(<Progress value={50} size="sm" />);
+    const { rerender } = render(<Progress value={50} size="sm" />);
     let progressBar = screen.getByRole('progressbar');
     expect(progressBar).toHaveClass('h-1');
 

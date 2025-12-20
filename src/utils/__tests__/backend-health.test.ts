@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { backendHealthMonitor, type BackendHealthStatus } from '../backend-health';
+import { backendHealthMonitor } from '../backend-health';
 import { checkBackendHealth } from '@/api/adapters/api-adapter';
-import { logger } from '../logger';
 
 vi.mock('@/api/adapters/api-adapter', () => ({
   checkBackendHealth: vi.fn(),
@@ -104,7 +103,7 @@ describe('backend-health', () => {
 
       // Callback должен быть вызван с текущим статусом (может быть unknown или unhealthy)
       expect(callback).toHaveBeenCalled();
-      const status = callback.mock.calls[0][0];
+      const status = callback.mock.calls[0]?.[0];
       expect(['unknown', 'healthy', 'unhealthy']).toContain(status);
       
       unsubscribe();

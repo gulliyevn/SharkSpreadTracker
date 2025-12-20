@@ -29,5 +29,14 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      // Отключаем предупреждения о any в тестах
+      files: ['**/__tests__/**/*', '**/*.test.ts', '**/*.test.tsx'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+  ],
 };
 

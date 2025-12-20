@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BaseApiSource } from '../BaseApiSource';
-import type { Token, TokenPrice } from '@/types';
-import type { SourceType } from '@/types';
+import type { Token } from '@/types';
+import type { TokenPrice } from '@/api/endpoints/prices.api';
 import { rateLimiter } from '@/utils/security';
-import { queuedRequest } from '@/utils/request-queue';
-import { isCanceledError } from '@/utils/errors';
 
 // Мокируем зависимости
 vi.mock('@/utils/security', () => ({
@@ -39,7 +37,7 @@ vi.mock('@/utils/logger', () => ({
 
 // Создаем тестовый класс, наследующий BaseApiSource
 class TestSource extends BaseApiSource {
-  readonly id: 'jupiter' = 'jupiter';
+  readonly id = 'jupiter' as const;
   readonly name = 'Test Source';
   readonly supportedChains: ('solana' | 'bsc')[] = ['solana'];
 
@@ -78,7 +76,7 @@ describe('BaseApiSource', () => {
     it('should fetch tokens successfully', async () => {
       const tokens = await source.getTokens();
       expect(tokens).toHaveLength(1);
-      expect(tokens[0].symbol).toBe('SOL');
+      expect(tokens[0]?.symbol).toBe('SOL');
     });
 
     it('should check rate limit before fetching', async () => {
@@ -94,7 +92,7 @@ describe('BaseApiSource', () => {
 
     it('should handle errors gracefully', async () => {
       const errorSource = new (class extends BaseApiSource {
-        readonly id: 'jupiter' = 'jupiter';
+        readonly id = 'jupiter' as const;
         readonly name = 'Error Source';
         readonly supportedChains: ('solana' | 'bsc')[] = ['solana'];
 
@@ -124,7 +122,7 @@ describe('BaseApiSource', () => {
 
     it('should return null when address is required but not provided', async () => {
       const addressSource = new (class extends BaseApiSource {
-        readonly id: 'jupiter' = 'jupiter';
+        readonly id = 'jupiter' as const;
         readonly name = 'Address Source';
         readonly supportedChains: ('solana' | 'bsc')[] = ['solana'];
 

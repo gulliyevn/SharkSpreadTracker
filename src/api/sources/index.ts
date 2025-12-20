@@ -3,7 +3,7 @@
  * Используется для регистрации и управления источниками
  */
 
-export { IApiSource } from './IApiSource';
+export type { IApiSource } from './IApiSource';
 export { BaseApiSource } from './BaseApiSource';
 export { JupiterSource } from './JupiterSource';
 export { PancakeSource } from './PancakeSource';

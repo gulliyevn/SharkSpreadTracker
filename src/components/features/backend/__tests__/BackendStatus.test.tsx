@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BackendStatus } from '../BackendStatus';
 import { backendHealthMonitor } from '@/utils/backend-health';
-import { API_MODE } from '@/api/adapters/api-adapter';
 
 // Мокируем backend-health
 vi.mock('@/utils/backend-health', () => ({

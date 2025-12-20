@@ -261,6 +261,9 @@ src/
 - [DEVELOPER_GUIDE.md](./MD/DEVELOPER_GUIDE.md) - **руководство для разработчиков** (начало здесь!)
 - [ARCHITECTURE.md](./MD/ARCHITECTURE.md) - архитектура проекта
 - [API_DOCUMENTATION.md](./MD/API_DOCUMENTATION.md) - документация API
+- [API_MODES.md](./docs/API_MODES.md) - **режимы работы API адаптера** (direct/backend/hybrid/auto)
+- [API_INTEGRATION.md](./docs/API_INTEGRATION.md) - **руководство по интеграции с API** (примеры, типы, конфигурация)
+- [BACKEND_SETUP.md](./docs/BACKEND_SETUP.md) - **настройка бэкенда** (требования, конфигурация, тестирование)
 - [TESTING.md](./MD/TESTING.md) - руководство по тестированию
 - [DEPLOY.md](./MD/DEPLOY.md) - инструкция по деплою на Vercel
 - [VERCEL_MONITORING.md](./MD/VERCEL_MONITORING.md) - мониторинг Vercel

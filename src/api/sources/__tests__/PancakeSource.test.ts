@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PancakeSource } from '../PancakeSource';
 import { pancakeClient } from '../../clients';
-import { rateLimiter } from '@/utils/security';
-import { queuedRequest } from '@/utils/request-queue';
 
 // Мокируем зависимости
 vi.mock('../../clients', () => ({
