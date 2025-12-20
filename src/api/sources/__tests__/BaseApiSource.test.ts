@@ -18,9 +18,10 @@ vi.mock('@/utils/request-queue', () => ({
     return await fn();
   }),
   RequestPriority: {
-    NORMAL: 'normal',
-    HIGH: 'high',
-    LOW: 'low',
+    NORMAL: 2,
+    HIGH: 3,
+    LOW: 1,
+    CRITICAL: 4,
   },
 }));
 
@@ -69,6 +70,8 @@ describe('BaseApiSource', () => {
   beforeEach(() => {
     source = new TestSource();
     vi.clearAllMocks();
+    // Убеждаемся что rateLimiter разрешает запросы
+    vi.mocked(rateLimiter.isAllowed).mockReturnValue(true);
   });
 
   describe('getTokens', () => {
@@ -111,8 +114,9 @@ describe('BaseApiSource', () => {
 
   describe('getPrice', () => {
     it('should fetch price successfully', async () => {
-      // TestSource не требует адрес, но мы передаем его для полноты
-      const price = await source.getPrice('SOL', 'So11111111111111111111111111111111111111112');
+      // TestSource требует адрес для fetchPrice, передаем его
+      const address = 'So11111111111111111111111111111111111111112';
+      const price = await source.getPrice('SOL', address);
       expect(price).not.toBeNull();
       expect(price?.price).toBe(100);
       expect(price?.source).toBe('jupiter');
@@ -156,9 +160,11 @@ describe('BaseApiSource', () => {
 
       const prices = await source.getPrices(tokens);
       expect(prices).toHaveLength(2);
-      // Первый токен должен вернуть цену, второй - null (нет адреса в fetchPrice)
+      // Первый токен должен вернуть цену (SOL с правильным адресом)
       expect(prices[0]).not.toBeNull();
       expect(prices[0]?.price).toBe(100);
+      // Второй токен должен вернуть null (BTC не обрабатывается в fetchPrice)
+      expect(prices[1]).toBeNull();
     });
   });
 
