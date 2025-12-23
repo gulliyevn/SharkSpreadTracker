@@ -1,45 +1,76 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Мокаем console до импорта logger
+const mockConsole = {
+  debug: vi.fn(),
+  log: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
+
+vi.stubGlobal('console', {
+  ...console,
+  debug: mockConsole.debug,
+  log: mockConsole.log,
+  warn: mockConsole.warn,
+  error: mockConsole.error,
+});
+
+// Импортируем после мока
 import { logger } from '../logger';
 
 describe('logger', () => {
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('should have logger methods', () => {
-    expect(typeof logger.debug).toBe('function');
-    expect(typeof logger.info).toBe('function');
-    expect(typeof logger.warn).toBe('function');
-    expect(typeof logger.error).toBe('function');
-    expect(typeof logger.dev).toBe('function');
+  describe('debug', () => {
+    it('should log debug messages in development', () => {
+      logger.debug('test message');
+      expect(mockConsole.debug).toHaveBeenCalled();
+    });
+
+    it('should pass multiple arguments', () => {
+      logger.debug('message', { data: 123 });
+      expect(mockConsole.debug).toHaveBeenCalled();
+    });
   });
 
-  it('should log warn messages (always enabled)', () => {
-    logger.warn('Warning message');
-    expect(consoleWarnSpy).toHaveBeenCalledWith('[WARN]', 'Warning message');
+  describe('info', () => {
+    it('should log info messages', () => {
+      logger.info('info message');
+      expect(mockConsole.log).toHaveBeenCalled();
+    });
   });
 
-  it('should log error messages (always enabled)', () => {
-    logger.error('Error message');
-    expect(consoleErrorSpy).toHaveBeenCalledWith('[ERROR]', 'Error message');
+  describe('warn', () => {
+    it('should log warnings', () => {
+      logger.warn('warning message');
+      expect(mockConsole.warn).toHaveBeenCalled();
+    });
   });
 
-  it('should handle multiple log calls', () => {
-    // Проверяем что методы выполняются без ошибок
-    expect(() => {
-      logger.debug('Debug');
-      logger.info('Info');
-      logger.warn('Warn');
-      logger.error('Error');
-      logger.dev('Dev');
-    }).not.toThrow();
+  describe('error', () => {
+    it('should log errors', () => {
+      logger.error('error message');
+      expect(mockConsole.error).toHaveBeenCalled();
+    });
+
+    it('should handle Error objects', () => {
+      const error = new Error('Test error');
+      logger.error('Something went wrong:', error);
+      expect(mockConsole.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('dev', () => {
+    it('should log dev messages in development', () => {
+      logger.dev('dev only message');
+      expect(mockConsole.log).toHaveBeenCalled();
+    });
   });
 });

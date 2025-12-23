@@ -10,11 +10,10 @@ import type {
   StraightData,
   ReverseData,
   SpreadRow,
+  TokenWithData,
+  AllPrices,
 } from '@/types';
-import type { TokenWithData } from '../endpoints/tokens.api';
-import type { AllPrices } from '../endpoints/prices.api';
-import { backendClient } from '../clients';
-import { BACKEND_URL, WEBSOCKET_URL, API_CONFIG } from '@/constants/api';
+import { WEBSOCKET_URL, API_CONFIG } from '@/constants/api';
 import { logger } from '@/utils/logger';
 
 /**

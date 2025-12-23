@@ -13,24 +13,33 @@ export function sanitizeString(input: string): string {
 
 /**
  * Валидация и санитизация URL
+ * В backend-only режиме разрешаем только URL бэкенда из ENV
  */
 export function sanitizeUrl(url: string): string | null {
   try {
     const parsed = new URL(url);
-    // Разрешаем только HTTPS
-    if (parsed.protocol !== 'https:') {
+    // Разрешаем HTTP(S) и WS(S)
+    const allowedProtocols = ['https:', 'http:', 'ws:', 'wss:'];
+    if (!allowedProtocols.includes(parsed.protocol)) {
       return null;
     }
-    // Проверяем разрешенные домены
-    const allowedDomains = [
-      'lite-api.jup.ag',
-      'api.dexscreener.com',
-      'contract.mexc.com',
-    ];
-    if (!allowedDomains.includes(parsed.hostname)) {
-      return null;
+    // В backend-only режиме проверяем соответствие хосту бэкенда
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    if (backendUrl) {
+      try {
+        const backendParsed = new URL(backendUrl);
+        if (parsed.hostname === backendParsed.hostname) {
+          return url;
+        }
+      } catch {
+        // Если BACKEND_URL невалидный, разрешаем localhost для дева
+      }
     }
-    return url;
+    // Разрешаем localhost для разработки
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      return url;
+    }
+    return null;
   } catch {
     return null;
   }

@@ -37,14 +37,11 @@ describe('security', () => {
   });
 
   describe('sanitizeUrl', () => {
-    it('should allow valid HTTPS URLs from allowed domains', () => {
-      const url = 'https://lite-api.jup.ag/tokens';
-      expect(sanitizeUrl(url)).toBe(url);
-    });
-
-    it('should reject HTTP URLs', () => {
-      const url = 'http://lite-api.jup.ag/tokens';
-      expect(sanitizeUrl(url)).toBeNull();
+    it('should allow localhost URLs for development', () => {
+      expect(sanitizeUrl('http://localhost:3000')).toBe('http://localhost:3000');
+      expect(sanitizeUrl('https://localhost:8080/api')).toBe('https://localhost:8080/api');
+      expect(sanitizeUrl('ws://localhost:8080/socket')).toBe('ws://localhost:8080/socket');
+      expect(sanitizeUrl('wss://127.0.0.1:8080/socket')).toBe('wss://127.0.0.1:8080/socket');
     });
 
     it('should reject URLs from non-allowed domains', () => {
@@ -56,9 +53,15 @@ describe('security', () => {
       expect(sanitizeUrl('not-a-url')).toBeNull();
     });
 
-    it('should allow all allowed domains', () => {
-      expect(sanitizeUrl('https://api.dexscreener.com/latest')).toBeTruthy();
-      expect(sanitizeUrl('https://contract.mexc.com/api')).toBeTruthy();
+    it('should reject non-http/https/ws/wss protocols', () => {
+      expect(sanitizeUrl('ftp://localhost/file')).toBeNull();
+      expect(sanitizeUrl('file:///etc/passwd')).toBeNull();
+      expect(sanitizeUrl('javascript:alert(1)')).toBeNull();
+    });
+
+    it('should allow all WebSocket protocols for localhost', () => {
+      expect(sanitizeUrl('ws://localhost:8080')).toBeTruthy();
+      expect(sanitizeUrl('wss://localhost:8080')).toBeTruthy();
     });
   });
 

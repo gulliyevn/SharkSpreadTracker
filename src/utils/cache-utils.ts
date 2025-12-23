@@ -68,7 +68,7 @@ export async function prefetchTokens(): Promise<void> {
     await queryClient.prefetchQuery({
       queryKey: ['tokens', 'all'],
       queryFn: async ({ signal }) => {
-        const { getAllTokens } = await import('@/api/endpoints/tokens.api');
+        const { getAllTokens } = await import('@/api/adapters/api-adapter');
         return getAllTokens(signal);
       },
       staleTime: 2 * 60 * 1000, // 2 минуты

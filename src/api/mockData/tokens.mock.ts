@@ -3,7 +3,7 @@
  * Используются только когда все API вернули пустые результаты или при VITE_USE_MOCK_DATA=true
  */
 
-import type { TokenWithData } from '../endpoints/tokens.api';
+import type { TokenWithData } from '@/types';
 
 /**
  * Mock-данные токенов

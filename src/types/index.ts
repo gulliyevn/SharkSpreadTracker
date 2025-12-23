@@ -103,3 +103,35 @@ export interface SpreadRow {
   limit: string;
 }
 
+/**
+ * Токен с дополнительными данными (цена, спреды)
+ */
+export interface TokenWithData extends Token {
+  price?: number | null;
+  directSpread?: number | null;
+  reverseSpread?: number | null;
+}
+
+/**
+ * Цена токена из одного источника
+ */
+export interface TokenPrice {
+  price: number | null;
+  bid?: number | null;
+  ask?: number | null;
+  timestamp: number;
+  source: 'jupiter' | 'pancakeswap' | 'mexc';
+}
+
+/**
+ * Все цены токена из разных источников
+ */
+export interface AllPrices {
+  symbol: string;
+  chain: 'solana' | 'bsc';
+  jupiter: TokenPrice | null;
+  pancakeswap: TokenPrice | null;
+  mexc: TokenPrice | null;
+  timestamp: number;
+}
+

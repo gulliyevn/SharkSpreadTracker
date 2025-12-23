@@ -1,6 +1,6 @@
 import { useState, useEffect, memo, useCallback } from 'react';
 import { TokenCard } from '../TokenCard';
-import type { TokenWithData } from '@/api/endpoints/tokens.api';
+import type { TokenWithData } from '@/types';
 import { logger } from '@/utils/logger';
 
 export interface TokenWithFavorite extends TokenWithData {

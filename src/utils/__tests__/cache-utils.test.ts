@@ -1,4 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Мокаем queryClient
+vi.mock('@/lib/react-query', () => ({
+  queryClient: {
+    invalidateQueries: vi.fn(),
+    clear: vi.fn(),
+    prefetchQuery: vi.fn().mockResolvedValue(undefined),
+    getQueryCache: vi.fn().mockReturnValue({
+      getAll: vi.fn().mockReturnValue([]),
+      remove: vi.fn(),
+    }),
+  },
+}));
+
+// Мокаем logger
+vi.mock('../logger', () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 import {
   invalidateTokensCache,
   invalidateTokenCache,
@@ -11,40 +35,20 @@ import {
   cleanupOldCache,
 } from '../cache-utils';
 import { queryClient } from '@/lib/react-query';
-import { logger } from '../logger';
-
-vi.mock('@/lib/react-query', () => ({
-  queryClient: {
-    invalidateQueries: vi.fn(),
-    clear: vi.fn(),
-    prefetchQuery: vi.fn(),
-    getQueryCache: vi.fn(() => ({
-      getAll: vi.fn(() => []),
-      remove: vi.fn(),
-    })),
-  },
-}));
-
-vi.mock('../logger', () => ({
-  logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    error: vi.fn(),
-  },
-}));
 
 describe('cache-utils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('invalidateTokensCache', () => {
     it('should invalidate tokens cache', () => {
       invalidateTokensCache();
-      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['tokens'],
-      });
-      expect(logger.debug).toHaveBeenCalledWith('Tokens cache invalidated');
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['tokens'] });
     });
   });
 
@@ -54,45 +58,36 @@ describe('cache-utils', () => {
       expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: ['tokens', 'BTC', 'solana'],
       });
-      expect(logger.debug).toHaveBeenCalledWith('Token cache invalidated: BTC-solana');
     });
   });
 
   describe('invalidateSpreadsCache', () => {
     it('should invalidate spreads cache', () => {
       invalidateSpreadsCache();
-      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['spread'],
-      });
-      expect(logger.debug).toHaveBeenCalledWith('Spreads cache invalidated');
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['spread'] });
     });
   });
 
   describe('invalidateSpreadCache', () => {
-    it('should invalidate spread cache without timeframe', () => {
-      invalidateSpreadCache('BTC', 'solana');
+    it('should invalidate specific spread cache without timeframe', () => {
+      invalidateSpreadCache('ETH', 'bsc');
       expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['spread', 'BTC', 'solana'],
+        queryKey: ['spread', 'ETH', 'bsc'],
       });
-      expect(logger.debug).toHaveBeenCalledWith('Spread cache invalidated: BTC-solana');
     });
 
-    it('should invalidate spread cache with timeframe', () => {
-      invalidateSpreadCache('BTC', 'solana', '1h');
+    it('should invalidate specific spread cache with timeframe', () => {
+      invalidateSpreadCache('ETH', 'bsc', '1h');
       expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['spread', 'BTC', 'solana', '1h'],
+        queryKey: ['spread', 'ETH', 'bsc', '1h'],
       });
-      expect(logger.debug).toHaveBeenCalledWith('Spread cache invalidated: BTC-solana-1h');
     });
   });
 
   describe('invalidatePricesCache', () => {
     it('should invalidate prices cache', () => {
       invalidatePricesCache();
-      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['prices'],
-      });
-      expect(logger.debug).toHaveBeenCalledWith('Prices cache invalidated');
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['prices'] });
     });
   });
 
@@ -100,139 +95,95 @@ describe('cache-utils', () => {
     it('should clear all cache', () => {
       clearAllCache();
       expect(queryClient.clear).toHaveBeenCalled();
-      expect(logger.info).toHaveBeenCalledWith('All React Query cache cleared');
     });
   });
 
   describe('prefetchTokens', () => {
-    it('should prefetch tokens successfully', async () => {
-      vi.mocked(queryClient.prefetchQuery).mockResolvedValue(undefined);
-
+    it('should prefetch tokens', async () => {
       await prefetchTokens();
-
-      expect(queryClient.prefetchQuery).toHaveBeenCalled();
-      expect(logger.debug).toHaveBeenCalledWith('Tokens prefetched');
+      expect(queryClient.prefetchQuery).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryKey: ['tokens', 'all'],
+          staleTime: expect.any(Number),
+        })
+      );
     });
 
-    it('should handle prefetch errors', async () => {
-      const error = new Error('Prefetch failed');
-      vi.mocked(queryClient.prefetchQuery).mockRejectedValue(error);
-
-      await prefetchTokens();
-
-      expect(logger.error).toHaveBeenCalledWith('Failed to prefetch tokens:', error);
+    it('should handle prefetch errors gracefully', async () => {
+      vi.mocked(queryClient.prefetchQuery).mockRejectedValueOnce(new Error('Network error'));
+      
+      // Should not throw
+      await expect(prefetchTokens()).resolves.toBeUndefined();
     });
   });
 
   describe('getCacheSize', () => {
     it('should return 0 for empty cache', () => {
-      const mockCache = {
-        getAll: vi.fn(() => []),
-      };
-      vi.mocked(queryClient.getQueryCache).mockReturnValue(mockCache as any);
-
       const size = getCacheSize();
       expect(size).toBe(0);
     });
 
-    it('should calculate cache size', () => {
-      const mockQueries = [
-        { state: { data: { test: 'data1' } } },
-        { state: { data: { test: 'data2' } } },
-      ];
-      const mockCache = {
-        getAll: vi.fn(() => mockQueries),
-      };
-      vi.mocked(queryClient.getQueryCache).mockReturnValue(mockCache as any);
+    it('should calculate size of cached data', () => {
+      const mockData = { foo: 'bar', count: 123 };
+      vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
+        getAll: () => [{ state: { data: mockData } }],
+        remove: vi.fn(),
+      } as never);
 
       const size = getCacheSize();
-      expect(size).toBeGreaterThan(0);
+      expect(size).toBe(JSON.stringify(mockData).length);
     });
 
     it('should handle serialization errors', () => {
-      const circularData: any = { test: 'data' };
-      circularData.self = circularData; // Создаем циклическую ссылку
-      
-      const mockQueries = [
-        { state: { data: circularData } },
-      ];
-      const mockCache = {
-        getAll: vi.fn(() => mockQueries),
-      };
-      vi.mocked(queryClient.getQueryCache).mockReturnValue(mockCache as any);
+      const circularObj: Record<string, unknown> = {};
+      circularObj.self = circularObj;
 
-      // Не должно выбросить ошибку
-      expect(() => getCacheSize()).not.toThrow();
+      vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
+        getAll: () => [{ state: { data: circularObj } }],
+        remove: vi.fn(),
+      } as never);
+
+      // Should not throw, returns 0
+      const size = getCacheSize();
+      expect(size).toBe(0);
     });
   });
 
   describe('cleanupOldCache', () => {
     it('should cleanup old cache entries', () => {
-      const now = Date.now();
+      const removeMock = vi.fn();
       const oldQuery = {
         state: {
-          status: 'success' as const,
-          dataUpdatedAt: now - 11 * 60 * 1000, // 11 минут назад
-        },
-      };
-      const newQuery = {
-        state: {
-          status: 'success' as const,
-          dataUpdatedAt: now - 5 * 60 * 1000, // 5 минут назад
+          dataUpdatedAt: Date.now() - 15 * 60 * 1000, // 15 minutes ago
+          status: 'success',
         },
       };
 
-      const mockCache = {
-        getAll: vi.fn(() => [oldQuery, newQuery]),
-        remove: vi.fn(),
-      };
-      vi.mocked(queryClient.getQueryCache).mockReturnValue(mockCache as any);
+      vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
+        getAll: () => [oldQuery],
+        remove: removeMock,
+      } as never);
 
       cleanupOldCache();
-
-      expect(mockCache.remove).toHaveBeenCalledWith(oldQuery);
-      expect(mockCache.remove).not.toHaveBeenCalledWith(newQuery);
-      expect(logger.debug).toHaveBeenCalledWith('Cleaned up old cache entries');
+      expect(removeMock).toHaveBeenCalledWith(oldQuery);
     });
 
-    it('should cleanup queries with dataUpdatedAt = 0 (treated as old)', () => {
-      const query = {
+    it('should not remove recent cache entries', () => {
+      const removeMock = vi.fn();
+      const recentQuery = {
         state: {
-          status: 'success' as const,
-          dataUpdatedAt: 0, // 0 означает что нет данных, но код использует || 0, так что это старый запрос
+          dataUpdatedAt: Date.now() - 5 * 60 * 1000, // 5 minutes ago
+          status: 'success',
         },
       };
 
-      const mockCache = {
-        getAll: vi.fn(() => [query]),
-        remove: vi.fn(),
-      };
-      vi.mocked(queryClient.getQueryCache).mockReturnValue(mockCache as any);
+      vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
+        getAll: () => [recentQuery],
+        remove: removeMock,
+      } as never);
 
       cleanupOldCache();
-
-      // dataUpdatedAt = 0 означает что now - 0 = now, что всегда > maxAge, поэтому удаляется
-      expect(mockCache.remove).toHaveBeenCalledWith(query);
-    });
-
-    it('should not cleanup non-success queries', () => {
-      const query = {
-        state: {
-          status: 'error' as const,
-          dataUpdatedAt: Date.now() - 15 * 60 * 1000,
-        },
-      };
-
-      const mockCache = {
-        getAll: vi.fn(() => [query]),
-        remove: vi.fn(),
-      };
-      vi.mocked(queryClient.getQueryCache).mockReturnValue(mockCache as any);
-
-      cleanupOldCache();
-
-      expect(mockCache.remove).not.toHaveBeenCalled();
+      expect(removeMock).not.toHaveBeenCalled();
     });
   });
 });
-

@@ -23,15 +23,14 @@ function getBackendUrlsForCSP(mode: string): string {
   // Извлекаем хост и порт из URL
   try {
     const url = new URL(backendUrl);
-    const host = `${url.protocol}//${url.host}`;
+    const httpHost = `http://${url.host}`;
+    const httpsHost = `https://${url.host}`;
+    const wsHost = `ws://${url.host}`;
+    const wssHost = `wss://${url.host}`;
     
-    // Для WebSocket добавляем ws:// и wss:// версии
-    const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${url.host}`;
-    
-    // Возвращаем оба URL (HTTP и WebSocket)
+    // Возвращаем все варианты URL (HTTP, HTTPS, WS, WSS) для максимальной совместимости
     // Добавляем пробел перед URL для правильного форматирования CSP
-    return ` ${host} ${wsUrl}`;
+    return ` ${httpHost} ${httpsHost} ${wsHost} ${wssHost}`;
   } catch (error) {
     // Если URL невалидный, логируем ошибку и возвращаем пустую строку
     console.warn('[CSP] Invalid VITE_BACKEND_URL:', backendUrl, error);

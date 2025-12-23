@@ -121,4 +121,57 @@ describe('Header', () => {
       expect(themeButton).toBeInTheDocument();
     }
   });
+
+  it('should switch language when language button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <Header />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      const enButton = screen.getByRole('button', { name: /english/i });
+      expect(enButton).toBeInTheDocument();
+    });
+
+    const ruButton = screen.getByRole('button', { name: /русский/i });
+    await user.click(ruButton);
+    
+    // Язык должен переключиться
+    expect(ruButton).toBeInTheDocument();
+  });
+
+  it('should switch view when charts button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <Header />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      const viewButton = screen.getByRole('button', { name: /charts/i });
+      expect(viewButton).toBeInTheDocument();
+    });
+
+    const viewButton = screen.getByRole('button', { name: /charts/i });
+    await user.click(viewButton);
+    
+    // Вид должен переключиться
+    expect(viewButton).toBeInTheDocument();
+  });
+
+  it('should render app title', async () => {
+    render(
+      <TestWrapper>
+        <Header />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      // Проверяем что заголовок отображается
+      expect(screen.getByRole('banner')).toBeInTheDocument();
+    });
+  });
 });

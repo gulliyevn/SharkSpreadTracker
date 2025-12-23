@@ -1,178 +1,134 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTokensWithSpreads } from '../useTokensWithSpreads';
-import { useTokens } from '../useTokens';
+import type { ReactNode } from 'react';
 
-vi.mock('../useTokens');
+// Мокаем useTokens
+vi.mock('../useTokens', () => ({
+  useTokens: vi.fn(),
+}));
+
+import { useTokens } from '../useTokens';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
   });
 
-  return ({ children }: { children: React.ReactNode }) => {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-  };
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 };
 
 describe('useTokensWithSpreads', () => {
-  const mockRefetch = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useTokens).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    } as any);
   });
 
-  it('should return initial state when no tokens', () => {
-    vi.mocked(useTokens).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    } as any);
-
-    const { result } = renderHook(() => useTokensWithSpreads(), {
-      wrapper: createWrapper(),
-    });
-
-    expect(result.current.data).toEqual([]);
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.loadedCount).toBe(0);
-    expect(result.current.totalCount).toBe(0);
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('should return tokens when available', () => {
+  it('should return tokens with spreads', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-      { symbol: 'ETH', chain: 'bsc' as const },
+      { symbol: 'BTC', chain: 'solana' as const, price: 50000, directSpread: 0.5 },
+      { symbol: 'ETH', chain: 'bsc' as const, price: 3000, directSpread: 0.3 },
     ];
 
     vi.mocked(useTokens).mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
-      refetch: mockRefetch,
-    } as any);
+      isSuccess: true,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
 
-    // Хук должен вернуть токены (даже если спреды еще загружаются)
-    expect(result.current.data.length).toBeGreaterThanOrEqual(0);
+    expect(result.current.data).toEqual(mockTokens);
+    expect(result.current.loadedCount).toBe(2);
     expect(result.current.totalCount).toBe(2);
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('should handle loading state', () => {
     vi.mocked(useTokens).mockReturnValue({
-      data: [],
+      data: undefined,
       isLoading: true,
       error: null,
-      refetch: mockRefetch,
-    } as any);
+      isSuccess: false,
+      isError: false,
+      isFetching: true,
+      refetch: vi.fn(),
+    } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
 
     expect(result.current.isLoading).toBe(true);
+    expect(result.current.data).toEqual([]);
+    expect(result.current.loadedCount).toBe(0);
   });
 
   it('should handle error state', () => {
-    const mockError = new Error('Failed to load tokens');
+    const error = new Error('Failed to fetch');
+    
     vi.mocked(useTokens).mockReturnValue({
-      data: [],
+      data: undefined,
       isLoading: false,
-      error: mockError,
-      refetch: mockRefetch,
-    } as any);
+      error,
+      isSuccess: false,
+      isError: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
 
-    expect(result.current.error).toBe(mockError);
+    expect(result.current.error).toBe(error);
+    expect(result.current.data).toEqual([]);
   });
 
-  it('should return refetch function', () => {
+  it('should expose refetch function', () => {
+    const mockRefetch = vi.fn();
+    
     vi.mocked(useTokens).mockReturnValue({
       data: [],
       isLoading: false,
       error: null,
+      isSuccess: true,
+      isError: false,
+      isFetching: false,
       refetch: mockRefetch,
-    } as any);
+    } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
 
     expect(result.current.refetch).toBe(mockRefetch);
   });
 
-  it('should handle spread loading errors gracefully', () => {
-    const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-    ];
-
+  it('should handle empty tokens', () => {
     vi.mocked(useTokens).mockReturnValue({
-      data: mockTokens,
+      data: [],
       isLoading: false,
       error: null,
-      refetch: mockRefetch,
-    } as any);
+      isSuccess: true,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
 
-    // Хук должен продолжать работать даже при ошибке загрузки спредов
-    expect(result.current.data).toBeDefined();
-    expect(result.current.totalCount).toBe(1);
-  });
-
-  it('should handle tokens update when tokens list changes', () => {
-    const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-    ];
-
-    vi.mocked(useTokens).mockReturnValue({
-      data: mockTokens,
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    } as any);
-
-    const { result, rerender } = renderHook(() => useTokensWithSpreads(), {
-      wrapper: createWrapper(),
-    });
-
-    expect(result.current.totalCount).toBe(1);
-
-    // Обновляем список токенов
-    const newTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-      { symbol: 'ETH', chain: 'bsc' as const },
-    ];
-
-    vi.mocked(useTokens).mockReturnValue({
-      data: newTokens,
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    } as any);
-
-    rerender();
-
-    // Хук должен обновить totalCount
-    expect(result.current.totalCount).toBe(2);
+    expect(result.current.data).toEqual([]);
+    expect(result.current.loadedCount).toBe(0);
+    expect(result.current.totalCount).toBe(0);
   });
 });
-

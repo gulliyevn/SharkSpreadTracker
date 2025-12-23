@@ -5,17 +5,6 @@ export const API_CONFIG = {
 } as const;
 
 /**
- * (Deprecated) SOURCE_URLS оставлен только для совместимости типов
- * В backend-only режиме внешние API больше не используются.
- * Не использовать в новом коде.
- */
-export const SOURCE_URLS = {
-  JUPITER: '',
-  PANCAKE: '',
-  MEXC: '',
-} as const;
-
-/**
  * URL бэкенда
  * В backend-only режиме фронт общается только с нашим бэкендом
  */

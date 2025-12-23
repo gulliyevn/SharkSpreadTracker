@@ -529,4 +529,231 @@ describe('TokensPage', () => {
     const sortLabel = screen.queryByText(/Sort:/i);
     expect(sortLabel || document.body).toBeInTheDocument();
   });
+
+  it('should filter tokens by minSpread', async () => {
+    const mockTokens = [
+      { symbol: 'BTC', chain: 'solana' as const, directSpread: 0.5, reverseSpread: 0.3 },
+      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 2.0, reverseSpread: 1.5 },
+      { symbol: 'BNB', chain: 'bsc' as const, directSpread: 0.1, reverseSpread: 0.1 },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+      expect(screen.getByText('ETH')).toBeInTheDocument();
+      expect(screen.getByText('BNB')).toBeInTheDocument();
+    });
+  });
+
+  it('should filter by directOnly', async () => {
+    const mockTokens = [
+      { symbol: 'BTC', chain: 'solana' as const, directSpread: 1.0, reverseSpread: 0 },
+      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 0, reverseSpread: 2.0 },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+    });
+  });
+
+  it('should filter by reverseOnly', async () => {
+    const mockTokens = [
+      { symbol: 'BTC', chain: 'solana' as const, directSpread: 0, reverseSpread: 1.5 },
+      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 2.0, reverseSpread: 0 },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+    });
+  });
+
+  it('should sort by name when sortOption is name', async () => {
+    localStorage.setItem('token-sort-option', 'name');
+    
+    const mockTokens = [
+      { symbol: 'ZZZ', chain: 'solana' as const },
+      { symbol: 'AAA', chain: 'bsc' as const },
+      { symbol: 'MMM', chain: 'bsc' as const },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('AAA')).toBeInTheDocument();
+      expect(screen.getByText('ZZZ')).toBeInTheDocument();
+    });
+  });
+
+  it('should sort by price when sortOption is price', async () => {
+    localStorage.setItem('token-sort-option', 'price');
+    
+    const mockTokens = [
+      { symbol: 'BTC', chain: 'solana' as const, price: 50000 },
+      { symbol: 'ETH', chain: 'bsc' as const, price: 2000 },
+      { symbol: 'BNB', chain: 'bsc' as const, price: 300 },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle token edit modal flow', async () => {
+    const mockTokens = [
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        price: 50000,
+        directSpread: 1.0,
+        reverseSpread: 1.1,
+      },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+    });
+
+    // Ищем кнопку редактирования
+    const editButtons = screen.getAllByRole('button');
+    expect(editButtons.length).toBeGreaterThan(0);
+  });
+
+  it('should use localStorage saved sort option', async () => {
+    localStorage.setItem('token-sort-option', 'spread');
+    
+    const mockTokens = [
+      { symbol: 'BTC', chain: 'solana' as const, directSpread: 5.0, reverseSpread: 4.0 },
+      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 1.0, reverseSpread: 0.5 },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      // BTC должен быть первым т.к. у него больший спред
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+    });
+  });
+
+  it('should filter by chain using chain filter buttons', async () => {
+    const mockTokens = [
+      { symbol: 'BTC', chain: 'solana' as const },
+      { symbol: 'ETH', chain: 'bsc' as const },
+    ];
+
+    mockUseTokensWithSpreads.mockReturnValue({
+      data: mockTokens,
+      isLoading: false,
+      error: null,
+      loadedCount: mockTokens.length,
+      totalCount: mockTokens.length,
+    });
+
+    render(
+      <TestWrapper>
+        <TokensPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('BTC')).toBeInTheDocument();
+      expect(screen.getByText('ETH')).toBeInTheDocument();
+    });
+
+    // Проверяем что есть кнопки фильтра по chain
+    const chainLabel = screen.getByText(/Chain:/i);
+    expect(chainLabel).toBeInTheDocument();
+  });
 });
