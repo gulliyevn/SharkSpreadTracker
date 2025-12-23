@@ -14,6 +14,7 @@ import type {
   AllPrices,
 } from '@/types';
 import { WEBSOCKET_URL } from '@/constants/api';
+import { logger } from '@/utils/logger';
 
 /**
  * Интерфейс для API адаптера
@@ -114,9 +115,7 @@ async function fetchStraightSpreads(params: {
       
       // Автоматический реконнект при таймауте
       if (reconnectAttempt < MAX_RECONNECT_ATTEMPTS && !params.signal?.aborted) {
-        if (import.meta.env.DEV) {
-          console.log(`[WebSocket] Timeout, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
-        }
+        logger.debug(`[WebSocket] Timeout, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
         const result = await fetchStraightSpreads({
           ...params,
           _reconnectAttempt: reconnectAttempt + 1,
@@ -171,10 +170,7 @@ async function fetchStraightSpreads(params: {
     }
 
     ws.onopen = () => {
-      // Минимальное логирование только в dev
-      if (import.meta.env.DEV) {
-        console.log('[WebSocket] Connected');
-      }
+      logger.debug('[WebSocket] Connected');
     };
 
     ws.onmessage = (event) => {
@@ -198,9 +194,7 @@ async function fetchStraightSpreads(params: {
       
       // Автоматический реконнект при ошибке
       if (reconnectAttempt < MAX_RECONNECT_ATTEMPTS && !params.signal?.aborted) {
-        if (import.meta.env.DEV) {
-          console.log(`[WebSocket] Error, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
-        }
+        logger.debug(`[WebSocket] Error, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
         // Небольшая задержка перед реконнектом
         await new Promise(r => setTimeout(r, 1000 * (reconnectAttempt + 1)));
         const result = await fetchStraightSpreads({
