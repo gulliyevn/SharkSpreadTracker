@@ -11,7 +11,6 @@ import { SpreadResponseSchema } from '../schemas';
 import { logger } from '@/utils/logger';
 import { loadSpreadHistory, updateSpreadHistory } from '@/utils/spreadHistory';
 import { validateTokenSymbol } from '@/utils/validation';
-import { networkMonitor } from '@/utils/network-monitor';
 
 /**
  * Получить данные спреда для токена
@@ -104,17 +103,37 @@ export function calculateSpreads(prices: AllPrices): {
   let source2: string = '';
 
   if (chain === 'solana') {
-    // Для Solana: Jupiter -> MEXC
+    // Для Solana: Jupiter (Solana DEX) -> MEXC (Solana токен на бирже)
     source1Price = jupiter?.price ?? null;
     source2Price = mexc?.price ?? null;
     source1 = 'jupiter';
     source2 = 'mexc';
+    
+    // Логируем для диагностики
+    if (import.meta.env.DEV && prices.symbol) {
+      logger.debug(`[calculateSpreads] Solana token ${prices.symbol}:`, {
+        jupiter: jupiter?.price,
+        mexc: mexc?.price,
+        hasJupiter: !!jupiter,
+        hasMexc: !!mexc,
+      });
+    }
   } else if (chain === 'bsc') {
-    // Для BSC: PancakeSwap -> MEXC
+    // Для BSC: PancakeSwap (BSC DEX) -> MEXC (BSC токен на бирже)
     source1Price = pancakeswap?.price ?? null;
     source2Price = mexc?.price ?? null;
     source1 = 'pancakeswap';
     source2 = 'mexc';
+    
+    // Логируем для диагностики
+    if (import.meta.env.DEV && prices.symbol) {
+      logger.debug(`[calculateSpreads] BSC token ${prices.symbol}:`, {
+        pancakeswap: pancakeswap?.price,
+        mexc: mexc?.price,
+        hasPancake: !!pancakeswap,
+        hasMexc: !!mexc,
+      });
+    }
   }
 
   // Рассчитываем спреды
@@ -131,15 +150,16 @@ export function calculateSpreads(prices: AllPrices): {
 
 /**
  * Получить спреды и цены для списка токенов
+ * БЕЗ ЛИМИТОВ - обрабатываем ВСЕ токены
  * @param tokens - Массив токенов
  * @param signal - AbortSignal для отмены запросов (опционально)
- * @param maxTokens - Максимальное количество токенов для обработки (по умолчанию 100)
+ * @param maxTokens - НЕ ИСПОЛЬЗУЕТСЯ (оставлен для обратной совместимости)
  * @returns Массив токенов с рассчитанными спредами и ценами
  */
 export async function getSpreadsForTokens(
   tokens: Token[],
   signal?: AbortSignal,
-  maxTokens: number = 100
+  _maxTokens?: number // Не используется, но оставлен для обратной совместимости
 ): Promise<
   Array<
     Token & {
@@ -162,15 +182,17 @@ export async function getSpreadsForTokens(
     );
   }
   
-  // Ограничиваем количество токенов для обработки
-  const tokensToProcess = validTokens.slice(0, maxTokens);
+  // БЕЗ ЛИМИТОВ - обрабатываем ВСЕ валидные токены
+  const tokensToProcess = validTokens;
   logger.info(
-    `Getting spreads for ${tokensToProcess.length} tokens (out of ${validTokens.length} valid, ${tokens.length} total)`
+    `Getting spreads for ALL ${tokensToProcess.length} tokens (out of ${validTokens.length} valid, ${tokens.length} total) - NO LIMITS`
   );
 
   // Получаем цены для всех токенов параллельно (с ограничением)
   // Адаптируем размер батча в зависимости от состояния сети
-  const BATCH_SIZE = networkMonitor.isSlowNetwork() ? 5 : 10; // Меньше параллельных запросов на медленных сетях
+  // БЕЗ БАТЧИНГА - обрабатываем все токены параллельно
+  // Но ограничиваем параллельность для избежания перегрузки API
+  const MAX_CONCURRENT = 20; // Максимальное количество параллельных запросов
   const results: Array<
     Token & {
       directSpread: number | null;
@@ -179,24 +201,59 @@ export async function getSpreadsForTokens(
     }
   > = [];
 
-  for (let i = 0; i < tokensToProcess.length; i += BATCH_SIZE) {
-    const batch = tokensToProcess.slice(i, i + BATCH_SIZE);
+  // Сбрасываем счетчик логирования при начале новой обработки
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).__getSpreadsLogCount = 0;
+  }
+
+  // Обрабатываем все токены параллельно, но с ограничением на количество одновременных запросов
+  for (let i = 0; i < tokensToProcess.length; i += MAX_CONCURRENT) {
+    const batch = tokensToProcess.slice(i, i + MAX_CONCURRENT);
     const batchResults = await Promise.allSettled(
       batch.map(async (token) => {
         const prices = await getAllPrices(token, signal);
         const spreads = calculateSpreads(prices);
 
         // Получаем среднюю цену из доступных источников
-        const priceSources = [
-          prices.mexc?.price,
-          prices.jupiter?.price,
-          prices.pancakeswap?.price,
-        ].filter((p): p is number => p !== null && p !== undefined);
+        // ВАЖНО: Для правильного сравнения используем только цены из источников той же сети
+        // Для Solana: Jupiter и MEXC (если есть)
+        // Для BSC: PancakeSwap и MEXC (если есть)
+        const priceSources: number[] = [];
+        
+        if (token.chain === 'solana') {
+          // Для Solana используем Jupiter и MEXC
+          if (prices.jupiter?.price) priceSources.push(prices.jupiter.price);
+          if (prices.mexc?.price) priceSources.push(prices.mexc.price);
+        } else if (token.chain === 'bsc') {
+          // Для BSC используем PancakeSwap и MEXC
+          if (prices.pancakeswap?.price) priceSources.push(prices.pancakeswap.price);
+          if (prices.mexc?.price) priceSources.push(prices.mexc.price);
+        }
 
         const avgPrice =
           priceSources.length > 0
             ? priceSources.reduce((sum, p) => sum + p, 0) / priceSources.length
             : null;
+
+        // Логируем для диагностики (только для первых нескольких токенов)
+        // Используем счетчик, так как results.length может быть неактуальным во время выполнения
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const logCount = ((globalThis as any).__getSpreadsLogCount as number) || 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (globalThis as any).__getSpreadsLogCount = logCount + 1;
+        
+        if (import.meta.env.DEV && logCount < 5) {
+          logger.debug(`[getSpreadsForTokens] Price calculation for ${token.symbol} (${token.chain}):`, {
+            mexc: prices.mexc?.price,
+            jupiter: prices.jupiter?.price,
+            pancakeswap: prices.pancakeswap?.price,
+            priceSources,
+            avgPrice,
+            priceSourcesCount: priceSources.length,
+            allPricesNull: !prices.mexc?.price && !prices.jupiter?.price && !prices.pancakeswap?.price,
+          });
+        }
 
         return {
           ...token,
@@ -210,13 +267,21 @@ export async function getSpreadsForTokens(
     batchResults.forEach((result) => {
       if (result.status === 'fulfilled') {
         results.push(result.value);
+      } else if (result.status === 'rejected') {
+        // Логируем ошибки для диагностики
+        if (import.meta.env.DEV) {
+          logger.warn(`[getSpreadsForTokens] Failed to get spreads for token in batch:`, {
+            error: result.reason,
+            batchIndex: i,
+          });
+        }
       }
     });
 
     // Логируем прогресс
-    if ((i + BATCH_SIZE) % 50 === 0 || i + BATCH_SIZE >= tokensToProcess.length) {
+    if ((i + MAX_CONCURRENT) % 50 === 0 || i + MAX_CONCURRENT >= tokensToProcess.length) {
       logger.debug(
-        `Processed ${Math.min(i + BATCH_SIZE, tokensToProcess.length)}/${tokensToProcess.length} tokens`
+        `Processed ${Math.min(i + MAX_CONCURRENT, tokensToProcess.length)}/${tokensToProcess.length} tokens`
       );
     }
   }

@@ -1,8 +1,3 @@
-/**
- * API константы
- * Данные получаем напрямую из источников, без бэкенда
- */
-
 export const API_CONFIG = {
   TIMEOUT: 30000, // 30 секунд
   RETRY_ATTEMPTS: 3,
@@ -10,38 +5,32 @@ export const API_CONFIG = {
 } as const;
 
 /**
- * URL источников данных
- * В dev-режиме используем прокси через Vite для обхода CORS
- * В production используем Edge Functions для проксирования (решает CORS)
+ * (Deprecated) SOURCE_URLS оставлен только для совместимости типов
+ * В backend-only режиме внешние API больше не используются.
+ * Не использовать в новом коде.
  */
-/**
- * Определяем, использовать ли прокси или прямые URL
- * Если прокси не работает (ERR_CONNECTION_REFUSED), используем прямые URL
- * В production всегда используем Edge Functions (/api/*)
- */
-const USE_PROXY = import.meta.env.VITE_USE_PROXY !== 'false'; // По умолчанию true
-
 export const SOURCE_URLS = {
-  JUPITER:
-    import.meta.env.VITE_JUPITER_URL ||
-    (USE_PROXY ? '/api/jupiter' : 'https://lite-api.jup.ag'),
-  PANCAKE:
-    import.meta.env.VITE_PANCAKE_URL ||
-    (USE_PROXY ? '/api/pancake' : 'https://api.dexscreener.com'),
-  MEXC:
-    import.meta.env.VITE_MEXC_REST_URL ||
-    (USE_PROXY ? '/api/mexc' : 'https://contract.mexc.com'),
+  JUPITER: '',
+  PANCAKE: '',
+  MEXC: '',
 } as const;
 
 /**
+ * URL бэкенда
+ * В backend-only режиме фронт общается только с нашим бэкендом
+ */
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
+
+/**
  * WebSocket URL для real-time обновлений
- * TODO: Настроить после получения документации от бэкенда
+ * Endpoint: /socket/sharkStraight
+ * Больше нет хардкода IP — URL обязателен через ENV
  */
 export const WEBSOCKET_URL =
   import.meta.env.VITE_WEBSOCKET_URL ||
-  (import.meta.env.VITE_BACKEND_URL
-    ? `${import.meta.env.VITE_BACKEND_URL.replace(/^https?/, 'wss')}/ws`
-    : 'wss://api.your-backend.com/ws');
+  (BACKEND_URL
+    ? `${BACKEND_URL.replace(/^http/, 'ws')}/socket/sharkStraight`
+    : '');
 
 /**
  * Интервалы обновления данных (в миллисекундах)

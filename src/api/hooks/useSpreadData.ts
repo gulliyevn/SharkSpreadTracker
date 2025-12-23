@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getSpreadData } from '../endpoints/spreads.api';
+import { getSpreadData } from '../adapters/api-adapter';
 import { REFRESH_INTERVALS } from '@/constants/api';
 import { networkMonitor } from '@/utils/network-monitor';
 import { useEffect, useState } from 'react';

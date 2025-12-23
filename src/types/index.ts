@@ -54,3 +54,52 @@ export interface MexcTradingLimits {
 export interface TokenWithLimits extends Token {
   mexcLimits?: MexcTradingLimits;
 }
+
+/**
+ * Данные прямого спреда из WebSocket API (sharkStraight)
+ * 
+ * Примечание: Обратный спред (sharkReverse) будет использовать аналогичную структуру
+ */
+export interface StraightData {
+  token: string;
+  aExchange: string; // Например, "Jupiter"
+  bExchange: string; // Например, "MEXC"
+  priceA: string; // Цена на бирже A
+  priceB: string; // Цена на бирже B
+  spread: string; // Спред в процентах
+  network: string; // Например, "solana" или "bsc"
+  limit: string; // Например, "all"
+}
+
+/**
+ * Данные обратного спреда из WebSocket API (sharkReverse)
+ * 
+ * TODO: Будет реализовано позже, структура будет аналогична StraightData
+ * Endpoint: /socket/sharkReverse
+ */
+export interface ReverseData {
+  token: string;
+  aExchange: string;
+  bExchange: string;
+  priceA: string;
+  priceB: string;
+  spread: string;
+  network: string;
+  limit: string;
+}
+
+/**
+ * Нормализованные данные спреда после парсинга ответа бэкенда.
+ * Используется фронтом для отображения токенов и расчётов.
+ */
+export interface SpreadRow {
+  token: string;
+  chain: 'solana' | 'bsc';
+  aExchange: string;
+  bExchange: string;
+  priceA: number | null;
+  priceB: number | null;
+  spread: number | null;
+  limit: string;
+}
+

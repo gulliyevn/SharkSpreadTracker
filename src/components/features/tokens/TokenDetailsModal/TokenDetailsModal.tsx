@@ -10,7 +10,7 @@ import { SpreadIndicator } from '@/components/features/tokens/SpreadIndicator';
 import { SpreadChart } from '@/components/features/spreads/SpreadChart';
 import { getSourcesForChain } from '@/constants/sources';
 import { useSpreadData } from '@/api/hooks/useSpreadData';
-import { getMexcTradingLimits } from '@/api/endpoints/mexc-limits.api';
+import { getMexcTradingLimits } from '@/api/adapters/api-adapter';
 import { useToast } from '@/contexts/ToastContext';
 import { cn } from '@/utils/cn';
 import { createJupiterSwapUrlWithUSDC } from '@/utils/jupiter-swap';

@@ -7,7 +7,7 @@ import {
 import { CHAIN_IDS } from '@/constants/chains';
 import { logger } from '@/utils/logger';
 import { rateLimiter } from '@/utils/security';
-import { isCanceledError } from '@/utils/errors';
+import { isCanceledError, getErrorStatusCode } from '@/utils/errors';
 import { queuedRequest, RequestPriority } from '@/utils/request-queue';
 import {
   requestDeduplicator,
@@ -278,7 +278,18 @@ export async function getMexcPrice(
               logger.debug('MEXC ticker price request was canceled');
               return null;
             }
-            logger.error('Error fetching MEXC ticker price:', tickerError);
+            
+            // 400 Bad Request означает, что токена нет на MEXC - это нормально
+            const tickerStatusCode = getErrorStatusCode(tickerError);
+            if (tickerStatusCode === 400) {
+              if (import.meta.env.DEV) {
+                logger.debug(`MEXC: token ${symbol} not found on exchange (400 Bad Request) - fallback ticker`);
+              }
+              return null;
+            }
+            
+            // Для других ошибок логируем как предупреждение
+            logger.warn('Error fetching MEXC ticker price:', tickerError);
           }
 
           logger.warn('MEXC price validation failed:', validated.error);
@@ -311,7 +322,23 @@ export async function getMexcPrice(
           logger.debug('MEXC price request was canceled');
           return null;
         }
-        logger.error('Error fetching MEXC price:', error);
+        
+        // 400 Bad Request означает, что токена нет на MEXC - это нормально, не ошибка
+        const statusCode = getErrorStatusCode(error);
+        if (statusCode === 400) {
+          // Токена нет на MEXC - это нормальная ситуация, не логируем как ошибку
+          if (import.meta.env.DEV) {
+            logger.debug(`MEXC: token ${symbol} not found on exchange (400 Bad Request)`);
+          }
+          return null;
+        }
+        
+        // Для других ошибок логируем как предупреждение или ошибку
+        if (statusCode && statusCode >= 500) {
+          logger.error(`MEXC price request failed with status ${statusCode}:`, error);
+        } else {
+          logger.warn(`MEXC price request failed for ${symbol}:`, error);
+        }
         return null;
       }
     },
@@ -365,9 +392,16 @@ export async function getAllPrices(
     chain === 'bsc' ? getPancakePrice(symbol, signal) : Promise.resolve(null),
     // MEXC для обоих блокчейнов (нужно правильно сформировать символ)
     // Формируем символ для MEXC: {SYMBOL}USDT
+    // Убираем специальные символы ($, @ и т.д.) из начала символа
     // Валидация символа происходит внутри getMexcPrice
     (() => {
-      const mexcSymbol = `${symbol.toUpperCase()}USDT`;
+      // Убираем ВСЕ специальные символы (например, $HNTT -> HNTT, BUBBA$ -> BUBBA)
+      const cleanSymbol = symbol.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (!cleanSymbol || cleanSymbol.length < 2) {
+        logger.debug(`getAllPrices: cannot create MEXC symbol from "${symbol}" (cleaned: "${cleanSymbol}"), skipping`);
+        return Promise.resolve(null);
+      }
+      const mexcSymbol = `${cleanSymbol}USDT`;
       // Предварительная валидация перед запросом
       if (!validateTokenSymbol(mexcSymbol)) {
         logger.debug(`getAllPrices: invalid MEXC symbol "${mexcSymbol}" for token "${symbol}", skipping`);
@@ -382,6 +416,25 @@ export async function getAllPrices(
   const pancakePrice =
     results[1].status === 'fulfilled' ? results[1].value : null;
   const mexcPrice = results[2].status === 'fulfilled' ? results[2].value : null;
+
+  // Логируем для диагностики (только для первых нескольких запросов)
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const logCount = ((globalThis as any).__getAllPricesLogCount as number) || 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).__getAllPricesLogCount = logCount + 1;
+    
+    if (logCount < 5) {
+      logger.debug(`[getAllPrices] Prices for ${symbol} (${chain}):`, {
+        jupiter: jupiterPrice ? { price: jupiterPrice.price, bid: jupiterPrice.bid, ask: jupiterPrice.ask } : null,
+        pancakeswap: pancakePrice ? { price: pancakePrice.price, bid: pancakePrice.bid, ask: pancakePrice.ask } : null,
+        mexc: mexcPrice ? { price: mexcPrice.price, bid: mexcPrice.bid, ask: mexcPrice.ask } : null,
+        jupiterStatus: results[0].status,
+        pancakeStatus: results[1].status,
+        mexcStatus: results[2].status,
+      });
+    }
+  }
 
     return {
       symbol,

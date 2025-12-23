@@ -2,7 +2,6 @@ import { Moon, Sun, BarChart3, Coins } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useView } from '@/contexts/ViewContext';
-import { BackendStatus } from '@/components/features/backend/BackendStatus';
 import { cn } from '@/utils/cn';
 
 export function Header() {
@@ -27,7 +26,6 @@ export function Header() {
               width="40"
               height="40"
               decoding="async"
-              fetchPriority="high"
             />
             <h1 className="text-base sm:text-lg md:text-xl font-bold text-dark-950 dark:text-dark-50 hidden sm:block">
               {t('app.title')}
@@ -36,9 +34,6 @@ export function Header() {
 
           {/* Right side controls */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Backend Status */}
-            <BackendStatus />
-
             {/* View Switcher - кнопка для графиков */}
             <button
               onClick={() =>

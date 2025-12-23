@@ -8,6 +8,7 @@ import { getSourcesForChain } from '@/constants/sources';
 import { useToast } from '@/contexts/ToastContext';
 import { createJupiterSwapUrlWithUSDC } from '@/utils/jupiter-swap';
 import { createPancakeSwapUrlWithBUSD } from '@/utils/pancakeswap-swap';
+import { logger } from '@/utils/logger';
 
 interface TokenCardProps {
   token: Token;
@@ -35,6 +36,17 @@ export const TokenCard = memo(function TokenCard({
   const [isHovered, setIsHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { success } = useToast();
+
+  // Логируем данные для диагностики (только в dev режиме)
+  if (import.meta.env.DEV && token.symbol === 'BTC') {
+    logger.debug('[TokenCard] Price data for', token.symbol, ':', {
+      price,
+      priceType: typeof price,
+      directSpread,
+      reverseSpread,
+      token: { symbol: token.symbol, chain: token.chain },
+    });
+  }
 
   // Получаем доступные источники для chain
   const availableSources = getSourcesForChain(token.chain);

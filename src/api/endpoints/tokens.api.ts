@@ -487,11 +487,13 @@ export async function getAllTokens(
       results[2].status === 'fulfilled' ? results[2].value : [];
 
     // Логируем результаты для отладки
+    // ВАЖНО: mexcTokens не добавляются в итоговый список (используются только для цен)
     logger.info('Token fetch results:', {
       jupiter: jupiterTokens.length,
       pancake: pancakeTokens.length,
-      mexc: mexcTokens.length,
-      total: jupiterTokens.length + pancakeTokens.length + mexcTokens.length,
+      mexc: mexcTokens.length, // Только для справки, не добавляются в итог
+      total: jupiterTokens.length + pancakeTokens.length, // БЕЗ MEXC (MEXC используется только для цен)
+      note: 'MEXC tokens are used only for price comparison, not added as separate tokens',
     });
     
     // Подсчитываем некорректные токены для отладки
@@ -525,15 +527,21 @@ export async function getAllTokens(
         }
       });
 
-    // Добавляем токены из MEXC (оба блокчейна) с валидацией
-    mexcTokens
-      .filter((token) => validateTokenSymbol(token.symbol))
-      .forEach((token) => {
-        const key = `${token.symbol}-${token.chain}`;
-        if (!allTokensMap.has(key)) {
-          allTokensMap.set(key, { ...token });
+    // ВАЖНО: В direct mode НЕ добавляем MEXC токены как отдельные токены
+    // MEXC API не предоставляет информацию о блокчейне, поэтому все токены помечаются как BSC
+    // Это приводит к неправильному распределению (все MEXC токены идут в BSC)
+    // MEXC используется ТОЛЬКО для получения цен при расчете спредов
+    // Токены должны приходить из Jupiter (Solana) и PancakeSwap (BSC)
+    // 
+    // Если нужны MEXC токены с правильной сетью - используйте backend mode (WebSocket)
+    // где бэкенд предоставляет правильную информацию о сети
+    if (import.meta.env.DEV && mexcTokens.length > 0) {
+      logger.debug(
+        `[getAllTokens] Пропускаем ${mexcTokens.length} MEXC токенов в direct mode - ` +
+        `MEXC API не предоставляет информацию о блокчейне. ` +
+        `Используйте backend mode для получения всех токенов с правильной сетью.`
+      );
         }
-      });
 
     // Сортируем по символу для удобства
     const result = Array.from(allTokensMap.values()).sort((a, b) =>

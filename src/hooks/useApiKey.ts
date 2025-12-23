@@ -1,14 +1,14 @@
 import { useCallback } from 'react';
-import { useLocalStorage } from './useLocalStorage';
+import { useSessionStorage } from './useSessionStorage';
 import { validateApiKey } from '@/utils/validation';
 import { STORAGE_KEYS } from '@/constants/api';
 
 /**
  * Хук для безопасного хранения и управления API ключом
- * Использует localStorage для хранения ключа
+ * Использует sessionStorage для хранения ключа (только в рамках сессии)
  */
 export function useApiKey() {
-  const [apiKey, setApiKey] = useLocalStorage<string | null>(
+  const [apiKey, setApiKey] = useSessionStorage<string | null>(
     STORAGE_KEYS.API_KEY,
     null
   );
