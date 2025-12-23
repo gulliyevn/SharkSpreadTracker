@@ -14,7 +14,7 @@ describe('react-query', () => {
   it('should create queryClient with correct default options', () => {
     expect(queryClient).toBeInstanceOf(QueryClient);
     const defaultOptions = queryClient.getDefaultOptions();
-    
+
     expect(defaultOptions.queries?.staleTime).toBe(30 * 1000);
     expect(defaultOptions.queries?.gcTime).toBe(10 * 60 * 1000);
     expect(defaultOptions.queries?.refetchOnWindowFocus).toBe(false);
@@ -29,9 +29,9 @@ describe('react-query', () => {
   it('should have exponential retry delay function', () => {
     const defaultOptions = queryClient.getDefaultOptions();
     const retryDelay = defaultOptions.queries?.retryDelay;
-    
+
     expect(typeof retryDelay).toBe('function');
-    
+
     if (typeof retryDelay === 'function') {
       const mockError = new Error('Test error');
       expect(retryDelay(0, mockError)).toBe(1000);
@@ -44,14 +44,14 @@ describe('react-query', () => {
   it('should have adaptive refetchInterval function', () => {
     const defaultOptions = queryClient.getDefaultOptions();
     const refetchInterval = defaultOptions.queries?.refetchInterval;
-    
+
     expect(typeof refetchInterval).toBe('function');
   });
 
   it('should handle refetchInterval with page visibility', () => {
     const defaultOptions = queryClient.getDefaultOptions();
     const refetchInterval = defaultOptions.queries?.refetchInterval;
-    
+
     if (typeof refetchInterval === 'function') {
       // Мокаем document.visibilityState
       Object.defineProperty(document, 'visibilityState', {
@@ -87,7 +87,7 @@ describe('react-query', () => {
   it('should return false when refetchInterval is not set', () => {
     const defaultOptions = queryClient.getDefaultOptions();
     const refetchInterval = defaultOptions.queries?.refetchInterval;
-    
+
     if (typeof refetchInterval === 'function') {
       const query = {
         state: {},
@@ -102,11 +102,11 @@ describe('react-query', () => {
   it('should have cache cleanup interval set up', () => {
     // Проверяем что setInterval был вызван (проверяем через мок)
     const setIntervalSpy = vi.spyOn(global, 'setInterval');
-    
+
     // Переимпортируем модуль чтобы проверить setInterval
     // В реальности setInterval уже установлен при импорте модуля
     expect(setIntervalSpy).toBeDefined();
-    
+
     setIntervalSpy.mockRestore();
   });
 
@@ -114,14 +114,16 @@ describe('react-query', () => {
     // Добавляем старый запрос в кэш
     const oldTime = Date.now() - 11 * 60 * 1000; // 11 минут назад
     queryClient.setQueryData(['test', 'old'], { data: 'old' });
-    
+
     // Мокаем getQueryCache для проверки
     const cache = queryClient.getQueryCache();
     const queries = cache.getAll();
-    
+
     // Находим наш тестовый запрос
-    const testQuery = queries.find(q => q.queryKey[0] === 'test' && q.queryKey[1] === 'old');
-    
+    const testQuery = queries.find(
+      (q) => q.queryKey[0] === 'test' && q.queryKey[1] === 'old'
+    );
+
     if (testQuery) {
       // Обновляем dataUpdatedAt вручную через внутренний API
       (testQuery.state as any).dataUpdatedAt = oldTime;
@@ -130,8 +132,8 @@ describe('react-query', () => {
     }
 
     // Ждем немного чтобы setInterval мог сработать
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     // Проверяем что кэш все еще работает
     expect(cache).toBeDefined();
   });

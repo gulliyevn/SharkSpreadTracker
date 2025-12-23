@@ -28,7 +28,7 @@ describe('web-vitals', () => {
   it('should initialize web vitals in production mode', () => {
     // В production режиме функция должна работать без ошибок
     const originalEnv = import.meta.env.PROD;
-    
+
     // Мокируем production
     Object.defineProperty(import.meta, 'env', {
       value: { ...import.meta.env, PROD: true },
@@ -49,7 +49,7 @@ describe('web-vitals', () => {
   it('should not initialize web vitals in development mode', () => {
     // В development режиме функция должна работать без ошибок, но не регистрировать callbacks
     const originalEnv = import.meta.env.PROD;
-    
+
     // Мокируем development
     Object.defineProperty(import.meta, 'env', {
       value: { ...import.meta.env, PROD: false },

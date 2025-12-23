@@ -37,7 +37,12 @@ describe('useTokensWithSpreads', () => {
 
   it('should return tokens with spreads', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, price: 50000, directSpread: 0.5 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        price: 50000,
+        directSpread: 0.5,
+      },
       { symbol: 'ETH', chain: 'bsc' as const, price: 3000, directSpread: 0.3 },
     ];
 
@@ -51,7 +56,9 @@ describe('useTokensWithSpreads', () => {
       refetch: vi.fn(),
     } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokensWithSpreads(), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.data).toEqual(mockTokens);
     expect(result.current.loadedCount).toBe(2);
@@ -70,7 +77,9 @@ describe('useTokensWithSpreads', () => {
       refetch: vi.fn(),
     } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokensWithSpreads(), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toEqual([]);
@@ -79,7 +88,7 @@ describe('useTokensWithSpreads', () => {
 
   it('should handle error state', () => {
     const error = new Error('Failed to fetch');
-    
+
     vi.mocked(useTokens).mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -90,7 +99,9 @@ describe('useTokensWithSpreads', () => {
       refetch: vi.fn(),
     } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokensWithSpreads(), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.error).toBe(error);
     expect(result.current.data).toEqual([]);
@@ -98,7 +109,7 @@ describe('useTokensWithSpreads', () => {
 
   it('should expose refetch function', () => {
     const mockRefetch = vi.fn();
-    
+
     vi.mocked(useTokens).mockReturnValue({
       data: [],
       isLoading: false,
@@ -109,7 +120,9 @@ describe('useTokensWithSpreads', () => {
       refetch: mockRefetch,
     } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokensWithSpreads(), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.refetch).toBe(mockRefetch);
   });
@@ -125,7 +138,9 @@ describe('useTokensWithSpreads', () => {
       refetch: vi.fn(),
     } as never);
 
-    const { result } = renderHook(() => useTokensWithSpreads(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokensWithSpreads(), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.data).toEqual([]);
     expect(result.current.loadedCount).toBe(0);

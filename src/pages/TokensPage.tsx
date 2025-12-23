@@ -51,7 +51,14 @@ export function TokensPage() {
   });
 
   // Загружаем токены из API с ценами и спредами (постепенно)
-  const { data: tokens = [], isLoading, error, loadedCount, totalCount, refetch } = useTokensWithSpreads();
+  const {
+    data: tokens = [],
+    isLoading,
+    error,
+    loadedCount,
+    totalCount,
+    refetch,
+  } = useTokensWithSpreads();
 
   // Уникальные токены для селектора (убираем дубликаты по symbol-chain)
   const uniqueTokensForSelector = useMemo(() => {

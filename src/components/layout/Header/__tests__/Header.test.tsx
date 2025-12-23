@@ -137,7 +137,7 @@ describe('Header', () => {
 
     const ruButton = screen.getByRole('button', { name: /русский/i });
     await user.click(ruButton);
-    
+
     // Язык должен переключиться
     expect(ruButton).toBeInTheDocument();
   });
@@ -157,7 +157,7 @@ describe('Header', () => {
 
     const viewButton = screen.getByRole('button', { name: /charts/i });
     await user.click(viewButton);
-    
+
     // Вид должен переключиться
     expect(viewButton).toBeInTheDocument();
   });
@@ -190,7 +190,7 @@ describe('Header', () => {
 
     const enButton = screen.getByRole('button', { name: /english/i });
     await user.click(enButton);
-    
+
     expect(enButton).toBeInTheDocument();
   });
 
@@ -209,7 +209,7 @@ describe('Header', () => {
 
     const trButton = screen.getByRole('button', { name: /türkçe/i });
     await user.click(trButton);
-    
+
     expect(trButton).toBeInTheDocument();
   });
 });

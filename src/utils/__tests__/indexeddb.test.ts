@@ -129,7 +129,7 @@ describe('IndexedDBManager', () => {
       // Перезагружаем модуль для применения мока
       await vi.resetModules();
       const { indexedDBManager: newManager } = await import('../indexeddb');
-      
+
       await expect(newManager.init()).resolves.not.toThrow();
     });
   });
@@ -172,9 +172,9 @@ describe('IndexedDBManager', () => {
       const token: Token = { symbol: 'BTC', chain: 'solana' };
       const data: SpreadDataPoint[] = [];
 
-      await expect(newManager.saveSpreadHistory(token, '1h', data)).rejects.toThrow(
-        'IndexedDB is not available'
-      );
+      await expect(
+        newManager.saveSpreadHistory(token, '1h', data)
+      ).rejects.toThrow('IndexedDB is not available');
     });
   });
 
@@ -219,13 +219,15 @@ describe('IndexedDBManager', () => {
       // Тест проверяет, что метод может быть вызван без ошибок
       // В реальности он вызывает deleteSpreadHistory для всех таймфреймов
       const token: Token = { symbol: 'BTC', chain: 'solana' };
-      
+
       // Проверяем, что метод существует и может быть вызван
       expect(typeof indexedDBManager.deleteSpreadHistory).toBe('function');
-      
+
       // В тестовой среде без IndexedDB метод выбросит ошибку, что ожидаемо
       if (!indexedDBManager.isAvailable()) {
-        await expect(indexedDBManager.deleteSpreadHistory(token)).rejects.toThrow();
+        await expect(
+          indexedDBManager.deleteSpreadHistory(token)
+        ).rejects.toThrow();
       }
     });
   });
@@ -265,8 +267,19 @@ describe('IndexedDBManager', () => {
       // Мокируем localStorage
       const mockLocalStorage = {
         length: 1,
-        key: vi.fn((index: number) => (index === 0 ? 'spread-history-BTC-solana-1h' : null)),
-        getItem: vi.fn(() => JSON.stringify([{ timestamp: Date.now(), mexc_price: 50000, jupiter_price: 50100, pancakeswap_price: null }])),
+        key: vi.fn((index: number) =>
+          index === 0 ? 'spread-history-BTC-solana-1h' : null
+        ),
+        getItem: vi.fn(() =>
+          JSON.stringify([
+            {
+              timestamp: Date.now(),
+              mexc_price: 50000,
+              jupiter_price: 50100,
+              pancakeswap_price: null,
+            },
+          ])
+        ),
         removeItem: vi.fn(),
       };
 
@@ -306,4 +319,3 @@ describe('IndexedDBManager', () => {
     });
   });
 });
-

@@ -81,12 +81,15 @@ describe('spreadHistory', () => {
 
     it('should trim to max points', async () => {
       const maxPoints = 60; // для '1m'
-      const dataPoints: SpreadDataPoint[] = Array.from({ length: maxPoints + 10 }, (_, i) => ({
-        timestamp: Date.now() + i * 60000, // каждая точка через минуту
-        mexc_price: 50000 + i,
-        jupiter_price: 50100 + i,
-        pancakeswap_price: null,
-      }));
+      const dataPoints: SpreadDataPoint[] = Array.from(
+        { length: maxPoints + 10 },
+        (_, i) => ({
+          timestamp: Date.now() + i * 60000, // каждая точка через минуту
+          mexc_price: 50000 + i,
+          jupiter_price: 50100 + i,
+          pancakeswap_price: null,
+        })
+      );
 
       for (const point of dataPoints) {
         await saveSpreadHistoryPoint(mockToken, '1m', point);
@@ -98,9 +101,11 @@ describe('spreadHistory', () => {
 
     it('should handle localStorage errors gracefully', async () => {
       // Мокаем localStorage.setItem чтобы выбросить ошибку
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-        throw new Error('Storage quota exceeded');
-      });
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementation(() => {
+          throw new Error('Storage quota exceeded');
+        });
 
       const dataPoint: SpreadDataPoint = {
         timestamp: Date.now(),
@@ -109,7 +114,9 @@ describe('spreadHistory', () => {
         pancakeswap_price: null,
       };
 
-      await expect(saveSpreadHistoryPoint(mockToken, '1h', dataPoint)).resolves.not.toThrow();
+      await expect(
+        saveSpreadHistoryPoint(mockToken, '1h', dataPoint)
+      ).resolves.not.toThrow();
 
       expect(vi.mocked(logger.error)).toHaveBeenCalled();
 
@@ -218,9 +225,11 @@ describe('spreadHistory', () => {
 
     it('should handle errors gracefully', async () => {
       // Мокаем localStorage.removeItem чтобы выбросить ошибку
-      const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
-        throw new Error('Storage error');
-      });
+      const removeItemSpy = vi
+        .spyOn(Storage.prototype, 'removeItem')
+        .mockImplementation(() => {
+          throw new Error('Storage error');
+        });
 
       await expect(clearSpreadHistory(mockToken, '1h')).resolves.not.toThrow();
 

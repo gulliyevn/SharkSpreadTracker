@@ -26,14 +26,18 @@ class NetworkMonitor {
         saveData?: boolean;
         addEventListener?: (event: string, handler: () => void) => void;
       }
-      
-      const connection = ((navigator as unknown as { connection?: NetworkConnection }).connection ||
-        (navigator as unknown as { mozConnection?: NetworkConnection }).mozConnection ||
-        (navigator as unknown as { webkitConnection?: NetworkConnection }).webkitConnection) as NetworkConnection | undefined;
-      
+
+      const connection = ((
+        navigator as unknown as { connection?: NetworkConnection }
+      ).connection ||
+        (navigator as unknown as { mozConnection?: NetworkConnection })
+          .mozConnection ||
+        (navigator as unknown as { webkitConnection?: NetworkConnection })
+          .webkitConnection) as NetworkConnection | undefined;
+
       if (connection) {
         this.updateNetworkInfo(connection);
-        
+
         // Слушаем изменения состояния сети
         if (connection.addEventListener) {
           connection.addEventListener('change', () => {
@@ -50,7 +54,8 @@ class NetworkMonitor {
     rtt?: number;
     saveData?: boolean;
   }): void {
-    const effectiveType = (connection.effectiveType || 'unknown') as NetworkConnectionType;
+    const effectiveType = (connection.effectiveType ||
+      'unknown') as NetworkConnectionType;
     const downlink = connection.downlink || 0;
     const rtt = connection.rtt || 0;
     const saveData = connection.saveData || false;
@@ -103,7 +108,7 @@ class NetworkMonitor {
    */
   subscribe(callback: (info: NetworkInfo) => void): () => void {
     this.listeners.add(callback);
-    
+
     // Сразу вызываем callback с текущим состоянием
     if (this.networkInfo) {
       callback(this.networkInfo);
@@ -117,7 +122,7 @@ class NetworkMonitor {
 
   private notifyListeners(): void {
     if (!this.networkInfo) return;
-    
+
     this.listeners.forEach((callback) => {
       try {
         callback(this.networkInfo!);
@@ -130,4 +135,3 @@ class NetworkMonitor {
 
 // Singleton экземпляр
 export const networkMonitor = new NetworkMonitor();
-

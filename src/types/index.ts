@@ -57,7 +57,7 @@ export interface TokenWithLimits extends Token {
 
 /**
  * Данные прямого спреда из WebSocket API (sharkStraight)
- * 
+ *
  * Примечание: Обратный спред (sharkReverse) будет использовать аналогичную структуру
  */
 export interface StraightData {
@@ -73,7 +73,7 @@ export interface StraightData {
 
 /**
  * Данные обратного спреда из WebSocket API (sharkReverse)
- * 
+ *
  * TODO: Будет реализовано позже, структура будет аналогична StraightData
  * Endpoint: /socket/sharkReverse
  */
@@ -134,4 +134,3 @@ export interface AllPrices {
   mexc: TokenPrice | null;
   timestamp: number;
 }
-

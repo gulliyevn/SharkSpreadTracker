@@ -16,7 +16,9 @@ export function useSpreadData(
   timeframe: TimeframeOption = '1h',
   enabled: boolean = true
 ) {
-  const [refreshInterval, setRefreshInterval] = useState<number>(REFRESH_INTERVALS.SPREAD_DATA);
+  const [refreshInterval, setRefreshInterval] = useState<number>(
+    REFRESH_INTERVALS.SPREAD_DATA
+  );
 
   // Адаптируем интервал обновления в зависимости от состояния сети
   useEffect(() => {

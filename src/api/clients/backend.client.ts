@@ -27,5 +27,3 @@ if (import.meta.env.DEV) {
     logger.info('[backendClient] using BACKEND_URL:', BACKEND_URL);
   }
 }
-
-

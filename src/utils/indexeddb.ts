@@ -61,13 +61,19 @@ class IndexedDBManager {
 
         // Создаем object store если его нет
         if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          const objectStore = db.createObjectStore(STORE_NAME, {
+            keyPath: 'id',
+          });
           // Индекс для поиска по expiresAt (для очистки старых данных)
           objectStore.createIndex('expiresAt', 'expiresAt', { unique: false });
           // Индекс для поиска по token и timeframe
-          objectStore.createIndex('token-timeframe', ['token.symbol', 'token.chain', 'timeframe'], {
-            unique: false,
-          });
+          objectStore.createIndex(
+            'token-timeframe',
+            ['token.symbol', 'token.chain', 'timeframe'],
+            {
+              unique: false,
+            }
+          );
         }
       };
     });
@@ -135,7 +141,10 @@ class IndexedDBManager {
         };
 
         request.onerror = () => {
-          logger.error('Failed to save spread history to IndexedDB:', request.error);
+          logger.error(
+            'Failed to save spread history to IndexedDB:',
+            request.error
+          );
           reject(request.error);
         };
       });
@@ -187,7 +196,10 @@ class IndexedDBManager {
         };
 
         request.onerror = () => {
-          logger.error('Failed to load spread history from IndexedDB:', request.error);
+          logger.error(
+            'Failed to load spread history from IndexedDB:',
+            request.error
+          );
           reject(request.error);
         };
       });
@@ -200,7 +212,10 @@ class IndexedDBManager {
   /**
    * Удалить историю спреда
    */
-  async deleteSpreadHistory(token: Token, timeframe?: TimeframeOption): Promise<void> {
+  async deleteSpreadHistory(
+    token: Token,
+    timeframe?: TimeframeOption
+  ): Promise<void> {
     if (!this.isAvailable()) {
       throw new Error('IndexedDB is not available');
     }
@@ -220,14 +235,26 @@ class IndexedDBManager {
           };
 
           request.onerror = () => {
-            logger.error('Failed to delete spread history from IndexedDB:', request.error);
+            logger.error(
+              'Failed to delete spread history from IndexedDB:',
+              request.error
+            );
             reject(request.error);
           };
         });
       } else {
         // Удаляем все таймфреймы для токена
-        const timeframes: TimeframeOption[] = ['1m', '5m', '15m', '1h', '4h', '1d'];
-        const promises = timeframes.map((tf) => this.deleteSpreadHistory(token, tf));
+        const timeframes: TimeframeOption[] = [
+          '1m',
+          '5m',
+          '15m',
+          '1h',
+          '4h',
+          '1d',
+        ];
+        const promises = timeframes.map((tf) =>
+          this.deleteSpreadHistory(token, tf)
+        );
         await Promise.all(promises);
       }
     } catch (error) {
@@ -259,19 +286,25 @@ class IndexedDBManager {
         const request = index.openCursor(range);
 
         request.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>)
+            .result;
           if (cursor) {
             cursor.delete();
             deletedCount++;
             cursor.continue();
           } else {
-            logger.info(`Cleaned up ${deletedCount} expired records from IndexedDB`);
+            logger.info(
+              `Cleaned up ${deletedCount} expired records from IndexedDB`
+            );
             resolve(deletedCount);
           }
         };
 
         request.onerror = () => {
-          logger.error('Failed to cleanup expired data from IndexedDB:', request.error);
+          logger.error(
+            'Failed to cleanup expired data from IndexedDB:',
+            request.error
+          );
           reject(request.error);
         };
       });
@@ -334,12 +367,17 @@ class IndexedDBManager {
       }
 
       if (migratedCount > 0) {
-        logger.info(`Migrated ${migratedCount} records from localStorage to IndexedDB`);
+        logger.info(
+          `Migrated ${migratedCount} records from localStorage to IndexedDB`
+        );
       }
 
       return migratedCount;
     } catch (error) {
-      logger.error('Error migrating data from localStorage to IndexedDB:', error);
+      logger.error(
+        'Error migrating data from localStorage to IndexedDB:',
+        error
+      );
       return 0;
     }
   }
@@ -410,4 +448,3 @@ if (typeof window !== 'undefined') {
       logger.error('Failed to initialize IndexedDB:', error);
     });
 }
-

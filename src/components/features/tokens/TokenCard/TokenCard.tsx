@@ -55,12 +55,14 @@ export const TokenCard = memo(function TokenCard({
   const exchangeUrls = useMemo<Record<string, string>>(
     () => ({
       mexc: 'https://www.mexc.com',
-      jupiter: token.address && token.chain === 'solana'
-        ? createJupiterSwapUrlWithUSDC(token.address, 'buy')
-        : 'https://jup.ag',
-      pancakeswap: token.address && token.chain === 'bsc'
-        ? createPancakeSwapUrlWithBUSD(token.address, 'buy')
-        : 'https://pancakeswap.finance',
+      jupiter:
+        token.address && token.chain === 'solana'
+          ? createJupiterSwapUrlWithUSDC(token.address, 'buy')
+          : 'https://jup.ag',
+      pancakeswap:
+        token.address && token.chain === 'bsc'
+          ? createPancakeSwapUrlWithBUSD(token.address, 'buy')
+          : 'https://pancakeswap.finance',
     }),
     [token]
   );

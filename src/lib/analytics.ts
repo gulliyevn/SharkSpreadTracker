@@ -130,7 +130,11 @@ export const trackThemeChange = (theme: 'light' | 'dark'): void => {
 /**
  * Хелперы для отслеживания событий API адаптера
  */
-export const trackBackendFallback = (operation: string, reason: string, mode: string): void => {
+export const trackBackendFallback = (
+  operation: string,
+  reason: string,
+  mode: string
+): void => {
   analytics.track('backend_fallback_activated', {
     operation,
     reason,
@@ -138,14 +142,20 @@ export const trackBackendFallback = (operation: string, reason: string, mode: st
   });
 };
 
-export const trackBackendRecovery = (mode: string, previousMode: string): void => {
+export const trackBackendRecovery = (
+  mode: string,
+  previousMode: string
+): void => {
   analytics.track('backend_recovered', {
     mode,
     previousMode,
   });
 };
 
-export const trackBackendHealthCheckFailed = (error: string | number, url: string): void => {
+export const trackBackendHealthCheckFailed = (
+  error: string | number,
+  url: string
+): void => {
   analytics.track('backend_health_check_failed', {
     error,
     url,

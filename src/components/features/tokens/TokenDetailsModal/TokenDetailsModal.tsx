@@ -72,21 +72,21 @@ export function TokenDetailsModal({
     const urls: Record<string, string> = {
       mexc: 'https://www.mexc.com',
     };
-    
+
     // Для Jupiter создаем swap URL если есть адрес токена
     if (token?.address && token.chain === 'solana') {
       urls.jupiter = createJupiterSwapUrlWithUSDC(token.address, 'buy');
     } else {
       urls.jupiter = 'https://jup.ag';
     }
-    
+
     // Для PancakeSwap создаем swap URL если есть адрес токена
     if (token?.address && token.chain === 'bsc') {
       urls.pancakeswap = createPancakeSwapUrlWithBUSD(token.address, 'buy');
     } else {
       urls.pancakeswap = 'https://pancakeswap.finance';
     }
-    
+
     return urls;
   }, [token]);
 

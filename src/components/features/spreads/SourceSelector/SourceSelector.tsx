@@ -187,7 +187,7 @@ export function SourceSelector({
                   'overflow-hidden'
                 )}
               >
-                <ul 
+                <ul
                   className="max-h-48 overflow-y-auto"
                   role="listbox"
                   aria-label="Available sources to buy from"
@@ -199,7 +199,11 @@ export function SourceSelector({
                       const isSelected = source1 === source.id;
 
                       return (
-                        <li key={source.id} role="option" aria-selected={isSelected}>
+                        <li
+                          key={source.id}
+                          role="option"
+                          aria-selected={isSelected}
+                        >
                           <button
                             onClick={() => handleSelect1(source.id)}
                             onKeyDown={(e) => {
@@ -314,7 +318,7 @@ export function SourceSelector({
                   'overflow-hidden'
                 )}
               >
-                <ul 
+                <ul
                   className="max-h-48 overflow-y-auto"
                   role="listbox"
                   aria-label="Available sources to sell to"
@@ -326,7 +330,11 @@ export function SourceSelector({
                       const isSelected = source2 === source.id;
 
                       return (
-                        <li key={source.id} role="option" aria-selected={isSelected}>
+                        <li
+                          key={source.id}
+                          role="option"
+                          aria-selected={isSelected}
+                        >
                           <button
                             onClick={() => handleSelect2(source.id)}
                             onKeyDown={(e) => {

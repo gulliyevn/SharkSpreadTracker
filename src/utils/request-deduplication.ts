@@ -15,10 +15,7 @@ class RequestDeduplicator {
    * Выполнить запрос с дедупликацией
    * Если такой же запрос уже выполняется, возвращает существующий Promise
    */
-  async deduplicate<T>(
-    key: string,
-    requestFn: () => Promise<T>
-  ): Promise<T> {
+  async deduplicate<T>(key: string, requestFn: () => Promise<T>): Promise<T> {
     // Проверяем, есть ли уже pending запрос
     const existing = this.pendingRequests.get(key);
     if (existing) {
@@ -98,4 +95,3 @@ export function createDeduplicationKey(
     : '';
   return `${endpoint}${sortedParams ? `?${sortedParams}` : ''}`;
 }
-

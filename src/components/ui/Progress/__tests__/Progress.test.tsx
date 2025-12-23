@@ -49,7 +49,9 @@ describe('Progress', () => {
 
   it('should render with different variants', () => {
     const { rerender } = render(<Progress value={50} variant="primary" />);
-    let fill = screen.getByRole('progressbar').querySelector('div[style*="width"]');
+    let fill = screen
+      .getByRole('progressbar')
+      .querySelector('div[style*="width"]');
     expect(fill).toHaveClass('bg-primary-600');
 
     rerender(<Progress value={50} variant="success" />);
@@ -76,7 +78,9 @@ describe('Progress', () => {
   });
 
   it('should apply custom className', () => {
-    const { container } = render(<Progress value={50} className="custom-class" />);
+    const { container } = render(
+      <Progress value={50} className="custom-class" />
+    );
     expect(container.firstChild).toHaveClass('custom-class');
   });
 
@@ -97,4 +101,3 @@ describe('Progress', () => {
     expect(progressBar).toHaveAttribute('aria-label', 'Loading data...');
   });
 });
-

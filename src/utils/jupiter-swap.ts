@@ -28,7 +28,7 @@ export function createJupiterSwapUrlWithUSDC(
 ): string {
   // USDC на Solana: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
   const USDC_SOLANA = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-  
+
   if (direction === 'buy') {
     // Покупаем токен за USDC
     return createJupiterSwapUrl(USDC_SOLANA, tokenAddress);
@@ -46,4 +46,3 @@ export function createJupiterSwapUrlWithUSDC(
 export function getTokenAddress(token: { address?: string }): string | null {
   return token.address || null;
 }
-

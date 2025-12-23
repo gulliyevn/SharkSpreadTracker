@@ -19,10 +19,12 @@ export const queryClient = new QueryClient({
       // Адаптивный refetch - уменьшает частоту для неактивных вкладок
       refetchInterval: (query) => {
         // Получаем refetchInterval из query state или options
-        const queryRefetchInterval = (query.state.dataUpdatedAt && 'refetchInterval' in query.options)
-          ? (query.options as { refetchInterval?: number | false }).refetchInterval
-          : undefined;
-        
+        const queryRefetchInterval =
+          query.state.dataUpdatedAt && 'refetchInterval' in query.options
+            ? (query.options as { refetchInterval?: number | false })
+                .refetchInterval
+            : undefined;
+
         if (queryRefetchInterval && typeof queryRefetchInterval === 'number') {
           const isPageVisible = document.visibilityState === 'visible';
           if (!isPageVisible) {
@@ -46,22 +48,25 @@ export const queryClient = new QueryClient({
 
 // Периодическая очистка старого кэша (каждые 5 минут)
 if (typeof window !== 'undefined') {
-  setInterval(() => {
-    const cache = queryClient.getQueryCache();
-    const queries = cache.getAll();
-    const now = Date.now();
-    const maxAge = 10 * 60 * 1000; // 10 минут (gcTime)
+  setInterval(
+    () => {
+      const cache = queryClient.getQueryCache();
+      const queries = cache.getAll();
+      const now = Date.now();
+      const maxAge = 10 * 60 * 1000; // 10 минут (gcTime)
 
-    queries.forEach((query) => {
-      const dataUpdatedAt = query.state.dataUpdatedAt || 0;
-      // Удаляем только успешные запросы, которые старше maxAge
-      if (
-        now - dataUpdatedAt > maxAge &&
-        query.state.status === 'success' &&
-        query.state.fetchStatus !== 'fetching'
-      ) {
-        cache.remove(query);
-      }
-    });
-  }, 5 * 60 * 1000); // Каждые 5 минут
+      queries.forEach((query) => {
+        const dataUpdatedAt = query.state.dataUpdatedAt || 0;
+        // Удаляем только успешные запросы, которые старше maxAge
+        if (
+          now - dataUpdatedAt > maxAge &&
+          query.state.status === 'success' &&
+          query.state.fetchStatus !== 'fetching'
+        ) {
+          cache.remove(query);
+        }
+      });
+    },
+    5 * 60 * 1000
+  ); // Каждые 5 минут
 }

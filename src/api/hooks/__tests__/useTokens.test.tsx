@@ -37,13 +37,20 @@ describe('useTokens', () => {
 
   it('should fetch tokens on mount', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, price: 50000, directSpread: 0.5 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        price: 50000,
+        directSpread: 0.5,
+      },
       { symbol: 'ETH', chain: 'bsc' as const, price: 3000, directSpread: 0.3 },
     ];
 
     vi.mocked(getAllTokens).mockResolvedValue(mockTokens);
 
-    const { result } = renderHook(() => useTokens(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokens(), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -56,7 +63,9 @@ describe('useTokens', () => {
   it('should handle loading state', async () => {
     vi.mocked(getAllTokens).mockImplementation(() => new Promise(() => {})); // Never resolves
 
-    const { result } = renderHook(() => useTokens(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokens(), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toBeUndefined();
@@ -65,7 +74,9 @@ describe('useTokens', () => {
   it('should handle error state', async () => {
     vi.mocked(getAllTokens).mockRejectedValue(new Error('Network error'));
 
-    const { result } = renderHook(() => useTokens(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokens(), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(
       () => {
@@ -80,7 +91,9 @@ describe('useTokens', () => {
   it('should return empty array when API returns empty', async () => {
     vi.mocked(getAllTokens).mockResolvedValue([]);
 
-    const { result } = renderHook(() => useTokens(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTokens(), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -104,4 +117,3 @@ describe('useTokens', () => {
     expect(calls[0]?.[0]).toBeInstanceOf(AbortSignal);
   });
 });
-

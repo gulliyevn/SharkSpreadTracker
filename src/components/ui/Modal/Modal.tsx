@@ -99,9 +99,10 @@ export function Modal({
       const handleTabKey = (e: KeyboardEvent) => {
         if (e.key !== 'Tab' || !modalRef.current) return;
 
-        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+        const focusableElements =
+          modalRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
 
         if (focusableElements.length === 0) return;
 

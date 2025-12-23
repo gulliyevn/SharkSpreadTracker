@@ -24,7 +24,7 @@ export function createPancakeSwapUrlWithBUSD(
 ): string {
   // BUSD на BSC: 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56
   const BUSD_BSC = '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56';
-  
+
   if (direction === 'buy') {
     // Покупаем токен за BUSD - используем outputCurrency
     return createPancakeSwapUrl(tokenAddress);
@@ -42,4 +42,3 @@ export function createPancakeSwapUrlWithBUSD(
 export function getTokenAddress(token: { address?: string }): string | null {
   return token.address || null;
 }
-

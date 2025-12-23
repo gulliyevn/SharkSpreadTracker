@@ -41,7 +41,9 @@ export function invalidateSpreadCache(
     ? ['spread', symbol, chain, timeframe]
     : ['spread', symbol, chain];
   queryClient.invalidateQueries({ queryKey });
-  logger.debug(`Spread cache invalidated: ${symbol}-${chain}${timeframe ? `-${timeframe}` : ''}`);
+  logger.debug(
+    `Spread cache invalidated: ${symbol}-${chain}${timeframe ? `-${timeframe}` : ''}`
+  );
 }
 
 /**
@@ -119,4 +121,3 @@ export function cleanupOldCache(): void {
 
   logger.debug(`Cleaned up old cache entries`);
 }
-

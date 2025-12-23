@@ -155,7 +155,7 @@ class RequestQueue {
         });
         this.sortQueue();
         this.processing.delete(request.id);
-        
+
         // Планируем повторную попытку (используем setTimeout для избежания рекурсии)
         setTimeout(() => {
           this.process();
@@ -176,7 +176,7 @@ class RequestQueue {
             this.config.maxBackoffMs
           );
           request.backoffMs = newBackoffMs;
-          
+
           // Возвращаем в очередь с задержкой (используем setTimeout для избежания рекурсии)
           setTimeout(() => {
             this.queue.push(request);

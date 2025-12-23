@@ -532,9 +532,24 @@ describe('TokensPage', () => {
 
   it('should filter tokens by minSpread', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, directSpread: 0.5, reverseSpread: 0.3 },
-      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 2.0, reverseSpread: 1.5 },
-      { symbol: 'BNB', chain: 'bsc' as const, directSpread: 0.1, reverseSpread: 0.1 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        directSpread: 0.5,
+        reverseSpread: 0.3,
+      },
+      {
+        symbol: 'ETH',
+        chain: 'bsc' as const,
+        directSpread: 2.0,
+        reverseSpread: 1.5,
+      },
+      {
+        symbol: 'BNB',
+        chain: 'bsc' as const,
+        directSpread: 0.1,
+        reverseSpread: 0.1,
+      },
     ];
 
     mockUseTokensWithSpreads.mockReturnValue({
@@ -560,8 +575,18 @@ describe('TokensPage', () => {
 
   it('should filter by directOnly', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, directSpread: 1.0, reverseSpread: 0 },
-      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 0, reverseSpread: 2.0 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        directSpread: 1.0,
+        reverseSpread: 0,
+      },
+      {
+        symbol: 'ETH',
+        chain: 'bsc' as const,
+        directSpread: 0,
+        reverseSpread: 2.0,
+      },
     ];
 
     mockUseTokensWithSpreads.mockReturnValue({
@@ -585,8 +610,18 @@ describe('TokensPage', () => {
 
   it('should filter by reverseOnly', async () => {
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, directSpread: 0, reverseSpread: 1.5 },
-      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 2.0, reverseSpread: 0 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        directSpread: 0,
+        reverseSpread: 1.5,
+      },
+      {
+        symbol: 'ETH',
+        chain: 'bsc' as const,
+        directSpread: 2.0,
+        reverseSpread: 0,
+      },
     ];
 
     mockUseTokensWithSpreads.mockReturnValue({
@@ -610,7 +645,7 @@ describe('TokensPage', () => {
 
   it('should sort by name when sortOption is name', async () => {
     localStorage.setItem('token-sort-option', 'name');
-    
+
     const mockTokens = [
       { symbol: 'ZZZ', chain: 'solana' as const },
       { symbol: 'AAA', chain: 'bsc' as const },
@@ -639,7 +674,7 @@ describe('TokensPage', () => {
 
   it('should sort by price when sortOption is price', async () => {
     localStorage.setItem('token-sort-option', 'price');
-    
+
     const mockTokens = [
       { symbol: 'BTC', chain: 'solana' as const, price: 50000 },
       { symbol: 'ETH', chain: 'bsc' as const, price: 2000 },
@@ -701,10 +736,20 @@ describe('TokensPage', () => {
 
   it('should use localStorage saved sort option', async () => {
     localStorage.setItem('token-sort-option', 'spread');
-    
+
     const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const, directSpread: 5.0, reverseSpread: 4.0 },
-      { symbol: 'ETH', chain: 'bsc' as const, directSpread: 1.0, reverseSpread: 0.5 },
+      {
+        symbol: 'BTC',
+        chain: 'solana' as const,
+        directSpread: 5.0,
+        reverseSpread: 4.0,
+      },
+      {
+        symbol: 'ETH',
+        chain: 'bsc' as const,
+        directSpread: 1.0,
+        reverseSpread: 0.5,
+      },
     ];
 
     mockUseTokensWithSpreads.mockReturnValue({

@@ -77,7 +77,9 @@ describe('CurrentPricesPanel', () => {
     );
 
     // Проверяем что отображается skeleton (CurrentPricesPanelSkeleton)
-    expect(screen.getByTestId('current-prices-panel-skeleton')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('current-prices-panel-skeleton')
+    ).toBeInTheDocument();
   });
 
   it('should display prices for all available sources', () => {

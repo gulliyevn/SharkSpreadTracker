@@ -38,10 +38,18 @@ describe('security', () => {
 
   describe('sanitizeUrl', () => {
     it('should allow localhost URLs for development', () => {
-      expect(sanitizeUrl('http://localhost:3000')).toBe('http://localhost:3000');
-      expect(sanitizeUrl('https://localhost:8080/api')).toBe('https://localhost:8080/api');
-      expect(sanitizeUrl('ws://localhost:8080/socket')).toBe('ws://localhost:8080/socket');
-      expect(sanitizeUrl('wss://127.0.0.1:8080/socket')).toBe('wss://127.0.0.1:8080/socket');
+      expect(sanitizeUrl('http://localhost:3000')).toBe(
+        'http://localhost:3000'
+      );
+      expect(sanitizeUrl('https://localhost:8080/api')).toBe(
+        'https://localhost:8080/api'
+      );
+      expect(sanitizeUrl('ws://localhost:8080/socket')).toBe(
+        'ws://localhost:8080/socket'
+      );
+      expect(sanitizeUrl('wss://127.0.0.1:8080/socket')).toBe(
+        'wss://127.0.0.1:8080/socket'
+      );
     });
 
     it('should reject URLs from non-allowed domains', () => {

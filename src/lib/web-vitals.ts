@@ -12,7 +12,7 @@ import { analytics } from './analytics';
 function sendToAnalytics(metric: Metric): void {
   // Отправляем в Sentry для мониторинга
   captureMessage(`Web Vital: ${metric.name} = ${metric.value}`, 'info');
-  
+
   // Отправляем в Analytics
   analytics.track('web_vital', {
     name: metric.name,
@@ -36,4 +36,3 @@ export function initWebVitals(): void {
     onINP(sendToAnalytics); // Interaction to Next Paint (заменяет FID)
   }
 }
-

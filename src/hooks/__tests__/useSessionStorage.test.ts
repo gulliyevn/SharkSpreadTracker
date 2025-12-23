@@ -13,26 +13,34 @@ describe('useSessionStorage', () => {
   });
 
   it('should return initial value when storage is empty', () => {
-    const { result } = renderHook(() => useSessionStorage('test-key', 'default'));
+    const { result } = renderHook(() =>
+      useSessionStorage('test-key', 'default')
+    );
     expect(result.current[0]).toBe('default');
   });
 
   it('should return stored value when present', () => {
     sessionStorage.setItem('test-key', JSON.stringify('stored-value'));
-    
-    const { result } = renderHook(() => useSessionStorage('test-key', 'default'));
+
+    const { result } = renderHook(() =>
+      useSessionStorage('test-key', 'default')
+    );
     expect(result.current[0]).toBe('stored-value');
   });
 
   it('should update value and storage', () => {
-    const { result } = renderHook(() => useSessionStorage('test-key', 'initial'));
+    const { result } = renderHook(() =>
+      useSessionStorage('test-key', 'initial')
+    );
 
     act(() => {
       result.current[1]('new-value');
     });
 
     expect(result.current[0]).toBe('new-value');
-    expect(JSON.parse(sessionStorage.getItem('test-key') || '')).toBe('new-value');
+    expect(JSON.parse(sessionStorage.getItem('test-key') || '')).toBe(
+      'new-value'
+    );
   });
 
   it('should handle object values', () => {
@@ -49,7 +57,9 @@ describe('useSessionStorage', () => {
   });
 
   it('should handle array values', () => {
-    const { result } = renderHook(() => useSessionStorage<string[]>('test-key', []));
+    const { result } = renderHook(() =>
+      useSessionStorage<string[]>('test-key', [])
+    );
 
     act(() => {
       result.current[1](['a', 'b', 'c']);
@@ -76,15 +86,19 @@ describe('useSessionStorage', () => {
 
   it('should handle invalid JSON in storage gracefully', () => {
     sessionStorage.setItem('test-key', 'not-valid-json');
-    
+
     // Должен вернуть значение по умолчанию или что-то что не крашится
-    const { result } = renderHook(() => useSessionStorage('test-key', 'default'));
+    const { result } = renderHook(() =>
+      useSessionStorage('test-key', 'default')
+    );
     // Результат зависит от реализации - либо default, либо сырая строка
     expect(result.current[0]).toBeDefined();
   });
 
   it('should sync between hooks with same key', () => {
-    const { result: result1 } = renderHook(() => useSessionStorage('shared-key', ''));
+    const { result: result1 } = renderHook(() =>
+      useSessionStorage('shared-key', '')
+    );
     // Второй хук создаём для проверки что storage обновляется
     renderHook(() => useSessionStorage('shared-key', ''));
 
@@ -93,11 +107,13 @@ describe('useSessionStorage', () => {
     });
 
     // storage should be updated
-    expect(sessionStorage.getItem('shared-key')).toBe(JSON.stringify('updated'));
+    expect(sessionStorage.getItem('shared-key')).toBe(
+      JSON.stringify('updated')
+    );
   });
 
   it('should remove item when setting to undefined', () => {
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useSessionStorage<string | undefined>('test-key', 'initial')
     );
 
@@ -109,7 +125,7 @@ describe('useSessionStorage', () => {
   });
 
   it('should handle storage event', () => {
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useSessionStorage('test-key', 'initial')
     );
 
@@ -128,7 +144,7 @@ describe('useSessionStorage', () => {
   });
 
   it('should handle storage event with null value', () => {
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useSessionStorage('test-key', 'initial')
     );
 
@@ -147,7 +163,7 @@ describe('useSessionStorage', () => {
   });
 
   it('should ignore storage events for different keys', () => {
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useSessionStorage('test-key', 'initial')
     );
 
@@ -165,7 +181,7 @@ describe('useSessionStorage', () => {
   });
 
   it('should handle invalid JSON in storage event', () => {
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useSessionStorage('test-key', 'initial')
     );
 
@@ -183,4 +199,3 @@ describe('useSessionStorage', () => {
     expect(result.current[0]).toBeDefined();
   });
 });
-

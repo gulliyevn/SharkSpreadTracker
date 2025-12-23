@@ -1,2 +1,1 @@
 export { CurrentPricesPanelSkeleton } from './CurrentPricesPanelSkeleton';
-

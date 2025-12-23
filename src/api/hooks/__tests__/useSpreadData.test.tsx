@@ -70,24 +70,26 @@ describe('useSpreadData', () => {
   it('should fetch spread data for a token', async () => {
     vi.mocked(getSpreadData).mockResolvedValue(mockSpreadResponse);
 
-    const { result } = renderHook(
-      () => useSpreadData(mockToken, '1h'),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderHook(() => useSpreadData(mockToken, '1h'), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
 
     expect(result.current.data).toEqual(mockSpreadResponse);
-    expect(getSpreadData).toHaveBeenCalledWith(mockToken, '1h', expect.any(AbortSignal));
+    expect(getSpreadData).toHaveBeenCalledWith(
+      mockToken,
+      '1h',
+      expect.any(AbortSignal)
+    );
   });
 
   it('should not fetch when token is null', async () => {
-    const { result } = renderHook(
-      () => useSpreadData(null, '1h'),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderHook(() => useSpreadData(null, '1h'), {
+      wrapper: createWrapper(),
+    });
 
     // Должен быть в состоянии pending, но не fetching
     expect(result.current.isFetching).toBe(false);
@@ -97,10 +99,9 @@ describe('useSpreadData', () => {
   it('should handle loading state', async () => {
     vi.mocked(getSpreadData).mockImplementation(() => new Promise(() => {}));
 
-    const { result } = renderHook(
-      () => useSpreadData(mockToken, '1h'),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderHook(() => useSpreadData(mockToken, '1h'), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isLoading).toBe(true);
   });
@@ -108,10 +109,9 @@ describe('useSpreadData', () => {
   it('should handle error state', async () => {
     vi.mocked(getSpreadData).mockRejectedValue(new Error('API Error'));
 
-    const { result } = renderHook(
-      () => useSpreadData(mockToken, '1h'),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderHook(() => useSpreadData(mockToken, '1h'), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(
       () => {
@@ -126,28 +126,26 @@ describe('useSpreadData', () => {
   it('should use default timeframe 1h', async () => {
     vi.mocked(getSpreadData).mockResolvedValue(mockSpreadResponse);
 
-    renderHook(
-      () => useSpreadData(mockToken),
-      { wrapper: createWrapper() }
-    );
+    renderHook(() => useSpreadData(mockToken), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(getSpreadData).toHaveBeenCalled();
     });
 
-    expect(getSpreadData).toHaveBeenCalledWith(mockToken, '1h', expect.any(AbortSignal));
+    expect(getSpreadData).toHaveBeenCalledWith(
+      mockToken,
+      '1h',
+      expect.any(AbortSignal)
+    );
   });
 
   it('should refetch when token changes', async () => {
     vi.mocked(getSpreadData).mockResolvedValue(mockSpreadResponse);
 
-    const { rerender } = renderHook(
-      ({ token }) => useSpreadData(token, '1h'),
-      {
-        wrapper: createWrapper(),
-        initialProps: { token: mockToken },
-      }
-    );
+    const { rerender } = renderHook(({ token }) => useSpreadData(token, '1h'), {
+      wrapper: createWrapper(),
+      initialProps: { token: mockToken },
+    });
 
     await waitFor(() => {
       expect(getSpreadData).toHaveBeenCalledTimes(1);
@@ -160,7 +158,11 @@ describe('useSpreadData', () => {
       expect(getSpreadData).toHaveBeenCalledTimes(2);
     });
 
-    expect(getSpreadData).toHaveBeenLastCalledWith(newToken, '1h', expect.any(AbortSignal));
+    expect(getSpreadData).toHaveBeenLastCalledWith(
+      newToken,
+      '1h',
+      expect.any(AbortSignal)
+    );
   });
 
   it('should refetch when timeframe changes', async () => {
@@ -182,7 +184,10 @@ describe('useSpreadData', () => {
     rerender({ timeframe: '1h' as const });
 
     // Первый вызов должен остаться
-    expect(getSpreadData).toHaveBeenCalledWith(mockToken, '1h', expect.any(AbortSignal));
+    expect(getSpreadData).toHaveBeenCalledWith(
+      mockToken,
+      '1h',
+      expect.any(AbortSignal)
+    );
   });
 });
-

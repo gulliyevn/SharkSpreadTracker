@@ -10,7 +10,9 @@ function TestComponent() {
     enabled: false,
   });
 
-  return <div data-testid="query-provider">{isSuccess ? 'ready' : 'not ready'}</div>;
+  return (
+    <div data-testid="query-provider">{isSuccess ? 'ready' : 'not ready'}</div>
+  );
 }
 
 describe('QueryProvider', () => {

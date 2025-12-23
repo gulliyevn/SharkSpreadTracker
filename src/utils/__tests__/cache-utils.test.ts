@@ -48,7 +48,9 @@ describe('cache-utils', () => {
   describe('invalidateTokensCache', () => {
     it('should invalidate tokens cache', () => {
       invalidateTokensCache();
-      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['tokens'] });
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['tokens'],
+      });
     });
   });
 
@@ -64,7 +66,9 @@ describe('cache-utils', () => {
   describe('invalidateSpreadsCache', () => {
     it('should invalidate spreads cache', () => {
       invalidateSpreadsCache();
-      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['spread'] });
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['spread'],
+      });
     });
   });
 
@@ -87,7 +91,9 @@ describe('cache-utils', () => {
   describe('invalidatePricesCache', () => {
     it('should invalidate prices cache', () => {
       invalidatePricesCache();
-      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['prices'] });
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['prices'],
+      });
     });
   });
 
@@ -110,8 +116,10 @@ describe('cache-utils', () => {
     });
 
     it('should handle prefetch errors gracefully', async () => {
-      vi.mocked(queryClient.prefetchQuery).mockRejectedValueOnce(new Error('Network error'));
-      
+      vi.mocked(queryClient.prefetchQuery).mockRejectedValueOnce(
+        new Error('Network error')
+      );
+
       // Should not throw
       await expect(prefetchTokens()).resolves.toBeUndefined();
     });

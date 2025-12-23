@@ -29,8 +29,12 @@ describe('useInfiniteScroll', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     // Восстанавливаем оригинальный IntersectionObserver если был
-    if (typeof globalThis !== 'undefined' && 'IntersectionObserver' in globalThis) {
-      delete (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver;
+    if (
+      typeof globalThis !== 'undefined' &&
+      'IntersectionObserver' in globalThis
+    ) {
+      delete (globalThis as { IntersectionObserver?: unknown })
+        .IntersectionObserver;
     }
   });
 
@@ -135,7 +139,7 @@ describe('useInfiniteScroll', () => {
     // Проверяем что ref возвращается
     expect(result.current).toBeDefined();
     expect(result.current).toHaveProperty('current');
-    
+
     // Проверяем что MockIntersectionObserver определен и может быть использован
     expect(MockIntersectionObserver).toBeDefined();
     // Проверяем что observer был создан (observe должен быть вызван когда элемент присвоен)

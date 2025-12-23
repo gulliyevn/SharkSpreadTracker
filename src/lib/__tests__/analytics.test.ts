@@ -131,7 +131,10 @@ describe('analytics', () => {
 
       const events = analytics.getEvents();
       expect(events[0]?.name).toBe('token_filtered');
-      expect(events[0]?.properties).toEqual({ filterType: 'search', value: 'BTC' });
+      expect(events[0]?.properties).toEqual({
+        filterType: 'search',
+        value: 'BTC',
+      });
     });
 
     it('trackTokenSelected should track selection', () => {

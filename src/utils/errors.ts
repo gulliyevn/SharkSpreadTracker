@@ -165,13 +165,13 @@ export function isCanceledError(error: unknown): boolean {
       error.message.includes('Abort')
     );
   }
-  
+
   // Проверка для Axios ошибок
   if (isAxiosError(error)) {
     const code = error.code;
     return code === 'ERR_CANCELED' || code === 'ECONNABORTED';
   }
-  
+
   return false;
 }
 

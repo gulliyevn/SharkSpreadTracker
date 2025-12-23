@@ -51,7 +51,7 @@ describe('api-adapter', () => {
   describe('getAllPrices', () => {
     it('should return default structure when no data', async () => {
       const result = await getAllPrices({ symbol: 'BTC', chain: 'solana' });
-      
+
       expect(result.symbol).toBe('BTC');
       expect(result.chain).toBe('solana');
       expect(result.timestamp).toBeGreaterThan(0);
@@ -61,7 +61,7 @@ describe('api-adapter', () => {
   describe('getSpreadData', () => {
     it('should return default structure when no data', async () => {
       const result = await getSpreadData({ symbol: 'ETH', chain: 'bsc' }, '1h');
-      
+
       expect(result.symbol).toBe('ETH');
       expect(result.chain).toBe('bsc');
       expect(result.history).toEqual([]);
@@ -69,7 +69,7 @@ describe('api-adapter', () => {
 
     it('should use default timeframe 1h', async () => {
       const result = await getSpreadData({ symbol: 'SOL', chain: 'solana' });
-      
+
       expect(result.symbol).toBe('SOL');
     });
   });
@@ -87,7 +87,7 @@ describe('api-adapter', () => {
       ];
 
       const result = await getSpreadsForTokens(tokens);
-      
+
       // Без данных WebSocket вернёт пустой массив
       expect(Array.isArray(result)).toBe(true);
     });

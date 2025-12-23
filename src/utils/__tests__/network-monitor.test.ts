@@ -42,7 +42,7 @@ describe('NetworkMonitor', () => {
       const unsubscribe = networkMonitor.subscribe(callback);
 
       expect(typeof unsubscribe).toBe('function');
-      
+
       // Отписываемся
       unsubscribe();
     });
@@ -50,9 +50,9 @@ describe('NetworkMonitor', () => {
     it('should allow unsubscribing', () => {
       const callback = vi.fn();
       const unsubscribe = networkMonitor.subscribe(callback);
-      
+
       unsubscribe();
-      
+
       // После отписки callback не должен вызываться (если нет изменений)
       expect(typeof unsubscribe).toBe('function');
     });

@@ -174,7 +174,7 @@ describe('TokenGrid', () => {
   it('should pass onEdit callback to TokenCard', () => {
     const onEdit = vi.fn();
     render(<TokenGrid tokens={mockTokens} onEdit={onEdit} />);
-    
+
     expect(screen.getByTestId('token-card-BTC')).toBeInTheDocument();
   });
 });

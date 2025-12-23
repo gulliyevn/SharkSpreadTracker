@@ -11,7 +11,9 @@ describe('backendClient', () => {
   });
 
   it('should have correct default headers', () => {
-    expect(backendClient.defaults.headers['Content-Type']).toBe('application/json');
+    expect(backendClient.defaults.headers['Content-Type']).toBe(
+      'application/json'
+    );
   });
 
   it('should have withCredentials set to false', () => {
@@ -22,4 +24,3 @@ describe('backendClient', () => {
     expect(backendClient.defaults.timeout).toBeGreaterThan(0);
   });
 });
-

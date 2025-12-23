@@ -27,11 +27,30 @@ export interface IApiAdapter {
   getAllPrices(token: Token, signal?: AbortSignal): Promise<AllPrices>;
 
   // Spreads
-  getSpreadData(token: Token, timeframe?: TimeframeOption, signal?: AbortSignal): Promise<SpreadResponse>;
-  getSpreadsForTokens(tokens: Token[], signal?: AbortSignal, maxTokens?: number): Promise<Array<Token & { directSpread: number | null; reverseSpread: number | null; price: number | null }>>;
-  
+  getSpreadData(
+    token: Token,
+    timeframe?: TimeframeOption,
+    signal?: AbortSignal
+  ): Promise<SpreadResponse>;
+  getSpreadsForTokens(
+    tokens: Token[],
+    signal?: AbortSignal,
+    maxTokens?: number
+  ): Promise<
+    Array<
+      Token & {
+        directSpread: number | null;
+        reverseSpread: number | null;
+        price: number | null;
+      }
+    >
+  >;
+
   // MEXC Limits
-  getMexcTradingLimits(symbol: string, signal?: AbortSignal): Promise<MexcTradingLimits | null>;
+  getMexcTradingLimits(
+    symbol: string,
+    signal?: AbortSignal
+  ): Promise<MexcTradingLimits | null>;
 }
 
 /**
@@ -111,11 +130,20 @@ async function fetchStraightSpreads(params: {
     const timeoutId = window.setTimeout(async () => {
       if (settled) return;
       settled = true;
-      try { ws.close(); } catch { /* ignore */ }
-      
+      try {
+        ws.close();
+      } catch {
+        /* ignore */
+      }
+
       // Автоматический реконнект при таймауте
-      if (reconnectAttempt < MAX_RECONNECT_ATTEMPTS && !params.signal?.aborted) {
-        logger.debug(`[WebSocket] Timeout, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+      if (
+        reconnectAttempt < MAX_RECONNECT_ATTEMPTS &&
+        !params.signal?.aborted
+      ) {
+        logger.debug(
+          `[WebSocket] Timeout, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`
+        );
         const result = await fetchStraightSpreads({
           ...params,
           _reconnectAttempt: reconnectAttempt + 1,
@@ -134,17 +162,21 @@ async function fetchStraightSpreads(params: {
         clearTimeout(batchTimeout);
         batchTimeout = null;
       }
-      try { ws.close(); } catch { /* ignore */ }
+      try {
+        ws.close();
+      } catch {
+        /* ignore */
+      }
       resolve(result);
     };
 
     // Обработка буфера сообщений пачкой
     const processBatch = () => {
       if (messageBuffer.length === 0) return;
-      
+
       const batch = messageBuffer;
       messageBuffer = [];
-      
+
       for (const raw of batch) {
         try {
           const data = JSON.parse(raw) as StraightData[] | StraightData;
@@ -176,7 +208,7 @@ async function fetchStraightSpreads(params: {
     ws.onmessage = (event) => {
       // Буферизуем сообщения для batch обработки
       messageBuffer.push(event.data as string);
-      
+
       // Откладываем обработку до следующего batch
       if (!batchTimeout) {
         batchTimeout = setTimeout(() => {
@@ -190,13 +222,22 @@ async function fetchStraightSpreads(params: {
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
-      try { ws.close(); } catch { /* ignore */ }
-      
+      try {
+        ws.close();
+      } catch {
+        /* ignore */
+      }
+
       // Автоматический реконнект при ошибке
-      if (reconnectAttempt < MAX_RECONNECT_ATTEMPTS && !params.signal?.aborted) {
-        logger.debug(`[WebSocket] Error, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+      if (
+        reconnectAttempt < MAX_RECONNECT_ATTEMPTS &&
+        !params.signal?.aborted
+      ) {
+        logger.debug(
+          `[WebSocket] Error, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`
+        );
         // Небольшая задержка перед реконнектом
-        await new Promise(r => setTimeout(r, 1000 * (reconnectAttempt + 1)));
+        await new Promise((r) => setTimeout(r, 1000 * (reconnectAttempt + 1)));
         const result = await fetchStraightSpreads({
           ...params,
           _reconnectAttempt: reconnectAttempt + 1,
@@ -243,8 +284,9 @@ class BackendApiAdapter implements IApiAdapter {
       if (row.priceB != null) priceCandidates.push(row.priceB);
       const price =
         priceCandidates.length > 0
-          ? priceCandidates.reduce((sum, v) => sum + v, 0) / priceCandidates.length
-          : base.price ?? null;
+          ? priceCandidates.reduce((sum, v) => sum + v, 0) /
+            priceCandidates.length
+          : (base.price ?? null);
 
       const directSpread = row.spread ?? base.directSpread ?? null;
 
@@ -279,7 +321,8 @@ class BackendApiAdapter implements IApiAdapter {
 
     const price =
       priceCandidates.length > 0
-        ? priceCandidates.reduce((sum, v) => sum + v, 0) / priceCandidates.length
+        ? priceCandidates.reduce((sum, v) => sum + v, 0) /
+          priceCandidates.length
         : null;
 
     return {
@@ -401,7 +444,8 @@ class BackendApiAdapter implements IApiAdapter {
 
       const price =
         priceCandidates.length > 0
-          ? priceCandidates.reduce((sum, v) => sum + v, 0) / priceCandidates.length
+          ? priceCandidates.reduce((sum, v) => sum + v, 0) /
+            priceCandidates.length
           : null;
 
       const bestSpread = matches.reduce<number | null>((acc, row) => {
@@ -446,15 +490,26 @@ export const getAllPrices = async (token: Token, signal?: AbortSignal) => {
   return apiAdapter.getAllPrices(token, signal);
 };
 
-export const getSpreadData = async (token: Token, timeframe: TimeframeOption = '1h', signal?: AbortSignal) => {
+export const getSpreadData = async (
+  token: Token,
+  timeframe: TimeframeOption = '1h',
+  signal?: AbortSignal
+) => {
   return apiAdapter.getSpreadData(token, timeframe, signal);
 };
 
-export const getSpreadsForTokens = async (tokens: Token[], signal?: AbortSignal, maxTokens?: number) => {
+export const getSpreadsForTokens = async (
+  tokens: Token[],
+  signal?: AbortSignal,
+  maxTokens?: number
+) => {
   return apiAdapter.getSpreadsForTokens(tokens, signal, maxTokens);
 };
 
-export const getMexcTradingLimits = async (symbol: string, signal?: AbortSignal) => {
+export const getMexcTradingLimits = async (
+  symbol: string,
+  signal?: AbortSignal
+) => {
   return apiAdapter.getMexcTradingLimits(symbol, signal);
 };
 
