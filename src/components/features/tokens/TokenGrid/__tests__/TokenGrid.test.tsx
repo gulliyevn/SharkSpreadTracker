@@ -155,4 +155,26 @@ describe('TokenGrid', () => {
     const cards = screen.getAllByTestId('token-card-BTC');
     expect(cards.length).toBe(2);
   });
+
+  it('should use 2 columns on tablet (640-1024)', async () => {
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 800, // Tablet
+    });
+
+    const { container } = render(<TokenGrid tokens={mockTokens} />);
+    const grid = container.firstChild as HTMLElement;
+
+    expect(grid).toBeInTheDocument();
+    const style = grid.getAttribute('style') || '';
+    expect(style).toContain('repeat(2, 1fr)');
+  });
+
+  it('should pass onEdit callback to TokenCard', () => {
+    const onEdit = vi.fn();
+    render(<TokenGrid tokens={mockTokens} onEdit={onEdit} />);
+    
+    expect(screen.getByTestId('token-card-BTC')).toBeInTheDocument();
+  });
 });

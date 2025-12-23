@@ -4,7 +4,6 @@ import { Footer } from './components/layout/Footer';
 import { ViewProvider, useView } from './contexts/ViewContext';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { ToastContainer } from './components/ui/Toast';
-import { ApiKeysWarning } from './components/features/api-keys/ApiKeysWarning';
 
 // Ленивая загрузка страниц для уменьшения bundle size
 const TokensPage = lazy(() =>
@@ -40,7 +39,6 @@ function AppContent() {
       </main>
       <Footer />
       <ToastContainer />
-      <ApiKeysWarning />
     </div>
   );
 }

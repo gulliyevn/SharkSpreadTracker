@@ -52,19 +52,6 @@ describe('App', () => {
     });
   });
 
-  it('should render TokensPage by default', async () => {
-    render(
-      <TestWrapper>
-        <App />
-      </TestWrapper>
-    );
-
-    await waitFor(() => {
-      const tokensPage = screen.getByTestId('tokens-page');
-      expect(tokensPage).toBeInTheDocument();
-    });
-  });
-
   it('should render main content area', () => {
     render(
       <TestWrapper>

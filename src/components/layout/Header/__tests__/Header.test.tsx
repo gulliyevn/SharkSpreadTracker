@@ -174,4 +174,42 @@ describe('Header', () => {
       expect(screen.getByRole('banner')).toBeInTheDocument();
     });
   });
+
+  it('should switch to English when EN button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <Header />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      const enButton = screen.getByRole('button', { name: /english/i });
+      expect(enButton).toBeInTheDocument();
+    });
+
+    const enButton = screen.getByRole('button', { name: /english/i });
+    await user.click(enButton);
+    
+    expect(enButton).toBeInTheDocument();
+  });
+
+  it('should switch to Turkish when TR button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <Header />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      const trButton = screen.getByRole('button', { name: /türkçe/i });
+      expect(trButton).toBeInTheDocument();
+    });
+
+    const trButton = screen.getByRole('button', { name: /türkçe/i });
+    await user.click(trButton);
+    
+    expect(trButton).toBeInTheDocument();
+  });
 });

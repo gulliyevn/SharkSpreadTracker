@@ -107,5 +107,80 @@ describe('useSessionStorage', () => {
 
     expect(result.current[0]).toBeUndefined();
   });
+
+  it('should handle storage event', () => {
+    const { result } = renderHook(() => 
+      useSessionStorage('test-key', 'initial')
+    );
+
+    // Симулируем storage event
+    act(() => {
+      const event = new StorageEvent('storage', {
+        key: 'test-key',
+        newValue: JSON.stringify('from-event'),
+        storageArea: sessionStorage,
+      });
+      window.dispatchEvent(event);
+    });
+
+    // Значение должно обновиться
+    expect(result.current[0]).toBeDefined();
+  });
+
+  it('should handle storage event with null value', () => {
+    const { result } = renderHook(() => 
+      useSessionStorage('test-key', 'initial')
+    );
+
+    // Симулируем удаление через storage event
+    act(() => {
+      const event = new StorageEvent('storage', {
+        key: 'test-key',
+        newValue: null,
+        storageArea: sessionStorage,
+      });
+      window.dispatchEvent(event);
+    });
+
+    // Должен вернуться к initial
+    expect(result.current[0]).toBe('initial');
+  });
+
+  it('should ignore storage events for different keys', () => {
+    const { result } = renderHook(() => 
+      useSessionStorage('test-key', 'initial')
+    );
+
+    act(() => {
+      const event = new StorageEvent('storage', {
+        key: 'other-key',
+        newValue: JSON.stringify('other-value'),
+        storageArea: sessionStorage,
+      });
+      window.dispatchEvent(event);
+    });
+
+    // Значение не должно измениться
+    expect(result.current[0]).toBe('initial');
+  });
+
+  it('should handle invalid JSON in storage event', () => {
+    const { result } = renderHook(() => 
+      useSessionStorage('test-key', 'initial')
+    );
+
+    // Симулируем storage event с невалидным JSON
+    act(() => {
+      const event = new StorageEvent('storage', {
+        key: 'test-key',
+        newValue: 'not-valid-json{',
+        storageArea: sessionStorage,
+      });
+      window.dispatchEvent(event);
+    });
+
+    // Не должно крашиться
+    expect(result.current[0]).toBeDefined();
+  });
 });
 

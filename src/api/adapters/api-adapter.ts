@@ -13,8 +13,7 @@ import type {
   TokenWithData,
   AllPrices,
 } from '@/types';
-import { WEBSOCKET_URL, API_CONFIG } from '@/constants/api';
-import { logger } from '@/utils/logger';
+import { WEBSOCKET_URL } from '@/constants/api';
 
 /**
  * Интерфейс для API адаптера
@@ -70,21 +69,26 @@ function normalizeSpreadRow(row: StraightData | ReverseData): SpreadRow | null {
   };
 }
 
+// Буфер для batch обработки сообщений WebSocket
+let messageBuffer: string[] = [];
+let batchTimeout: ReturnType<typeof setTimeout> | null = null;
+const BATCH_DELAY = 50; // Обрабатываем сообщения пачками каждые 50мс
+const WS_TIMEOUT = 90000; // 1.5 минуты таймаут
+const MAX_RECONNECT_ATTEMPTS = 3; // Максимум попыток реконнекта
+
 async function fetchStraightSpreads(params: {
   token?: string;
   network?: string;
   signal?: AbortSignal;
+  _reconnectAttempt?: number;
 }): Promise<SpreadRow[]> {
-  // Предпочитаем WebSocket, так как эндпоинт /socket/sharkStraight ожидает upgrade
+  const reconnectAttempt = params._reconnectAttempt ?? 0;
+
   if (!WEBSOCKET_URL) {
-    logger.warn(
-      '[BackendApiAdapter] WEBSOCKET_URL не задан, не можем подключиться к sharkStraight'
-    );
     return [];
   }
 
   if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
-    logger.warn('[BackendApiAdapter] WebSocket API недоступен в этой среде');
     return [];
   }
 
@@ -102,28 +106,60 @@ async function fetchStraightSpreads(params: {
 
     const ws = new WebSocket(url.toString());
 
-    const timeoutId = window.setTimeout(() => {
+    // Таймаут 1.5 минуты
+    const timeoutId = window.setTimeout(async () => {
       if (settled) return;
       settled = true;
-      logger.warn('[BackendApiAdapter] sharkStraight WebSocket timeout');
-      try {
-        ws.close();
-      } catch {
-        // ignore
+      try { ws.close(); } catch { /* ignore */ }
+      
+      // Автоматический реконнект при таймауте
+      if (reconnectAttempt < MAX_RECONNECT_ATTEMPTS && !params.signal?.aborted) {
+        if (import.meta.env.DEV) {
+          console.log(`[WebSocket] Timeout, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+        }
+        const result = await fetchStraightSpreads({
+          ...params,
+          _reconnectAttempt: reconnectAttempt + 1,
+        });
+        resolve(result);
+      } else {
+        resolve([]);
       }
-      resolve([]);
-    }, API_CONFIG.TIMEOUT);
+    }, WS_TIMEOUT);
 
     const finish = (result: SpreadRow[]) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
-      try {
-        ws.close();
-      } catch {
-        // ignore
+      if (batchTimeout) {
+        clearTimeout(batchTimeout);
+        batchTimeout = null;
       }
+      try { ws.close(); } catch { /* ignore */ }
       resolve(result);
+    };
+
+    // Обработка буфера сообщений пачкой
+    const processBatch = () => {
+      if (messageBuffer.length === 0) return;
+      
+      const batch = messageBuffer;
+      messageBuffer = [];
+      
+      for (const raw of batch) {
+        try {
+          const data = JSON.parse(raw) as StraightData[] | StraightData;
+          const list = Array.isArray(data) ? data : [data];
+          for (const item of list) {
+            const normalized = normalizeSpreadRow(item);
+            if (normalized) {
+              rows.push(normalized);
+            }
+          }
+        } catch {
+          // Игнорируем ошибки парсинга в production
+        }
+      }
     };
 
     if (params.signal) {
@@ -131,41 +167,55 @@ async function fetchStraightSpreads(params: {
         finish([]);
         return;
       }
-      const onAbort = () => {
-        logger.debug('[BackendApiAdapter] sharkStraight request aborted');
-        finish([]);
-      };
-      params.signal.addEventListener('abort', onAbort, { once: true });
+      params.signal.addEventListener('abort', () => finish([]), { once: true });
     }
 
     ws.onopen = () => {
-      logger.debug('[BackendApiAdapter] sharkStraight WebSocket connected');
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data as string) as StraightData[] | StraightData;
-        const list = Array.isArray(data) ? data : [data];
-        for (const item of list) {
-          const normalized = normalizeSpreadRow(item);
-          if (normalized) {
-            rows.push(normalized);
-          }
-        }
-      } catch (e) {
-        logger.error('[BackendApiAdapter] failed to parse sharkStraight message', e);
+      // Минимальное логирование только в dev
+      if (import.meta.env.DEV) {
+        console.log('[WebSocket] Connected');
       }
     };
 
-    ws.onerror = (event) => {
-      logger.error('[BackendApiAdapter] sharkStraight WebSocket error', event);
-      finish([]);
+    ws.onmessage = (event) => {
+      // Буферизуем сообщения для batch обработки
+      messageBuffer.push(event.data as string);
+      
+      // Откладываем обработку до следующего batch
+      if (!batchTimeout) {
+        batchTimeout = setTimeout(() => {
+          batchTimeout = null;
+          processBatch();
+        }, BATCH_DELAY);
+      }
+    };
+
+    ws.onerror = async () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      try { ws.close(); } catch { /* ignore */ }
+      
+      // Автоматический реконнект при ошибке
+      if (reconnectAttempt < MAX_RECONNECT_ATTEMPTS && !params.signal?.aborted) {
+        if (import.meta.env.DEV) {
+          console.log(`[WebSocket] Error, reconnecting (attempt ${reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+        }
+        // Небольшая задержка перед реконнектом
+        await new Promise(r => setTimeout(r, 1000 * (reconnectAttempt + 1)));
+        const result = await fetchStraightSpreads({
+          ...params,
+          _reconnectAttempt: reconnectAttempt + 1,
+        });
+        resolve(result);
+      } else {
+        resolve([]);
+      }
     };
 
     ws.onclose = () => {
-      logger.debug(
-        `[BackendApiAdapter] sharkStraight WebSocket closed, rows: ${rows.length}`
-      );
+      // Обрабатываем оставшиеся сообщения в буфере
+      processBatch();
       finish(rows);
     };
   });
@@ -216,12 +266,6 @@ class BackendApiAdapter implements IApiAdapter {
     const result = Array.from(map.values()).sort((a, b) =>
       a.symbol.localeCompare(b.symbol)
     );
-
-    if (import.meta.env.DEV) {
-      logger.debug(
-        `[BackendApiAdapter] Loaded ${result.length} tokens from sharkStraight snapshot`
-      );
-    }
 
     return result;
   }
