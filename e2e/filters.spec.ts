@@ -22,9 +22,9 @@ test.describe('Token Filters', () => {
 
   test('should toggle direct spread filter', async ({ page }) => {
     // Ищем чекбокс или кнопку для direct spread
-    const directFilter = page.locator('input[type="checkbox"], button:has-text("direct" i)').first();
+    const directFilter = page.locator('input[type="checkbox"], button:has-text("direct"), button:has-text("Direct")').first();
     
-    if (await directFilter.isVisible()) {
+    if (await directFilter.isVisible({ timeout: 2000 }).catch(() => false)) {
       await directFilter.click();
       await page.waitForTimeout(300);
 
