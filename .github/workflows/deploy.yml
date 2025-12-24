@@ -11,6 +11,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check Vercel secrets
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "::error::VERCEL_TOKEN secret is not set. Please add it in repository settings."
+            echo "To get your Vercel token: https://vercel.com/account/tokens"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+            echo "::error::VERCEL_ORG_ID secret is not set."
+            echo "Run 'npx vercel link' and check .vercel/project.json for orgId"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "::error::VERCEL_PROJECT_ID secret is not set."
+            echo "Run 'npx vercel link' and check .vercel/project.json for projectId"
+            exit 1
+          fi
+          echo "✅ All Vercel secrets are configured"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
