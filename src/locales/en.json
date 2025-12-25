@@ -102,5 +102,12 @@
       "invalid": "Invalid keys:",
       "hint": "Add keys to .env file. See documentation for details."
     }
+  },
+  "connection": {
+    "connected": "Connected",
+    "connecting": "Connecting...",
+    "disconnected": "Disconnected",
+    "error": "Connection Error",
+    "reconnecting": "Reconnecting..."
   }
 }

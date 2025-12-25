@@ -2,6 +2,7 @@ import { Moon, Sun, BarChart3, Coins } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useView } from '@/contexts/ViewContext';
+import { ConnectionStatus } from '@/components/ui/ConnectionStatus';
 import { cn } from '@/utils/cn';
 
 export function Header() {
@@ -34,6 +35,9 @@ export function Header() {
 
           {/* Right side controls */}
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* Connection Status */}
+            <ConnectionStatus showLabel={false} className="hidden sm:flex" />
+            
             {/* View Switcher - кнопка для графиков */}
             <button
               onClick={() =>

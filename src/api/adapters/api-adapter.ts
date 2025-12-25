@@ -13,8 +13,33 @@ import type {
   TokenWithData,
   AllPrices,
 } from '@/types';
-import { WEBSOCKET_URL } from '@/constants/api';
+import { WEBSOCKET_URL, USE_MOCK_DATA } from '@/constants/api';
 import { logger } from '@/utils/logger';
+import { getMockTokens, MOCK_TOKENS } from '@/api/mockData/tokens.mock';
+
+// Состояние соединения для экспорта
+export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
+let currentConnectionStatus: ConnectionStatus = 'disconnected';
+let connectionStatusListeners: Set<(status: ConnectionStatus) => void> = new Set();
+
+export function getConnectionStatus(): ConnectionStatus {
+  return currentConnectionStatus;
+}
+
+export function subscribeToConnectionStatus(listener: (status: ConnectionStatus) => void): () => void {
+  connectionStatusListeners.add(listener);
+  // Сразу вызываем с текущим статусом
+  listener(currentConnectionStatus);
+  return () => connectionStatusListeners.delete(listener);
+}
+
+function setConnectionStatus(status: ConnectionStatus) {
+  if (currentConnectionStatus !== status) {
+    currentConnectionStatus = status;
+    connectionStatusListeners.forEach((listener) => listener(status));
+    logger.debug(`[API] Connection status changed: ${status}`);
+  }
+}
 
 /**
  * Интерфейс для API адаптера
@@ -104,13 +129,37 @@ async function fetchStraightSpreads(params: {
 }): Promise<SpreadRow[]> {
   const reconnectAttempt = params._reconnectAttempt ?? 0;
 
+  // Если включен режим mock данных
+  if (USE_MOCK_DATA) {
+    logger.info('[API] Using mock data (USE_MOCK_DATA=true)');
+    setConnectionStatus('connected');
+    return MOCK_TOKENS.map((t) => ({
+      token: t.symbol,
+      chain: t.chain,
+      aExchange: 'Jupiter',
+      bExchange: 'MEXC',
+      priceA: t.price ?? null,
+      priceB: t.price ? t.price * 1.02 : null,
+      spread: t.directSpread ?? null,
+      limit: 'all',
+    }));
+  }
+
   if (!WEBSOCKET_URL) {
+    logger.warn('[WebSocket] WEBSOCKET_URL not configured, using mock data');
+    setConnectionStatus('error');
     return [];
   }
 
   if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
+    logger.warn('[WebSocket] WebSocket not available');
+    setConnectionStatus('error');
     return [];
   }
+
+  // Логируем URL для отладки
+  logger.info(`[WebSocket] Connecting to: ${WEBSOCKET_URL}`);
+  setConnectionStatus('connecting');
 
   const url = new URL(WEBSOCKET_URL, window.location.href);
   if (params.token) {
@@ -123,13 +172,17 @@ async function fetchStraightSpreads(params: {
   return new Promise<SpreadRow[]>((resolve) => {
     let settled = false;
     const rows: SpreadRow[] = [];
+    let messageCount = 0;
 
+    logger.debug(`[WebSocket] Opening connection to: ${url.toString()}`);
     const ws = new WebSocket(url.toString());
 
     // Таймаут 1.5 минуты
     const timeoutId = window.setTimeout(async () => {
       if (settled) return;
       settled = true;
+      logger.warn(`[WebSocket] Timeout after ${WS_TIMEOUT}ms, received ${messageCount} messages, ${rows.length} rows`);
+      setConnectionStatus('disconnected');
       try {
         ws.close();
       } catch {
@@ -150,7 +203,8 @@ async function fetchStraightSpreads(params: {
         });
         resolve(result);
       } else {
-        resolve([]);
+        logger.error('[WebSocket] Max reconnect attempts reached, giving up');
+        resolve(rows.length > 0 ? rows : []);
       }
     }, WS_TIMEOUT);
 
@@ -167,6 +221,13 @@ async function fetchStraightSpreads(params: {
       } catch {
         /* ignore */
       }
+      
+      logger.info(`[WebSocket] Finished with ${result.length} rows from ${messageCount} messages`);
+      
+      if (result.length > 0) {
+        setConnectionStatus('connected');
+      }
+      
       resolve(result);
     };
 
@@ -181,14 +242,21 @@ async function fetchStraightSpreads(params: {
         try {
           const data = JSON.parse(raw) as StraightData[] | StraightData;
           const list = Array.isArray(data) ? data : [data];
+          
+          // Debug: логируем первое сообщение для понимания структуры
+          if (messageCount === 0 && list.length > 0) {
+            logger.debug('[WebSocket] First message sample:', JSON.stringify(list[0]).slice(0, 200));
+          }
+          
           for (const item of list) {
             const normalized = normalizeSpreadRow(item);
             if (normalized) {
               rows.push(normalized);
             }
           }
-        } catch {
-          // Игнорируем ошибки парсинга в production
+          messageCount++;
+        } catch (err) {
+          logger.warn('[WebSocket] Parse error:', err, 'Raw:', raw.slice(0, 100));
         }
       }
     };
@@ -202,7 +270,8 @@ async function fetchStraightSpreads(params: {
     }
 
     ws.onopen = () => {
-      logger.debug('[WebSocket] Connected');
+      logger.info('[WebSocket] ✅ Connected successfully!');
+      setConnectionStatus('connected');
     };
 
     ws.onmessage = (event) => {
@@ -218,7 +287,10 @@ async function fetchStraightSpreads(params: {
       }
     };
 
-    ws.onerror = async () => {
+    ws.onerror = async (error) => {
+      logger.error('[WebSocket] ❌ Error:', error);
+      setConnectionStatus('error');
+      
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
@@ -244,11 +316,13 @@ async function fetchStraightSpreads(params: {
         });
         resolve(result);
       } else {
+        logger.error('[WebSocket] Max reconnect attempts reached after errors');
         resolve([]);
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      logger.debug(`[WebSocket] Closed: code=${event.code}, reason="${event.reason}", clean=${event.wasClean}`);
       // Обрабатываем оставшиеся сообщения в буфере
       processBatch();
       finish(rows);
@@ -262,6 +336,14 @@ async function fetchStraightSpreads(params: {
 class BackendApiAdapter implements IApiAdapter {
   async getAllTokens(signal?: AbortSignal): Promise<TokenWithData[]> {
     const rows = await fetchStraightSpreads({ signal });
+    
+    // Если WebSocket вернул пустой результат - используем mock данные
+    if (rows.length === 0) {
+      logger.warn('[API] WebSocket returned empty result, falling back to mock data');
+      const mockTokens = await getMockTokens();
+      return mockTokens;
+    }
+    
     const map = new Map<string, TokenWithData>();
 
     for (const row of rows) {
@@ -303,6 +385,7 @@ class BackendApiAdapter implements IApiAdapter {
       a.symbol.localeCompare(b.symbol)
     );
 
+    logger.info(`[API] Loaded ${result.length} tokens from backend`);
     return result;
   }
 

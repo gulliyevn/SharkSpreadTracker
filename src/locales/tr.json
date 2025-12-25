@@ -99,5 +99,12 @@
       "invalid": "Geçersiz anahtarlar:",
       "hint": "Anahtarları .env dosyasına ekleyin. Detaylar için dokümantasyona bakın."
     }
+  },
+  "connection": {
+    "connected": "Bağlı",
+    "connecting": "Bağlanıyor...",
+    "disconnected": "Bağlantı kesildi",
+    "error": "Bağlantı hatası",
+    "reconnecting": "Yeniden bağlanıyor..."
   }
 }
