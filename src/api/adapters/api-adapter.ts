@@ -214,34 +214,9 @@ async function fetchStraightSpreads(params: {
       resolve(result);
     };
 
-    // Обработка буфера сообщений пачкой
+    // Обработка буфера (legacy, теперь парсим сразу в onmessage)
     const processBatch = () => {
-      if (messageBuffer.length === 0) return;
-
-      const batch = messageBuffer;
-      messageBuffer = [];
-
-      for (const raw of batch) {
-        try {
-          const data = JSON.parse(raw) as StraightData[] | StraightData;
-          const list = Array.isArray(data) ? data : [data];
-          
-          // Debug: логируем первое сообщение для понимания структуры
-          if (messageCount === 0 && list.length > 0) {
-            logger.debug('[WebSocket] First message sample:', JSON.stringify(list[0]).slice(0, 200));
-          }
-          
-          for (const item of list) {
-            const normalized = normalizeSpreadRow(item);
-            if (normalized) {
-              rows.push(normalized);
-            }
-          }
-          messageCount++;
-        } catch (err) {
-          logger.warn('[WebSocket] Parse error:', err, 'Raw:', raw.slice(0, 100));
-        }
-      }
+      // Теперь не используется - парсинг происходит в onmessage
     };
 
     if (params.signal) {
@@ -273,19 +248,35 @@ async function fetchStraightSpreads(params: {
     };
 
     ws.onmessage = (event) => {
-      // ВАЖНО: Логируем КАЖДОЕ сырое сообщение для отладки
       const rawData = event.data as string;
-      logger.info(`[WebSocket] 📩 RAW MESSAGE received (${rawData.length} chars):`, rawData.slice(0, 500));
+      logger.info(`[WebSocket] 📩 MESSAGE received (${rawData.length} chars)`);
       
-      // Буферизуем сообщения для batch обработки
-      messageBuffer.push(rawData);
-
-      // Откладываем обработку до следующего batch
-      if (!batchTimeout) {
-        batchTimeout = setTimeout(() => {
-          batchTimeout = null;
-          processBatch();
-        }, BATCH_DELAY);
+      // Парсим сразу, без буферизации (данные приходят одним большим сообщением)
+      try {
+        const parsed = JSON.parse(rawData);
+        const list = Array.isArray(parsed) ? parsed : [parsed];
+        
+        logger.info(`[WebSocket] Parsed ${list.length} items from message`);
+        
+        // Логируем первый элемент для отладки
+        if (list.length > 0 && messageCount === 0) {
+          logger.debug('[WebSocket] First item sample:', JSON.stringify(list[0]));
+        }
+        
+        for (const item of list) {
+          const normalized = normalizeSpreadRow(item);
+          if (normalized) {
+            rows.push(normalized);
+          }
+        }
+        
+        messageCount++;
+        logger.info(`[WebSocket] Total rows so far: ${rows.length}`);
+        
+      } catch (err) {
+        logger.error('[WebSocket] JSON parse error:', err);
+        logger.debug('[WebSocket] Raw data start:', rawData.slice(0, 200));
+        logger.debug('[WebSocket] Raw data end:', rawData.slice(-200));
       }
     };
 
