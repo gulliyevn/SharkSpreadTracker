@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import { WEBSOCKET_URL } from '@/constants/api';
 import { logger } from '@/utils/logger';
+import { requestDeduplicator, createDeduplicationKey } from '@/utils/request-deduplication';
 
 // Состояние соединения для экспорта
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
@@ -79,7 +80,15 @@ let batchTimeout: ReturnType<typeof setTimeout> | null = null;
 const WS_TIMEOUT = 90000; // 1.5 минуты таймаут
 const MAX_RECONNECT_ATTEMPTS = 3; // Максимум попыток реконнекта
 
-async function fetchStraightSpreads(params: {
+// Кэш для всех токенов (используется для оптимизации)
+let cachedAllTokens: StraightData[] | null = null;
+let cachedAllTokensTimestamp: number = 0;
+const CACHE_TTL = 5000; // 5 секунд - время жизни кэша
+
+/**
+ * Внутренняя функция для выполнения WebSocket запроса
+ */
+async function _fetchStraightSpreadsInternal(params: {
   token?: string;
   network?: string;
   signal?: AbortSignal;
@@ -87,23 +96,13 @@ async function fetchStraightSpreads(params: {
 }): Promise<StraightData[]> {
   const reconnectAttempt = params._reconnectAttempt ?? 0;
 
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:82',message:'fetchStraightSpreads entry',data:{reconnectAttempt,hasToken:!!params.token,hasNetwork:!!params.network,WEBSOCKET_URL,BACKEND_URL:import.meta.env.VITE_BACKEND_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-
   if (!WEBSOCKET_URL) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:90',message:'WEBSOCKET_URL is empty',data:{WEBSOCKET_URL,BACKEND_URL:import.meta.env.VITE_BACKEND_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     logger.warn('[WebSocket] WEBSOCKET_URL not configured, using mock data');
     setConnectionStatus('error');
     return [];
   }
 
   if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:96',message:'WebSocket not available',data:{hasWindow:typeof window!=='undefined',hasWebSocket:typeof WebSocket!=='undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     logger.warn('[WebSocket] WebSocket not available');
     setConnectionStatus('error');
     return [];
@@ -121,10 +120,6 @@ async function fetchStraightSpreads(params: {
     url.searchParams.set('network', params.network);
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:106',message:'WebSocket URL constructed',data:{finalUrl:url.toString(),protocol:url.protocol,host:url.host,pathname:url.pathname,search:url.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-
   return new Promise<StraightData[]>((resolve) => {
     let settled = false;
     const rows: StraightData[] = [];
@@ -135,10 +130,7 @@ async function fetchStraightSpreads(params: {
     const ws = new WebSocket(url.toString());
 
     // Таймаут 1.5 минуты
-    const timeoutId = window.setTimeout(async () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:123',message:'WebSocket timeout triggered',data:{messageCount,rowsCount:rows.length,readyState:ws.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
+    const timeoutId = setTimeout(async () => {
       if (settled) return;
       settled = true;
       logger.warn(`[WebSocket] Timeout after ${WS_TIMEOUT}ms, received ${messageCount} messages, ${rows.length} rows`);
@@ -169,9 +161,6 @@ async function fetchStraightSpreads(params: {
     }, WS_TIMEOUT);
 
     const finish = (result: StraightData[]) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:157',message:'finish called',data:{resultCount:result.length,messageCount,settled,readyState:ws.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
@@ -214,16 +203,10 @@ async function fetchStraightSpreads(params: {
     const processMessage = (rawData: string) => {
       logger.info(`[WebSocket] 📩 MESSAGE received (${rawData.length} chars)`);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:234',message:'Processing message',data:{rawDataLength:rawData.length,rawDataPreview:rawData.slice(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       // Парсим сразу, без буферизации (данные приходят одним большим сообщением)
       try {
         const parsed = JSON.parse(rawData);
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:240',message:'JSON parsed successfully',data:{isArray:Array.isArray(parsed),parsedType:typeof parsed,parsedKeys:typeof parsed==='object'&&parsed!==null?Object.keys(parsed):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         
         const list = Array.isArray(parsed) ? parsed : [parsed];
         
@@ -232,9 +215,6 @@ async function fetchStraightSpreads(params: {
         // Логируем первый элемент для отладки
         if (list.length > 0 && messageCount === 0) {
           logger.debug('[WebSocket] First item sample:', JSON.stringify(list[0]));
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:247',message:'First item sample',data:{firstItem:list[0],hasToken:'token' in (list[0]||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-          // #endregion
         }
         
         let itemsAdded = 0;
@@ -246,25 +226,22 @@ async function fetchStraightSpreads(params: {
             itemsAdded++;
           } else {
             itemsSkipped++;
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:256',message:'Item skipped - does not match format',data:{item,hasToken:'token' in (item||{}),isObject:typeof item==='object',itemType:typeof item},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
           }
         }
         
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:262',message:'Items processed',data:{itemsAdded,itemsSkipped,totalRows:rows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
+        if (itemsSkipped > 0) {
+          logger.debug(`[WebSocket] Skipped ${itemsSkipped} invalid items`);
+        }
         
         messageCount++;
-        logger.info(`[WebSocket] Total rows so far: ${rows.length}`);
+        logger.info(`[WebSocket] Total rows so far: ${rows.length} (added ${itemsAdded} from this message)`);
         
         // Если получили данные, ждем 2 секунды на дополнительные сообщения, затем завершаем
         // Это позволяет получить все данные, если они приходят несколькими сообщениями
         if (dataReceivedTimeout) {
           clearTimeout(dataReceivedTimeout);
         }
-        dataReceivedTimeout = window.setTimeout(() => {
+        dataReceivedTimeout = setTimeout(() => {
           if (!settled && rows.length > 0) {
             logger.info(`[WebSocket] Received ${rows.length} rows, finishing after 2s delay`);
             finish(rows);
@@ -272,9 +249,6 @@ async function fetchStraightSpreads(params: {
         }, 2000); // 2 секунды задержка после последнего сообщения
         
       } catch (err) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:275',message:'JSON parse error',data:{error:String(err),rawDataStart:rawData.slice(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         logger.error('[WebSocket] JSON parse error:', err);
         logger.debug('[WebSocket] Raw data start:', rawData.slice(0, 200));
         logger.debug('[WebSocket] Raw data end:', rawData.slice(-200));
@@ -282,9 +256,6 @@ async function fetchStraightSpreads(params: {
     };
 
     ws.onopen = () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:194',message:'WebSocket onopen called',data:{readyState:ws.readyState,url:url.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       logger.info('[WebSocket] ✅ Connected successfully!');
       logger.debug('[WebSocket] readyState:', ws.readyState, '(1 = OPEN)');
       setConnectionStatus('connected');
@@ -293,14 +264,8 @@ async function fetchStraightSpreads(params: {
       // Некоторые бэкенды требуют этого для начала передачи данных
       try {
         ws.send('');
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:202',message:'Sent empty activation message',data:{success:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         logger.debug('[WebSocket] Sent empty message to activate connection');
       } catch (err) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:205',message:'Failed to send activation message',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         logger.warn('[WebSocket] Failed to send activation message:', err);
       }
       
@@ -308,35 +273,20 @@ async function fetchStraightSpreads(params: {
     };
 
     ws.onmessage = (event) => {
-      // #region agent log
-      const dataType = typeof event.data;
-      const dataIsString = typeof event.data === 'string';
-      const dataLength = dataIsString ? (event.data as string).length : (event.data as Blob).size || 0;
-      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:211',message:'WebSocket onmessage called',data:{dataType,dataIsString,dataLength,messageCount},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       let rawData: string;
       if (typeof event.data === 'string') {
         rawData = event.data;
       } else if (event.data instanceof Blob) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:217',message:'Data is Blob, converting to text',data:{size:event.data.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         // Если данные приходят как Blob, конвертируем в текст
         event.data.text().then((text) => {
           rawData = text;
           processMessage(rawData);
         }).catch((err) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:222',message:'Failed to convert Blob to text',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           logger.error('[WebSocket] Failed to convert Blob to text:', err);
         });
         return;
       } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:226',message:'Unknown data type',data:{dataType:typeof event.data,constructor:event.data?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         logger.error('[WebSocket] Unknown data type:', typeof event.data);
         return;
       }
@@ -345,9 +295,6 @@ async function fetchStraightSpreads(params: {
     };
 
     ws.onerror = async (error) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:285',message:'WebSocket onerror called',data:{errorType:error?.type,readyState:ws.readyState,messageCount,rowsCount:rows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       logger.error('[WebSocket] ❌ Error:', error);
       setConnectionStatus('error');
       
@@ -382,9 +329,6 @@ async function fetchStraightSpreads(params: {
     };
 
     ws.onclose = (event) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:367',message:'WebSocket onclose called',data:{code:event.code,reason:event.reason,wasClean:event.wasClean,messageCount,rowsCount:rows.length,settled,readyState:ws.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       logger.info(`[WebSocket] 🔌 Closed: code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`);
       logger.info(`[WebSocket] Stats: received ${messageCount} messages, parsed ${rows.length} rows`);
       
@@ -405,18 +349,52 @@ async function fetchStraightSpreads(params: {
 }
 
 /**
+ * Публичная функция для получения данных с дедупликацией и кэшированием
+ */
+async function fetchStraightSpreads(params: {
+  token?: string;
+  network?: string;
+  signal?: AbortSignal;
+  _reconnectAttempt?: number;
+}): Promise<StraightData[]> {
+  // Если запрашиваются все токены без фильтров, проверяем кэш
+  if (!params.token && !params.network) {
+    const now = Date.now();
+    if (cachedAllTokens && (now - cachedAllTokensTimestamp) < CACHE_TTL) {
+      logger.debug(`[API] Using cached all tokens (${cachedAllTokens.length} items)`);
+      return cachedAllTokens;
+    }
+  }
+
+  // Создаем ключ для дедупликации
+  const dedupeKey = createDeduplicationKey('fetchStraightSpreads', {
+    token: params.token || '',
+    network: params.network || '',
+  });
+
+  // Выполняем запрос с дедупликацией
+  const result = await requestDeduplicator.deduplicate(
+    dedupeKey,
+    () => _fetchStraightSpreadsInternal(params)
+  );
+
+  // Обновляем кэш если получили все токены
+  if (!params.token && !params.network && result.length > 0) {
+    cachedAllTokens = result;
+    cachedAllTokensTimestamp = Date.now();
+    logger.debug(`[API] Cached all tokens (${result.length} items)`);
+  }
+
+  return result;
+}
+
+/**
  * Backend‑реализация адаптера.
  */
   class BackendApiAdapter implements IApiAdapter {
   async getAllTokens(signal?: AbortSignal): Promise<StraightData[]> {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:394',message:'getAllTokens called',data:{signalAborted:signal?.aborted},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
+    // Используем fetchStraightSpreads который уже имеет кэширование и дедупликацию
     const rows = await fetchStraightSpreads({ signal });
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:398',message:'getAllTokens result',data:{rowsCount:rows.length,firstRow:rows[0]||null,allRows:rows},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     
     // Если WebSocket вернул пустой результат - возвращаем пустой массив
     if (rows.length === 0) {
@@ -552,6 +530,8 @@ async function fetchStraightSpreads(params: {
   > {
     if (!tokens.length) return [];
 
+    // Оптимизация: если запрашиваются все токены, используем кэш
+    // Это позволяет избежать дублирования запросов когда getAllTokens и getSpreadsForTokens вызываются одновременно
     const rows = await fetchStraightSpreads({ signal });
 
     const byKey = new Map<

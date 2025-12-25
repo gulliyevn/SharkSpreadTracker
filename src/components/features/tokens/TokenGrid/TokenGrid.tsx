@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback } from 'react';
+import { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { TokenCard } from '../TokenCard';
 import type { StraightData } from '@/types';
 import { logger } from '@/utils/logger';
@@ -9,6 +9,11 @@ export interface TokenGridProps {
   onEdit?: (token: StraightData) => void;
 }
 
+// Максимальное количество токенов для начального рендеринга
+// Остальные будут загружаться по мере прокрутки
+const INITIAL_RENDER_LIMIT = 100;
+const LOAD_MORE_BATCH = 50;
+
 /**
  * Адаптивная сетка токенов с автоматическим определением количества колонок
  * Использует CSS Grid для эффективного отображения всех токенов
@@ -16,12 +21,8 @@ export interface TokenGridProps {
  * Особенности:
  * - Адаптивный layout: 1 колонка на мобильных, 2 на планшетах, 3 на десктопе
  * - Автоматическое определение размеров на основе ширины экрана
- * - Оптимизирован для отображения любого количества токенов
+ * - Ленивая загрузка для оптимизации производительности при большом количестве токенов
  * - Оптимизирован с помощью React.memo для предотвращения лишних ререндеров
- *
- * Примечание: Изначально планировалась виртуализация через react-window,
- * но CSS Grid показал отличную производительность даже для больших списков,
- * поэтому виртуализация не требуется.
  */
 export const TokenGrid = memo(function TokenGrid({
   tokens,
@@ -29,6 +30,7 @@ export const TokenGrid = memo(function TokenGrid({
   onEdit,
 }: TokenGridProps) {
   const [columnCount, setColumnCount] = useState(3);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_RENDER_LIMIT);
 
   // Определяем количество колонок в зависимости от ширины экрана
   // Используем useCallback для оптимизации
@@ -53,6 +55,46 @@ export const TokenGrid = memo(function TokenGrid({
     return () => window.removeEventListener('resize', updateLayout);
   }, [updateLayout]);
 
+  // Сбрасываем видимые токены при изменении списка токенов
+  useEffect(() => {
+    setVisibleCount(Math.min(INITIAL_RENDER_LIMIT, tokens.length));
+  }, [tokens.length]);
+
+  // Ленивая загрузка при прокрутке
+  useEffect(() => {
+    if (visibleCount >= tokens.length) return;
+
+    const handleScroll = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Загружаем больше токенов когда пользователь близко к низу страницы
+      if (scrollBottom >= documentHeight - 500) {
+        setVisibleCount((prev) => Math.min(prev + LOAD_MORE_BATCH, tokens.length));
+      }
+    };
+
+    // Throttle для оптимизации производительности
+    let ticking = false;
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', throttledHandleScroll);
+  }, [visibleCount, tokens.length]);
+
+  // Мемоизируем видимые токены для оптимизации
+  const visibleTokens = useMemo(() => {
+    return tokens.slice(0, visibleCount);
+  }, [tokens, visibleCount]);
+
   // Защита от пустых данных
   if (tokens.length === 0) {
     return null;
@@ -65,27 +107,34 @@ export const TokenGrid = memo(function TokenGrid({
   }
 
   return (
-    <div
-      className="grid gap-4"
-      style={{
-        gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
-      }}
-    >
-      {tokens.map((row, index) => {
-        const network = (row.network || '').toLowerCase();
-        const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
-        const symbol = (row.token || '').toUpperCase().trim();
-        
-        return (
-          <TokenCard
-            key={`${symbol}-${chain}-${index}`}
-            token={row}
-            isFavorite={false}
-            onFavoriteToggle={onFavoriteToggle ? () => onFavoriteToggle(row) : undefined}
-            onEdit={onEdit ? () => onEdit(row) : undefined}
-          />
-        );
-      })}
-    </div>
+    <>
+      <div
+        className="grid gap-4"
+        style={{
+          gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+        }}
+      >
+        {visibleTokens.map((row, index) => {
+          const network = (row.network || '').toLowerCase();
+          const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+          const symbol = (row.token || '').toUpperCase().trim();
+          
+          return (
+            <TokenCard
+              key={`${symbol}-${chain}-${index}`}
+              token={row}
+              isFavorite={false}
+              onFavoriteToggle={onFavoriteToggle ? () => onFavoriteToggle(row) : undefined}
+              onEdit={onEdit ? () => onEdit(row) : undefined}
+            />
+          );
+        })}
+      </div>
+      {visibleCount < tokens.length && (
+        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          Показано {visibleCount} из {tokens.length} токенов. Прокрутите вниз для загрузки остальных.
+        </div>
+      )}
+    </>
   );
 });
