@@ -19,7 +19,7 @@ import { logger } from '@/utils/logger';
 // Состояние соединения для экспорта
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
 let currentConnectionStatus: ConnectionStatus = 'disconnected';
-let connectionStatusListeners: Set<(status: ConnectionStatus) => void> = new Set();
+const connectionStatusListeners: Set<(status: ConnectionStatus) => void> = new Set();
 
 export function getConnectionStatus(): ConnectionStatus {
   return currentConnectionStatus;
@@ -113,10 +113,8 @@ function normalizeSpreadRow(row: StraightData | ReverseData): SpreadRow | null {
   };
 }
 
-// Буфер для batch обработки сообщений WebSocket
-let messageBuffer: string[] = [];
+// Таймаут для batch обработки (legacy)
 let batchTimeout: ReturnType<typeof setTimeout> | null = null;
-const BATCH_DELAY = 50; // Обрабатываем сообщения пачками каждые 50мс
 const WS_TIMEOUT = 90000; // 1.5 минуты таймаут
 const MAX_RECONNECT_ATTEMPTS = 3; // Максимум попыток реконнекта
 
