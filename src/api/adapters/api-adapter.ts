@@ -254,12 +254,31 @@ async function fetchStraightSpreads(params: {
 
     ws.onopen = () => {
       logger.info('[WebSocket] ✅ Connected successfully!');
+      logger.debug('[WebSocket] readyState:', ws.readyState, '(1 = OPEN)');
       setConnectionStatus('connected');
+      
+      // Попробуем отправить subscribe сообщение (если бэкенд этого требует)
+      // Раскомментируй нужный вариант:
+      
+      // Вариант 1: Пустое сообщение для "пинга"
+      // ws.send('');
+      
+      // Вариант 2: JSON subscribe
+      // ws.send(JSON.stringify({ action: 'subscribe', channel: 'spreads' }));
+      
+      // Вариант 3: Просто текст
+      // ws.send('subscribe');
+      
+      logger.debug('[WebSocket] Waiting for messages from server...');
     };
 
     ws.onmessage = (event) => {
+      // ВАЖНО: Логируем КАЖДОЕ сырое сообщение для отладки
+      const rawData = event.data as string;
+      logger.info(`[WebSocket] 📩 RAW MESSAGE received (${rawData.length} chars):`, rawData.slice(0, 500));
+      
       // Буферизуем сообщения для batch обработки
-      messageBuffer.push(event.data as string);
+      messageBuffer.push(rawData);
 
       // Откладываем обработку до следующего batch
       if (!batchTimeout) {
@@ -305,7 +324,18 @@ async function fetchStraightSpreads(params: {
     };
 
     ws.onclose = (event) => {
-      logger.debug(`[WebSocket] Closed: code=${event.code}, reason="${event.reason}", clean=${event.wasClean}`);
+      logger.info(`[WebSocket] 🔌 Closed: code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`);
+      logger.info(`[WebSocket] Stats: received ${messageCount} messages, parsed ${rows.length} rows`);
+      
+      // Коды закрытия:
+      // 1000 = Normal closure
+      // 1001 = Going away
+      // 1005 = No status received (нормально для некоторых серверов)
+      // 1006 = Abnormal closure (сервер упал или сеть)
+      if (event.code === 1006) {
+        logger.warn('[WebSocket] ⚠️ Abnormal closure - connection was interrupted');
+      }
+      
       // Обрабатываем оставшиеся сообщения в буфере
       processBatch();
       finish(rows);
