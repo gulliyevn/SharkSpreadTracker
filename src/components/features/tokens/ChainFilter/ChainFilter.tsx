@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/utils/cn';
 
 export type ChainFilterValue = 'all' | 'solana' | 'bsc';
@@ -14,70 +15,65 @@ export interface ChainFilterProps {
 }
 
 /**
- * Компонент фильтрации токенов по chain (All / BSC / SOL)
- * Три кнопки для выбора фильтра
+ * Компонент фильтрации токенов по chain (All / SOL / BSC)
+ * Одна кнопка с циклическим переключением: All → SOL → BSC → All
  */
 export const ChainFilter = memo(function ChainFilter({
   value,
   onChange,
   counts,
 }: ChainFilterProps) {
-  const handleAllClick = useCallback(() => {
-    onChange('all');
-  }, [onChange]);
+  const { t } = useLanguage();
+  
+  const handleClick = useCallback(() => {
+    // Циклическое переключение: All → SOL → BSC → All
+    if (value === 'all') {
+      onChange('solana');
+    } else if (value === 'solana') {
+      onChange('bsc');
+    } else {
+      onChange('all');
+    }
+  }, [value, onChange]);
 
-  const handleBscClick = useCallback(() => {
-    onChange('bsc');
-  }, [onChange]);
+  const getLabel = () => {
+    switch (value) {
+      case 'all':
+        return `${t('filters.all')}${counts ? ` (${counts.all})` : ''}`;
+      case 'solana':
+        return `SOL${counts ? ` (${counts.solana})` : ''}`;
+      case 'bsc':
+        return `BSC${counts ? ` (${counts.bsc})` : ''}`;
+      default:
+        return t('filters.all');
+    }
+  };
 
-  const handleSolClick = useCallback(() => {
-    onChange('solana');
-  }, [onChange]);
+  const getAriaLabel = () => {
+    switch (value) {
+      case 'all':
+        return 'Show all tokens, click to filter by SOL';
+      case 'solana':
+        return 'Show Solana tokens, click to filter by BSC';
+      case 'bsc':
+        return 'Show BSC tokens, click to show all';
+      default:
+        return 'Chain filter';
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleAllClick}
-        className={cn(
-          'px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors',
-          'border',
-          value === 'all'
-            ? 'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
-            : 'bg-light-100 dark:bg-dark-800 border-light-300 dark:border-dark-700 text-light-700 dark:text-dark-300 hover:bg-light-200 dark:hover:bg-dark-700'
-        )}
-        aria-label="Show all tokens"
-        aria-pressed={value === 'all'}
-      >
-        All{counts ? ` (${counts.all})` : ''}
-      </button>
-      <button
-        onClick={handleBscClick}
-        className={cn(
-          'px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors',
-          'border',
-          value === 'bsc'
-            ? 'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
-            : 'bg-light-100 dark:bg-dark-800 border-light-300 dark:border-dark-700 text-light-700 dark:text-dark-300 hover:bg-light-200 dark:hover:bg-dark-700'
-        )}
-        aria-label="Show BSC tokens"
-        aria-pressed={value === 'bsc'}
-      >
-        BSC{counts ? ` (${counts.bsc})` : ''}
-      </button>
-      <button
-        onClick={handleSolClick}
-        className={cn(
-          'px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors',
-          'border',
-          value === 'solana'
-            ? 'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
-            : 'bg-light-100 dark:bg-dark-800 border-light-300 dark:border-dark-700 text-light-700 dark:text-dark-300 hover:bg-light-200 dark:hover:bg-dark-700'
-        )}
-        aria-label="Show Solana tokens"
-        aria-pressed={value === 'solana'}
-      >
-        SOL{counts ? ` (${counts.solana})` : ''}
-      </button>
-    </div>
+    <button
+      onClick={handleClick}
+      className={cn(
+        'px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors',
+        'border',
+        'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
+      )}
+      aria-label={getAriaLabel()}
+      aria-pressed={true}
+    >
+      {getLabel()}
+    </button>
   );
 });

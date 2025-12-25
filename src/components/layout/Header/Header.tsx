@@ -2,6 +2,8 @@ import { Moon, Sun, BarChart3, Coins } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useView } from '@/contexts/ViewContext';
+import { useSearch } from '@/contexts/SearchContext';
+import { TokenSearch } from '@/components/features/tokens/TokenSearch';
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus';
 import { cn } from '@/utils/cn';
 
@@ -9,6 +11,7 @@ export function Header() {
   const { resolvedTheme, setTheme } = useTheme();
   const { t, currentLanguage, changeLanguage } = useLanguage();
   const { currentView, setView } = useView();
+  const { searchTerm, setSearchTerm } = useSearch();
 
   return (
     <header
@@ -16,7 +19,7 @@ export function Header() {
       className="sticky top-0 z-50 w-full border-b bg-white/95 dark:bg-dark-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-dark-900/80 border-light-200 dark:border-dark-800"
     >
       <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-        <div className="flex h-14 sm:h-16 items-center justify-between">
+        <div className="flex flex-col sm:flex-row h-auto sm:h-[68px] md:h-[72px] items-stretch sm:items-center justify-between gap-2 sm:gap-0">
           {/* Logo and Title */}
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
             <img
@@ -28,13 +31,22 @@ export function Header() {
               height="40"
               decoding="async"
             />
-            <h1 className="text-base sm:text-lg md:text-xl font-bold text-dark-950 dark:text-dark-50 hidden sm:block">
+            <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
               {t('app.title')}
             </h1>
           </div>
 
+          {/* Поиск */}
+          <div className="flex-1 max-w-full sm:max-w-md mx-0 sm:mx-4 order-3 sm:order-2">
+            <TokenSearch
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder={t('tokens.searchPlaceholder') || 'Search token (BTC, SOL)...'}
+            />
+          </div>
+
           {/* Right side controls */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 order-2 sm:order-3">
             {/* Connection Status */}
             <ConnectionStatus showLabel={false} className="hidden sm:flex" />
             
@@ -44,13 +56,9 @@ export function Header() {
                 setView(currentView === 'charts' ? 'tokens' : 'charts')
               }
               className={cn(
-                'flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3 py-2.5 sm:py-2 rounded-lg border transition-colors touch-manipulation',
-                'min-h-[44px] sm:min-h-auto', // Минимум 44px высота для touch на мобильных
-                'bg-light-200 dark:bg-dark-800 border-light-300 dark:border-dark-800',
-                'hover:bg-light-300 dark:hover:bg-dark-700 active:scale-95',
-                currentView === 'charts'
-                  ? 'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
-                  : 'text-light-700 dark:text-dark-300 hover:text-light-900 dark:hover:text-dark-100'
+                'flex items-center justify-center p-2 sm:p-1.5 md:p-2 rounded-lg border transition-colors touch-manipulation',
+                'min-w-[44px] min-h-[44px] sm:min-w-auto sm:min-h-auto',
+                'bg-primary-600 border-primary-600 text-white hover:bg-primary-700 active:scale-95'
               )}
               title={
                 currentView === 'charts' ? 'Switch to tokens' : 'Open charts'
@@ -60,83 +68,55 @@ export function Header() {
               }
             >
               {currentView === 'charts' ? (
-                <>
-                  <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-                    {t('header.tokens') || 'Tokens'}
-                  </span>
-                </>
+                <Coins className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <>
-                  <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-                    {t('header.charts') || 'Charts'}
-                  </span>
-                </>
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </button>
 
-            {/* Language Switcher - адаптивный */}
-            <div className="flex items-center gap-0.5 sm:gap-1 rounded-lg border bg-light-200 dark:bg-dark-800 border-light-300 dark:border-dark-800 p-0.5 sm:p-1">
+            {/* Language Switcher - циклическая кнопка: EN → RU → TR → EN */}
               <button
-                onClick={() => changeLanguage('en')}
+              onClick={() => {
+                if (currentLanguage === 'en') {
+                  changeLanguage('ru');
+                } else if (currentLanguage === 'ru') {
+                  changeLanguage('tr');
+                } else {
+                  changeLanguage('en');
+                }
+              }}
                 className={cn(
-                  'px-2 sm:px-1.5 md:px-2 py-2 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors touch-manipulation',
-                  'min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-auto flex items-center justify-center', // Минимум 44x44px для touch на мобильных
+                'px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors border',
+                'bg-primary-600 border-primary-600 text-white hover:bg-primary-700',
+                'min-w-[44px] min-h-[44px] sm:min-w-auto sm:min-h-auto flex items-center justify-center touch-manipulation'
+              )}
+              title={
                   currentLanguage === 'en'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-light-600 dark:text-dark-400 hover:text-light-800 dark:hover:text-dark-200 hover:bg-light-300 dark:hover:bg-dark-700'
-                )}
-                title="English"
-                aria-label="Switch to English"
-              >
-                EN
+                  ? 'English (click to switch to Russian)'
+                  : currentLanguage === 'ru'
+                    ? 'Русский (нажмите для переключения на турецкий)'
+                    : 'Türkçe (İngilizce\'ye geçmek için tıklayın)'
+              }
+              aria-label={`Current language: ${currentLanguage.toUpperCase()}, click to switch`}
+            >
+              {currentLanguage.toUpperCase()}
               </button>
-              <button
-                onClick={() => changeLanguage('ru')}
-                className={cn(
-                  'px-2 sm:px-1.5 md:px-2 py-2 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors touch-manipulation',
-                  'min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-auto flex items-center justify-center', // Минимум 44x44px для touch на мобильных
-                  currentLanguage === 'ru'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-light-600 dark:text-dark-400 hover:text-light-800 dark:hover:text-dark-200 hover:bg-light-300 dark:hover:bg-dark-700'
-                )}
-                title="Русский"
-                aria-label="Переключить на русский"
-              >
-                RU
-              </button>
-              <button
-                onClick={() => changeLanguage('tr')}
-                className={cn(
-                  'px-2 sm:px-1.5 md:px-2 py-2 sm:py-1 text-[10px] sm:text-xs font-medium rounded transition-colors touch-manipulation',
-                  'min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-auto flex items-center justify-center', // Минимум 44x44px для touch на мобильных
-                  currentLanguage === 'tr'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-light-600 dark:text-dark-400 hover:text-light-800 dark:hover:text-dark-200 hover:bg-light-300 dark:hover:bg-dark-700'
-                )}
-                title="Türkçe"
-                aria-label="Türkçe'ye geç"
-              >
-                TR
-              </button>
-            </div>
 
-            {/* Theme Switcher - адаптивный */}
+            {/* Theme Switcher - циклическая кнопка */}
             <button
               onClick={() =>
                 setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
               }
               className={cn(
-                'p-2 sm:p-1.5 md:p-2 rounded-lg border bg-light-200 dark:bg-dark-800 border-light-300 dark:border-dark-800 transition-colors',
-                'hover:bg-light-300 dark:hover:bg-dark-700 active:scale-95',
-                'touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch на мобильных
-                'sm:min-w-auto sm:min-h-auto' // На десктопе можно меньше
+                'p-2 sm:p-1.5 md:p-2 rounded-lg border transition-colors',
+                'bg-primary-600 border-primary-600 text-white hover:bg-primary-700',
+                'touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center',
+                'sm:min-w-auto sm:min-h-auto active:scale-95'
               )}
               title={
                 resolvedTheme === 'dark'
-                  ? 'Switch to light mode'
-                  : 'Switch to dark mode'
+                  ? 'Dark mode (click to switch to light)'
+                  : 'Light mode (click to switch to dark)'
               }
               aria-label={
                 resolvedTheme === 'dark'
@@ -145,9 +125,9 @@ export function Header() {
               }
             >
               {resolvedTheme === 'dark' ? (
-                <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-light-800 dark:text-dark-200" />
+                <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-light-800 dark:text-dark-200" />
+                <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </button>
           </div>

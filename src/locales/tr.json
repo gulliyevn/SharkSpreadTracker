@@ -15,7 +15,9 @@
     "retry": "Tekrar Dene",
     "goHome": "Ana Sayfaya Git",
     "details": "Detaylar",
-    "loaded": "yüklendi"
+    "loaded": "yüklendi",
+    "auto": "Otomatik",
+    "refresh": "Yenile"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -72,10 +74,14 @@
     "allLoaded": "Tüm tokenler yüklendi"
   },
   "filters": {
-    "minSpread": "OT:",
-    "directOnly": "Sadece doğrudan",
-    "reverseOnly": "Sadece ters",
-    "sort": "Sırala:"
+    "minSpread": "Min:",
+    "all": "Tüm",
+    "directOnly": "Doğrudan",
+    "reverseOnly": "Ters",
+    "sort": "Sırala:",
+    "sortBySpread": "Spread'e göre",
+    "sortByName": "İsme göre",
+    "sortByPrice": "Fiyata göre"
   },
   "validation": {
     "invalidApiKey": "Geçersiz API anahtarı formatı",

@@ -61,7 +61,7 @@ export function TokenSelectorSidebar({
 
       {/* Поиск */}
       <div className="relative mb-4">
-        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-light-500 dark:text-dark-500" />
+        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-500" />
         <input
           ref={inputRef}
           type="text"
@@ -70,11 +70,11 @@ export function TokenSelectorSidebar({
           placeholder={t('common.search') || 'Search tokens...'}
           className={cn(
             'w-full pl-9 pr-3 py-2 text-sm rounded-lg border transition-colors',
-            'bg-light-50 dark:bg-dark-900',
+            'bg-white dark:bg-dark-900',
             'border-light-300 dark:border-dark-700',
-            'text-dark-950 dark:text-dark-50',
-            'placeholder:text-light-500 dark:placeholder:text-dark-500',
-            'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
+            'text-gray-900 dark:text-gray-50',
+            'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+            'focus:outline-none'
           )}
         />
       </div>
@@ -82,7 +82,7 @@ export function TokenSelectorSidebar({
       {/* Список токенов */}
       <div className="max-h-[400px] overflow-y-auto">
         {filteredTokens.length === 0 ? (
-          <div className="px-3 py-4 text-sm text-center text-light-500 dark:text-dark-500">
+          <div className="px-3 py-4 text-sm text-center text-gray-500 dark:text-gray-500">
             {t('common.noData') || 'No tokens found'}
           </div>
         ) : (

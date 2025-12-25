@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { ViewProvider, useView } from './contexts/ViewContext';
+import { SearchProvider } from './contexts/SearchContext';
+import { MinSpreadProvider } from './contexts/MinSpreadContext';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { ToastContainer } from './components/ui/Toast';
 
@@ -24,7 +26,7 @@ function AppContent() {
   const { currentView } = useView();
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-dark-900 text-dark-950 dark:text-dark-50">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-dark-900 text-gray-900 dark:text-white">
       <Header />
       <main className="flex-1">
         <Suspense
@@ -46,7 +48,11 @@ function AppContent() {
 function App() {
   return (
     <ViewProvider>
+      <SearchProvider>
+        <MinSpreadProvider>
       <AppContent />
+        </MinSpreadProvider>
+      </SearchProvider>
     </ViewProvider>
   );
 }

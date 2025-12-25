@@ -15,7 +15,9 @@
     "retry": "Попробовать снова",
     "goHome": "На главную",
     "details": "Детали",
-    "loaded": "загружено"
+    "loaded": "загружено",
+    "auto": "Авто",
+    "refresh": "Обновить"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -73,9 +75,13 @@
   },
   "filters": {
     "minSpread": "OT:",
-    "directOnly": "Только прямой",
-    "reverseOnly": "Только обратный",
-    "sort": "Сортировка:"
+    "all": "Все",
+    "directOnly": "Прямой",
+    "reverseOnly": "Обратный",
+    "sort": "Сортировка:",
+    "sortBySpread": "По спреду",
+    "sortByName": "По имени",
+    "sortByPrice": "По цене"
   },
   "validation": {
     "invalidApiKey": "Неверный формат API ключа",

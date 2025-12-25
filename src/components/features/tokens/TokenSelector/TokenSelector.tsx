@@ -197,7 +197,7 @@ export function TokenSelector({
           'border-light-300 dark:border-dark-700',
           'text-dark-950 dark:text-dark-50',
           'hover:border-primary-500 dark:hover:border-primary-500',
-          'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+          'focus:outline-none',
           disabled &&
             'opacity-50 cursor-not-allowed hover:border-light-300 dark:hover:border-dark-700',
           isOpen &&

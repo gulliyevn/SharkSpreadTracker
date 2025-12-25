@@ -62,7 +62,9 @@ export function securityHeaders(): Plugin {
 
         // Добавляем URL бэкенда в connect-src для разрешения подключений
         const backendUrls = getBackendUrlsForCSP(mode);
-        const connectSrc = `'self'${backendUrls}`;
+        // В dev режиме разрешаем debug logging endpoint
+        const debugEndpoint = mode === 'development' ? ' http://127.0.0.1:7243' : '';
+        const connectSrc = `'self'${backendUrls}${debugEndpoint}`;
         
         res.setHeader(
           'Content-Security-Policy',

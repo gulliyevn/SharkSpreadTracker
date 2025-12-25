@@ -7,8 +7,8 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     
     <!-- Primary Meta Tags -->
-    <title>Shark Spread Tracker - Отслеживание спредов криптовалют</title>
-    <meta name="title" content="Shark Spread Tracker - Отслеживание спредов криптовалют" />
+    <title>Shark Spread Tracker</title>
+    <meta name="title" content="Shark Spread Tracker" />
     <meta name="description" content="Отслеживайте спреды криптовалют между биржами Jupiter, PancakeSwap и MEXC. Находите арбитражные возможности в реальном времени." />
     <meta name="keywords" content="криптовалюта, спред, арбитраж, Jupiter, PancakeSwap, MEXC, Solana, BSC" />
     <meta name="author" content="Shark Spread Tracker" />
@@ -19,7 +19,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://shark-spread-tracker.vercel.app/" />
-    <meta property="og:title" content="Shark Spread Tracker - Отслеживание спредов криптовалют" />
+    <meta property="og:title" content="Shark Spread Tracker" />
     <meta property="og:description" content="Отслеживайте спреды криптовалют между биржами Jupiter, PancakeSwap и MEXC. Находите арбитражные возможности в реальном времени." />
     <meta property="og:image" content="/assets/SharkLogo.png" />
     <meta property="og:image:width" content="1200" />
@@ -30,7 +30,7 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://shark-spread-tracker.vercel.app/" />
-    <meta name="twitter:title" content="Shark Spread Tracker - Отслеживание спредов криптовалют" />
+    <meta name="twitter:title" content="Shark Spread Tracker" />
     <meta name="twitter:description" content="Отслеживайте спреды криптовалют между биржами Jupiter, PancakeSwap и MEXC. Находите арбитражные возможности в реальном времени." />
     <meta name="twitter:image" content="/assets/SharkLogo.png" />
     
@@ -78,6 +78,20 @@
         "ratingCount": "100"
       }
     }
+    </script>
+    <!-- Применить тему синхронно до рендера React, чтобы избежать мигания -->
+    <script>
+      (function() {
+        const theme = localStorage.getItem('shark_theme') || 'system';
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const resolvedTheme = theme === 'system' ? systemTheme : theme;
+        
+        if (resolvedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
     </script>
   </head>
   <body>

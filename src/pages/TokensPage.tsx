@@ -1,17 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { TrendingUp, ArrowUpAZ, DollarSign, Layers, ArrowRightCircle, ArrowLeftCircle } from 'lucide-react';
 import { Container } from '@/components/layout/Container';
-import { TokenSearch } from '@/components/features/tokens/TokenSearch';
-import { TokenFilters } from '@/components/features/tokens/TokenFilters';
-import { TokenSelector } from '@/components/features/tokens/TokenSelector';
+import { useSearch } from '@/contexts/SearchContext';
+import { useMinSpread } from '@/contexts/MinSpreadContext';
+import { cn } from '@/utils/cn';
 import {
   ChainFilter,
   type ChainFilterValue,
 } from '@/components/features/tokens/ChainFilter';
-import {
-  SortSelector,
-  type SortOption,
-} from '@/components/features/tokens/SortSelector';
-import { ExchangeIndicator } from '@/components/features/tokens/ExchangeIndicator';
+import type { SortOption } from '@/components/features/tokens/SortSelector';
 import { Progress } from '@/components/ui/Progress';
 import { TokenCardSkeleton } from '@/components/features/tokens/TokenCardSkeleton';
 import { TokenGrid } from '@/components/features/tokens/TokenGrid';
@@ -19,6 +16,7 @@ import { TokenDetailsModal } from '@/components/features/tokens/TokenDetailsModa
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorDisplay } from '@/components/ui/ErrorDisplay';
+import { AutoRefreshToggle } from '@/components/features/spreads/AutoRefreshToggle';
 import { useTokensWithSpreads } from '@/api/hooks/useTokensWithSpreads';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -26,7 +24,7 @@ import {
   trackTokenFilter,
   trackTokenSelected,
 } from '@/lib/analytics';
-import type { Token } from '@/types';
+import type { Token, StraightData } from '@/types';
 
 /**
  * Главная страница с токенами
@@ -34,11 +32,10 @@ import type { Token } from '@/types';
 
 export function TokensPage() {
   const { t } = useLanguage();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [minSpread, setMinSpread] = useState(0);
+  const { searchTerm } = useSearch();
+  const { minSpread, setMinSpread } = useMinSpread();
   const [showDirectOnly, setShowDirectOnly] = useState(false);
   const [showReverseOnly, setShowReverseOnly] = useState(false);
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [chainFilter, setChainFilter] = useState<ChainFilterValue>('all');
   const [editingToken, setEditingToken] = useState<Token | null>(null);
 
@@ -48,6 +45,12 @@ export function TokensPage() {
     return saved === 'spread' || saved === 'name' || saved === 'price'
       ? saved
       : 'spread';
+  });
+
+  // Автообновление токенов
+  const [isAutoRefresh, setIsAutoRefresh] = useState(() => {
+    const saved = localStorage.getItem('tokens-auto-refresh');
+    return saved !== 'false'; // По умолчанию включено
   });
 
   // Загружаем токены из API с ценами и спредами (постепенно)
@@ -60,26 +63,19 @@ export function TokensPage() {
     refetch,
   } = useTokensWithSpreads();
 
-  // Уникальные токены для селектора (убираем дубликаты по symbol-chain)
-  const uniqueTokensForSelector = useMemo(() => {
-    const tokenMap = new Map<string, Token>();
-    tokens.forEach((token) => {
-      const key = `${token.symbol}-${token.chain}`;
-      if (!tokenMap.has(key)) {
-        tokenMap.set(key, { symbol: token.symbol, chain: token.chain });
-      }
-    });
-    return Array.from(tokenMap.values()).sort((a, b) =>
-      a.symbol.localeCompare(b.symbol)
-    );
-  }, [tokens]);
 
   // Подсчет токенов по chain
   const chainCounts = useMemo(() => {
     const counts = {
       all: tokens.length,
-      solana: tokens.filter((t) => t.chain === 'solana').length,
-      bsc: tokens.filter((t) => t.chain === 'bsc').length,
+      solana: tokens.filter((r) => {
+        const network = (r.network || '').toLowerCase();
+        return network !== 'bsc' && network !== 'bep20';
+      }).length,
+      bsc: tokens.filter((r) => {
+        const network = (r.network || '').toLowerCase();
+        return network === 'bsc' || network === 'bep20';
+      }).length,
     };
     return counts;
   }, [tokens]);
@@ -89,63 +85,78 @@ export function TokensPage() {
 
     // Фильтр по chain
     if (chainFilter !== 'all') {
-      filtered = filtered.filter((token) => token.chain === chainFilter);
+      filtered = filtered.filter((row) => {
+        const network = (row.network || '').toLowerCase();
+        if (chainFilter === 'bsc') {
+          return network === 'bsc' || network === 'bep20';
+        }
+        return network !== 'bsc' && network !== 'bep20';
+      });
     }
 
     // Фильтр по поиску
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((token) =>
-        token.symbol.toLowerCase().includes(searchLower)
+      filtered = filtered.filter((row) =>
+        (row.token || '').toLowerCase().includes(searchLower)
       );
     }
 
     // Фильтр по минимальному спреду
     if (minSpread > 0) {
-      filtered = filtered.filter((token) => {
-        const maxSpread = Math.max(
-          token.directSpread || 0,
-          token.reverseSpread || 0
-        );
-        return maxSpread >= minSpread;
+      filtered = filtered.filter((row) => {
+        const spread = row.spread ? Number(row.spread) : null;
+        return spread != null && spread >= minSpread;
       });
     }
 
     // Фильтр по направлению
     if (showDirectOnly) {
-      filtered = filtered.filter((token) => (token.directSpread || 0) > 0);
+      filtered = filtered.filter((row) => {
+        const spread = row.spread ? Number(row.spread) : null;
+        return spread != null && spread > 0;
+      });
     }
     if (showReverseOnly) {
-      filtered = filtered.filter((token) => (token.reverseSpread || 0) > 0);
+      // reverseSpread всегда null, поэтому этот фильтр не сработает
+      filtered = filtered.filter(() => false);
     }
 
     // Сортировка в зависимости от выбранной опции
     filtered.sort((a, b) => {
+      const symbolA = (a.token || '').toUpperCase().trim();
+      const symbolB = (b.token || '').toUpperCase().trim();
+      
       if (sortOption === 'spread') {
         // Сортировка по спреду (по убыванию)
-        const spreadA = Math.max(a.directSpread || 0, a.reverseSpread || 0);
-        const spreadB = Math.max(b.directSpread || 0, b.reverseSpread || 0);
+        const spreadA = a.spread ? Number(a.spread) : 0;
+        const spreadB = b.spread ? Number(b.spread) : 0;
 
         if (spreadB !== spreadA) {
           return spreadB - spreadA;
         }
 
         // Вторичная сортировка: по алфавиту
-        return a.symbol.localeCompare(b.symbol);
+        return symbolA.localeCompare(symbolB);
       } else if (sortOption === 'name') {
         // Сортировка по имени (по алфавиту)
-        return a.symbol.localeCompare(b.symbol);
+        return symbolA.localeCompare(symbolB);
       } else if (sortOption === 'price') {
-        // Сортировка по цене (по убыванию)
-        const priceA = a.price || 0;
-        const priceB = b.price || 0;
+        // Сортировка по цене (по убыванию) - берем среднее из priceA и priceB
+        const priceA1 = a.priceA ? Number(a.priceA) : 0;
+        const priceA2 = a.priceB ? Number(a.priceB) : 0;
+        const priceB1 = b.priceA ? Number(b.priceA) : 0;
+        const priceB2 = b.priceB ? Number(b.priceB) : 0;
+        
+        const avgPriceA = (priceA1 + priceA2) / (priceA1 > 0 && priceA2 > 0 ? 2 : priceA1 > 0 || priceA2 > 0 ? 1 : 0) || 0;
+        const avgPriceB = (priceB1 + priceB2) / (priceB1 > 0 && priceB2 > 0 ? 2 : priceB1 > 0 || priceB2 > 0 ? 1 : 0) || 0;
 
-        if (priceB !== priceA) {
-          return priceB - priceA;
+        if (avgPriceB !== avgPriceA) {
+          return avgPriceB - avgPriceA;
         }
 
         // Вторичная сортировка: по алфавиту
-        return a.symbol.localeCompare(b.symbol);
+        return symbolA.localeCompare(symbolB);
       }
 
       return 0;
@@ -167,20 +178,44 @@ export function TokensPage() {
     analytics.pageView('tokens');
   }, []);
 
+  // Сохраняем настройку автообновления
+  useEffect(() => {
+    localStorage.setItem('tokens-auto-refresh', String(isAutoRefresh));
+  }, [isAutoRefresh]);
+
+  // Автообновление данных
+  useEffect(() => {
+    if (!isAutoRefresh) return;
+
+    const interval = setInterval(() => {
+      refetch();
+    }, 3000); // Обновляем каждые 3 секунды
+
+    return () => clearInterval(interval);
+  }, [isAutoRefresh, refetch]);
+
   // Мемоизированные обработчики для предотвращения лишних ререндеров
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchTerm(value);
-    if (value) {
-      trackTokenFilter('search', value);
-    }
-  }, []);
+  // Поиск теперь управляется через SearchContext в Header
 
   const handleMinSpreadChange = useCallback((value: number) => {
     setMinSpread(value);
     if (value > 0) {
       trackTokenFilter('minSpread', value);
     }
-  }, []);
+  }, [setMinSpread]);
+
+  const handleMinSpreadInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    // Разрешаем пустое значение
+    if (inputValue === '') {
+      setMinSpread(0);
+      return;
+    }
+    const value = parseFloat(inputValue);
+    if (!isNaN(value) && value >= 0) {
+      handleMinSpreadChange(value);
+    }
+  }, [setMinSpread, handleMinSpreadChange]);
 
   const handleDirectOnlyChange = useCallback((value: boolean) => {
     setShowDirectOnly(value);
@@ -202,18 +237,41 @@ export function TokensPage() {
     trackTokenFilter('sort', value);
   }, []);
 
-  const handleTokenSelect = useCallback((token: Token) => {
-    setSelectedToken(token);
-    trackTokenSelected(token.symbol, token.chain);
+  const handleSortClick = useCallback(() => {
+    // Циклическое переключение: spread → name → price → spread
+    if (sortOption === 'spread') {
+      handleSortChange('name');
+    } else if (sortOption === 'name') {
+      handleSortChange('price');
+    } else {
+      handleSortChange('spread');
+    }
+  }, [sortOption, handleSortChange]);
+
+  const getSortIcon = () => {
+    if (sortOption === 'spread') {
+      return <TrendingUp className="h-4 w-4" />;
+    } else if (sortOption === 'name') {
+      return <ArrowUpAZ className="h-4 w-4" />;
+    } else {
+      return <DollarSign className="h-4 w-4" />;
+    }
+  };
+
+  const handleAutoRefreshToggle = useCallback((isAuto: boolean) => {
+    setIsAutoRefresh(isAuto);
   }, []);
 
-  const handleTokenClear = useCallback(() => {
-    setSelectedToken(null);
-  }, []);
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-  const handleTokenEdit = useCallback((token: Token) => {
-    setEditingToken(token);
-    trackTokenSelected(token.symbol, token.chain);
+  const handleTokenEdit = useCallback((token: StraightData) => {
+    const network = (token.network || '').toLowerCase();
+    const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+    const symbol = (token.token || '').toUpperCase().trim();
+    setEditingToken({ symbol, chain });
+    trackTokenSelected(symbol, chain);
   }, []);
 
   const handleCloseModal = useCallback(() => {
@@ -225,8 +283,10 @@ export function TokensPage() {
     if (!editingToken) return null;
     return (
       filteredTokens.find(
-        (t) =>
-          t.symbol === editingToken.symbol && t.chain === editingToken.chain
+        (row) =>
+          (row.token || '').toUpperCase().trim() === editingToken.symbol.toUpperCase() &&
+          ((row.network || '').toLowerCase() === editingToken.chain ||
+            (editingToken.chain === 'bsc' && (row.network || '').toLowerCase() === 'bep20'))
       ) || null
     );
   }, [editingToken, filteredTokens]);
@@ -240,82 +300,114 @@ export function TokensPage() {
     <div className="min-h-screen bg-white dark:bg-dark-900">
       <Container>
         <div className="max-w-7xl mx-auto py-4 sm:py-6 lg:py-8">
-          {/* Поиск и фильтры */}
-          <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
-            {/* Выбор токена */}
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium text-light-700 dark:text-dark-300 whitespace-nowrap">
-                {t('tokens.selectedToken') || 'Selected Token:'}
-              </div>
-              <div className="flex-1 max-w-xs">
-                <TokenSelector
-                  tokens={uniqueTokensForSelector}
-                  value={selectedToken}
-                  onSelect={handleTokenSelect}
-                  onClear={handleTokenClear}
-                  placeholder={t('tokens.selectToken') || 'Select a token...'}
-                  showChain
-                />
-              </div>
-            </div>
-
-            {/* Chain Filter */}
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium text-light-700 dark:text-dark-300 whitespace-nowrap">
-                Chain:
-              </div>
+          {/* Фильтры - компактная горизонтальная группа */}
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {/* Chain Filter - первая кнопка */}
               <ChainFilter
                 value={chainFilter}
                 onChange={handleChainFilterChange}
                 counts={chainCounts}
               />
-            </div>
 
-            {/* Поиск */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center">
-              <div className="flex-1 w-full sm:max-w-md">
-                <TokenSearch value={searchTerm} onChange={handleSearchChange} />
-              </div>
-              <div className="flex-1 sm:flex-initial">
-                <TokenFilters
-                  minSpread={minSpread}
-                  onMinSpreadChange={handleMinSpreadChange}
-                  showDirectOnly={showDirectOnly}
-                  onDirectOnlyChange={handleDirectOnlyChange}
-                  showReverseOnly={showReverseOnly}
-                  onReverseOnlyChange={handleReverseOnlyChange}
+              {/* Direct/Reverse - вторая кнопка с переключением: All → Direct → Reverse → All */}
+              <button
+                onClick={() => {
+                  if (!showDirectOnly && !showReverseOnly) {
+                    // All → Direct
+                    handleDirectOnlyChange(true);
+                    handleReverseOnlyChange(false);
+                  } else if (showDirectOnly && !showReverseOnly) {
+                    // Direct → Reverse
+                    handleDirectOnlyChange(false);
+                    handleReverseOnlyChange(true);
+                  } else {
+                    // Reverse → All
+                    handleDirectOnlyChange(false);
+                    handleReverseOnlyChange(false);
+                  }
+                }}
+                className={cn(
+                  'flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors border',
+                  'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
+                )}
+              >
+                {!showDirectOnly && !showReverseOnly ? (
+                  <>
+                    <Layers className="h-4 w-4" />
+                    <span>{t('filters.all')}</span>
+                  </>
+                ) : showDirectOnly ? (
+                  <>
+                    <ArrowRightCircle className="h-4 w-4" />
+                    <span>{t('filters.directOnly') || 'Direct'}</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowLeftCircle className="h-4 w-4" />
+                    <span>{t('filters.reverseOnly') || 'Reverse'}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Sort - кнопка с циклическим переключением: Spread → Name → Price → Spread */}
+              <button
+                onClick={handleSortClick}
+                className={cn(
+                  'flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors border',
+                  'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
+                )}
+              >
+                {getSortIcon()}
+                <span>
+                  {sortOption === 'spread'
+                    ? t('filters.sortBySpread') || 'By Spread'
+                    : sortOption === 'name'
+                      ? t('filters.sortByName') || 'By Name'
+                      : t('filters.sortByPrice') || 'By Price'}
+                </span>
+              </button>
+
+              {/* Минимальный спред */}
+              <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border bg-white dark:bg-dark-800 border-light-300 dark:border-dark-700">
+                <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                  {t('filters.minSpread')}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={minSpread === 0 ? '' : minSpread}
+                  onChange={handleMinSpreadInputChange}
+                  placeholder=""
+                  className="w-12 px-1.5 py-0.5 rounded text-xs bg-white dark:bg-dark-900 border border-light-300 dark:border-dark-700 text-gray-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-              </div>
+                <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-400">%</span>
             </div>
 
-            {/* Сортировка */}
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium text-light-700 dark:text-dark-300 whitespace-nowrap">
-                {t('filters.sort') || 'Sort:'}
-              </div>
-              <SortSelector value={sortOption} onChange={handleSortChange} />
-            </div>
+              {/* Auto Refresh и Refresh */}
+              <AutoRefreshToggle
+                isAuto={isAutoRefresh}
+                onToggle={handleAutoRefreshToggle}
+                onRefresh={handleRefresh}
+              />
 
-            {/* Индикатор обмена и счетчик */}
-            <div className="flex items-center justify-between">
-              <ExchangeIndicator sourceChain="bsc" targetExchange="MEXC" />
-              <div className="flex-1 max-w-xs ml-4">
+              {/* Счетчик / Loading */}
+              <div className="ml-auto flex items-center">
                 {isLoading ? (
-                  <div className="text-sm sm:text-base font-medium text-light-600 dark:text-dark-400">
-                    {t('common.loading') || 'Loading...'}
-                  </div>
+                  <LoadingSpinner size="sm" />
                 ) : loadedCount > 0 && loadedCount < totalCount ? (
                   <Progress
                     value={loadedCount}
                     max={totalCount}
                     size="sm"
                     showLabel
-                    label={`${loadedCount}/${totalCount} ${t('common.loaded') || 'loaded'}`}
+                    label={`${loadedCount}/${totalCount}`}
                     variant="primary"
                   />
                 ) : (
-                  <div className="text-sm sm:text-base font-medium text-light-600 dark:text-dark-400">
-                    {filteredTokens.length} {t('common.total') || 'total'}
+                  <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-400">
+                    {filteredTokens.length}
                   </div>
                 )}
               </div>
@@ -324,18 +416,10 @@ export function TokensPage() {
 
           {/* Состояния загрузки и ошибки */}
           {isLoading && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-center py-4">
-                <LoadingSpinner size="md" />
-                <span className="ml-3 text-light-600 dark:text-dark-400">
-                  {t('common.loading') || 'Loading tokens...'}
-                </span>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {[...Array(6)].map((_, i) => (
                   <TokenCardSkeleton key={i} />
                 ))}
-              </div>
             </div>
           )}
 
@@ -382,9 +466,17 @@ export function TokensPage() {
           isOpen={editingToken !== null}
           onClose={handleCloseModal}
           token={editingToken}
-          price={editingTokenData.price}
-          directSpread={editingTokenData.directSpread}
-          reverseSpread={editingTokenData.reverseSpread}
+          price={
+            editingTokenData.priceA && editingTokenData.priceB
+              ? (Number(editingTokenData.priceA) + Number(editingTokenData.priceB)) / 2
+              : editingTokenData.priceA
+                ? Number(editingTokenData.priceA)
+                : editingTokenData.priceB
+                  ? Number(editingTokenData.priceB)
+                  : null
+          }
+          directSpread={editingTokenData.spread ? Number(editingTokenData.spread) : null}
+          reverseSpread={null}
         />
       )}
     </div>

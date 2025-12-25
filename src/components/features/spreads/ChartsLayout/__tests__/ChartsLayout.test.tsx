@@ -7,7 +7,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import '@/lib/i18n';
 import { ChartsLayout } from '../ChartsLayout';
-import type { Token } from '@/types';
+import type { StraightData } from '@/types';
 
 // Мокируем useSpreadData
 vi.mock('@/api/hooks/useSpreadData', () => ({
@@ -32,16 +32,26 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const mockTokens: Token[] = [
+const mockTokens: StraightData[] = [
   {
-    symbol: 'BTC',
-    chain: 'solana',
-    address: 'So11111111111111111111111111111111111111112',
+    token: 'BTC',
+    aExchange: 'Jupiter',
+    bExchange: 'MEXC',
+    priceA: '50000',
+    priceB: '50100',
+    spread: '0.5',
+    network: 'solana',
+    limit: 'all',
   },
   {
-    symbol: 'ETH',
-    chain: 'bsc',
-    address: '0x1234567890123456789012345678901234567890',
+    token: 'ETH',
+    aExchange: 'PancakeSwap',
+    bExchange: 'MEXC',
+    priceA: '3000',
+    priceB: '3010',
+    spread: '0.3',
+    network: 'bsc',
+    limit: 'all',
   },
 ];
 
@@ -63,6 +73,12 @@ const mockSpreadData = {
     pancakeswap: false,
   },
 };
+
+// Helper для преобразования StraightData в Token для localStorage
+const straightDataToToken = (data: StraightData) => ({
+  symbol: data.token,
+  chain: (data.network === 'bsc' || data.network === 'bep20' ? 'bsc' : 'solana') as 'solana' | 'bsc',
+});
 
 describe('ChartsLayout', () => {
   beforeEach(() => {
@@ -117,9 +133,11 @@ describe('ChartsLayout', () => {
   });
 
   it('should load saved settings from localStorage', async () => {
+    const token = mockTokens[0];
+    if (!token) return;
     localStorage.setItem(
       'charts-selected-token',
-      JSON.stringify(mockTokens[0])
+      JSON.stringify(straightDataToToken(token))
     );
     localStorage.setItem('charts-timeframe', '5m');
     localStorage.setItem('charts-source1', 'jupiter');
@@ -167,7 +185,9 @@ describe('ChartsLayout', () => {
   });
 
   it('should call useSpreadData with correct parameters', async () => {
-    const selectedToken = mockTokens[0];
+    const token = mockTokens[0];
+    if (!token) return;
+    const selectedToken = straightDataToToken(token);
     localStorage.setItem(
       'charts-selected-token',
       JSON.stringify(selectedToken)
@@ -190,9 +210,11 @@ describe('ChartsLayout', () => {
   });
 
   it('should display spread chart when data is available', async () => {
+    const token = mockTokens[0];
+    if (!token) return;
     localStorage.setItem(
       'charts-selected-token',
-      JSON.stringify(mockTokens[0])
+      JSON.stringify(straightDataToToken(token))
     );
     localStorage.setItem('charts-source1', 'jupiter');
     localStorage.setItem('charts-source2', 'mexc');
@@ -240,9 +262,11 @@ describe('ChartsLayout', () => {
       refetch: mockRefetch,
     } as unknown as ReturnType<typeof useSpreadData>);
 
+    const token = mockTokens[0];
+    if (!token) return;
     localStorage.setItem(
       'charts-selected-token',
-      JSON.stringify(mockTokens[0])
+      JSON.stringify(straightDataToToken(token))
     );
 
     render(

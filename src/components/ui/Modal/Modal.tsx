@@ -175,7 +175,7 @@ export function Modal({
         ref={modalRef}
         className={cn(
           'relative z-10 w-full rounded-lg shadow-xl',
-          'bg-light-50 dark:bg-dark-800',
+          'bg-white dark:bg-dark-800',
           'border border-light-300 dark:border-dark-700',
           'animate-in fade-in-0 zoom-in-95 duration-200',
           'max-h-[90vh] flex flex-col',
@@ -190,7 +190,7 @@ export function Modal({
             {title && (
               <h2
                 id="modal-title"
-                className="text-base sm:text-lg font-semibold text-dark-950 dark:text-dark-50 truncate pr-2"
+                className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate pr-2"
               >
                 {title}
               </h2>
@@ -201,9 +201,9 @@ export function Modal({
                 className={cn(
                   'ml-auto p-2 rounded-md transition-colors flex-shrink-0 touch-manipulation',
                   'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
-                  'text-light-600 dark:text-dark-400',
+                  'text-gray-700 dark:text-gray-400',
                   'hover:bg-light-200 dark:hover:bg-dark-700',
-                  'hover:text-dark-950 dark:hover:text-dark-50'
+                  'hover:text-gray-900 dark:hover:text-gray-50'
                 )}
                 aria-label="Close modal"
               >

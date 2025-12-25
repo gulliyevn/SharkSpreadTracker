@@ -3,17 +3,22 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TokenCard } from '../TokenCard';
 import { ToastProvider } from '@/contexts/ToastContext';
-import type { Token } from '@/types';
+import type { StraightData } from '@/types';
 
 // Wrapper с ToastProvider
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
   <ToastProvider>{children}</ToastProvider>
 );
 
-const mockToken: Token = {
-  symbol: 'BTC',
-  chain: 'solana',
-  address: 'So11111111111111111111111111111111111111112',
+const mockToken: StraightData = {
+  token: 'BTC',
+  aExchange: 'Jupiter',
+  bExchange: 'MEXC',
+  priceA: '50000',
+  priceB: '50100',
+  spread: '0.5',
+  network: 'solana',
+  limit: 'all',
 };
 
 describe('TokenCard', () => {
@@ -35,9 +40,6 @@ describe('TokenCard', () => {
     render(
       <TokenCard
         token={mockToken}
-        price={50000}
-        directSpread={5.5}
-        reverseSpread={3.2}
         isFavorite={true}
         onFavoriteToggle={() => {}}
         onEdit={() => {}}
@@ -48,20 +50,31 @@ describe('TokenCard', () => {
   });
 
   it('should render with null values', () => {
-    render(
-      <TokenCard
-        token={mockToken}
-        price={null}
-        directSpread={null}
-        reverseSpread={null}
-      />,
-      { wrapper: Wrapper }
-    );
+    const tokenWithNulls: StraightData = {
+      token: 'BTC',
+      aExchange: 'Jupiter',
+      bExchange: 'MEXC',
+      priceA: '',
+      priceB: '',
+      spread: '',
+      network: 'solana',
+      limit: 'all',
+    };
+    render(<TokenCard token={tokenWithNulls} />, { wrapper: Wrapper });
     expect(screen.getByText('BTC')).toBeInTheDocument();
   });
 
   it('should render for BSC chain', () => {
-    const bscToken: Token = { symbol: 'CAKE', chain: 'bsc' };
+    const bscToken: StraightData = {
+      token: 'CAKE',
+      aExchange: 'PancakeSwap',
+      bExchange: 'MEXC',
+      priceA: '10',
+      priceB: '10.1',
+      spread: '1.0',
+      network: 'bsc',
+      limit: 'all',
+    };
     render(<TokenCard token={bscToken} />, { wrapper: Wrapper });
     expect(screen.getByText('CAKE')).toBeInTheDocument();
   });
@@ -89,7 +102,16 @@ describe('TokenCard', () => {
   });
 
   it('should handle token without address', () => {
-    const tokenNoAddr: Token = { symbol: 'TEST', chain: 'solana' };
+    const tokenNoAddr: StraightData = {
+      token: 'TEST',
+      aExchange: 'Jupiter',
+      bExchange: 'MEXC',
+      priceA: '100',
+      priceB: '101',
+      spread: '1.0',
+      network: 'solana',
+      limit: 'all',
+    };
     render(<TokenCard token={tokenNoAddr} />, { wrapper: Wrapper });
     expect(screen.getByText('TEST')).toBeInTheDocument();
   });
@@ -133,7 +155,7 @@ describe('TokenCard', () => {
     }
   });
 
-  it('should copy address to clipboard', async () => {
+  it('should copy token symbol to clipboard', async () => {
     const mockWriteText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: mockWriteText },
@@ -141,10 +163,7 @@ describe('TokenCard', () => {
       configurable: true,
     });
 
-    render(
-      <TokenCard token={{ ...mockToken, address: 'test-address-123' }} />,
-      { wrapper: Wrapper }
-    );
+    render(<TokenCard token={mockToken} />, { wrapper: Wrapper });
 
     const buttons = screen.getAllByRole('button');
     // Кликаем на кнопку копирования
@@ -160,25 +179,22 @@ describe('TokenCard', () => {
   });
 
   it('should display price correctly', () => {
-    render(<TokenCard token={mockToken} price={12345.67} />, {
+    render(<TokenCard token={mockToken} />, {
       wrapper: Wrapper,
     });
 
     // Цена должна отображаться
-    expect(document.body.textContent).toContain('12');
+    expect(document.body.textContent).toContain('50');
   });
 
   it('should display spread percentages', () => {
-    render(
-      <TokenCard token={mockToken} directSpread={2.5} reverseSpread={1.8} />,
-      { wrapper: Wrapper }
-    );
+    render(<TokenCard token={mockToken} />, { wrapper: Wrapper });
 
-    expect(document.body.textContent).toContain('2.5');
+    expect(document.body.textContent).toContain('0.5');
   });
 
   it('should handle hover state', async () => {
-    render(<TokenCard token={mockToken} price={100} />, { wrapper: Wrapper });
+    render(<TokenCard token={mockToken} />, { wrapper: Wrapper });
 
     const card = screen.getByText('BTC').closest('div');
     if (card) {
@@ -190,15 +206,17 @@ describe('TokenCard', () => {
   });
 
   it('should render loading state correctly', () => {
-    render(
-      <TokenCard
-        token={mockToken}
-        price={undefined}
-        directSpread={undefined}
-        reverseSpread={undefined}
-      />,
-      { wrapper: Wrapper }
-    );
+    const tokenWithEmptyPrices: StraightData = {
+      token: 'BTC',
+      aExchange: 'Jupiter',
+      bExchange: 'MEXC',
+      priceA: '',
+      priceB: '',
+      spread: '',
+      network: 'solana',
+      limit: 'all',
+    };
+    render(<TokenCard token={tokenWithEmptyPrices} />, { wrapper: Wrapper });
 
     expect(screen.getByText('BTC')).toBeInTheDocument();
   });

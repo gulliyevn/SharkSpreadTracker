@@ -38,12 +38,25 @@ describe('useTokens', () => {
   it('should fetch tokens on mount', async () => {
     const mockTokens = [
       {
-        symbol: 'BTC',
-        chain: 'solana' as const,
-        price: 50000,
-        directSpread: 0.5,
+        token: 'BTC',
+        aExchange: 'Jupiter',
+        bExchange: 'MEXC',
+        priceA: '50000',
+        priceB: '50100',
+        spread: '0.5',
+        network: 'solana',
+        limit: 'all',
       },
-      { symbol: 'ETH', chain: 'bsc' as const, price: 3000, directSpread: 0.3 },
+      {
+        token: 'ETH',
+        aExchange: 'PancakeSwap',
+        bExchange: 'MEXC',
+        priceA: '3000',
+        priceB: '3010',
+        spread: '0.3',
+        network: 'bsc',
+        limit: 'all',
+      },
     ];
 
     vi.mocked(getAllTokens).mockResolvedValue(mockTokens);

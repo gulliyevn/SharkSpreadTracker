@@ -43,12 +43,17 @@ body {
   font-weight: 700; /* Bold по умолчанию */
   font-display: swap; /* Показываем fallback шрифт пока загружается Poppins */
   background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
+  color: #111827; /* Темный цвет для светлого режима */
   line-height: 1.5;
   min-height: 100vh;
   transition:
     background-color var(--transition-base),
     color var(--transition-base);
+}
+
+/* Темная тема для body */
+.dark body {
+  color: #ffffff; /* Белый цвет для темного режима */
 }
 
 #root {

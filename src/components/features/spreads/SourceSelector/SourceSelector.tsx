@@ -143,7 +143,7 @@ export function SourceSelector({
                 'border-light-300 dark:border-dark-700',
                 'text-dark-950 dark:text-dark-50',
                 'hover:border-primary-500 dark:hover:border-primary-500',
-                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+                'focus:outline-none',
                 isOpen1 &&
                   'ring-2 ring-primary-500 border-primary-500 dark:border-primary-500'
               )}
@@ -274,7 +274,7 @@ export function SourceSelector({
                 'border-light-300 dark:border-dark-700',
                 'text-dark-950 dark:text-dark-50',
                 'hover:border-primary-500 dark:hover:border-primary-500',
-                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+                'focus:outline-none',
                 isOpen2 &&
                   'ring-2 ring-primary-500 border-primary-500 dark:border-primary-500'
               )}

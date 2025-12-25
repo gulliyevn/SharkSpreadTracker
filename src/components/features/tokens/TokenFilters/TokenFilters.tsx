@@ -45,7 +45,7 @@ export function TokenFilters({
             'w-16 sm:w-20 px-2 py-1 rounded border text-xs sm:text-sm',
             'bg-light-50 dark:bg-dark-800 border-light-300 dark:border-dark-700',
             'text-dark-950 dark:text-dark-50',
-            'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
+            'focus:outline-none'
           )}
         />
         <span className="text-xs sm:text-sm text-light-600 dark:text-dark-400">

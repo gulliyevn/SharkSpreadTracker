@@ -8,9 +8,6 @@ import type {
   TimeframeOption,
   MexcTradingLimits,
   StraightData,
-  ReverseData,
-  SpreadRow,
-  TokenWithData,
   AllPrices,
 } from '@/types';
 import { WEBSOCKET_URL } from '@/constants/api';
@@ -45,7 +42,7 @@ function setConnectionStatus(status: ConnectionStatus) {
  */
 export interface IApiAdapter {
   // Tokens
-  getAllTokens(signal?: AbortSignal): Promise<TokenWithData[]>;
+  getAllTokens(signal?: AbortSignal): Promise<StraightData[]>;
 
   // Prices
   getAllPrices(token: Token, signal?: AbortSignal): Promise<AllPrices>;
@@ -77,42 +74,6 @@ export interface IApiAdapter {
   ): Promise<MexcTradingLimits | null>;
 }
 
-/**
- * Нормализация одной строки ответа spреда от бэкенда
- */
-function normalizeSpreadRow(row: StraightData | ReverseData): SpreadRow | null {
-  const symbol = (row.token || '').toUpperCase().trim();
-  if (!symbol) return null;
-
-  const network = (row.network || '').toLowerCase();
-  let chain: 'solana' | 'bsc';
-  if (network === 'bsc' || network === 'bep20') {
-    chain = 'bsc';
-  } else {
-    // по умолчанию считаем solana, пока бэк не начнёт слать что-то иное
-    chain = 'solana';
-  }
-
-  const rawPriceA = row.priceA ? Number(row.priceA) : NaN;
-  const rawPriceB = row.priceB ? Number(row.priceB) : NaN;
-  const rawSpread = row.spread ? Number(row.spread) : NaN;
-
-  const priceA = Number.isFinite(rawPriceA) && rawPriceA > 0 ? rawPriceA : null;
-  const priceB = Number.isFinite(rawPriceB) && rawPriceB > 0 ? rawPriceB : null;
-  const spread = Number.isFinite(rawSpread) ? rawSpread : null;
-
-  return {
-    token: symbol,
-    chain,
-    aExchange: row.aExchange,
-    bExchange: row.bExchange,
-    priceA,
-    priceB,
-    spread,
-    limit: row.limit,
-  };
-}
-
 // Таймаут для batch обработки (legacy)
 let batchTimeout: ReturnType<typeof setTimeout> | null = null;
 const WS_TIMEOUT = 90000; // 1.5 минуты таймаут
@@ -123,16 +84,26 @@ async function fetchStraightSpreads(params: {
   network?: string;
   signal?: AbortSignal;
   _reconnectAttempt?: number;
-}): Promise<SpreadRow[]> {
+}): Promise<StraightData[]> {
   const reconnectAttempt = params._reconnectAttempt ?? 0;
 
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:82',message:'fetchStraightSpreads entry',data:{reconnectAttempt,hasToken:!!params.token,hasNetwork:!!params.network,WEBSOCKET_URL,BACKEND_URL:import.meta.env.VITE_BACKEND_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
   if (!WEBSOCKET_URL) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:90',message:'WEBSOCKET_URL is empty',data:{WEBSOCKET_URL,BACKEND_URL:import.meta.env.VITE_BACKEND_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     logger.warn('[WebSocket] WEBSOCKET_URL not configured, using mock data');
     setConnectionStatus('error');
     return [];
   }
 
   if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:96',message:'WebSocket not available',data:{hasWindow:typeof window!=='undefined',hasWebSocket:typeof WebSocket!=='undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     logger.warn('[WebSocket] WebSocket not available');
     setConnectionStatus('error');
     return [];
@@ -150,16 +121,24 @@ async function fetchStraightSpreads(params: {
     url.searchParams.set('network', params.network);
   }
 
-  return new Promise<SpreadRow[]>((resolve) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:106',message:'WebSocket URL constructed',data:{finalUrl:url.toString(),protocol:url.protocol,host:url.host,pathname:url.pathname,search:url.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
+  return new Promise<StraightData[]>((resolve) => {
     let settled = false;
-    const rows: SpreadRow[] = [];
+    const rows: StraightData[] = [];
     let messageCount = 0;
+    let dataReceivedTimeout: ReturnType<typeof setTimeout> | null = null;
 
     logger.debug(`[WebSocket] Opening connection to: ${url.toString()}`);
     const ws = new WebSocket(url.toString());
 
     // Таймаут 1.5 минуты
     const timeoutId = window.setTimeout(async () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:123',message:'WebSocket timeout triggered',data:{messageCount,rowsCount:rows.length,readyState:ws.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       if (settled) return;
       settled = true;
       logger.warn(`[WebSocket] Timeout after ${WS_TIMEOUT}ms, received ${messageCount} messages, ${rows.length} rows`);
@@ -189,10 +168,17 @@ async function fetchStraightSpreads(params: {
       }
     }, WS_TIMEOUT);
 
-    const finish = (result: SpreadRow[]) => {
+    const finish = (result: StraightData[]) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:157',message:'finish called',data:{resultCount:result.length,messageCount,settled,readyState:ws.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
+      if (dataReceivedTimeout) {
+        clearTimeout(dataReceivedTimeout);
+        dataReceivedTimeout = null;
+      }
       if (batchTimeout) {
         clearTimeout(batchTimeout);
         batchTimeout = null;
@@ -225,33 +211,20 @@ async function fetchStraightSpreads(params: {
       params.signal.addEventListener('abort', () => finish([]), { once: true });
     }
 
-    ws.onopen = () => {
-      logger.info('[WebSocket] ✅ Connected successfully!');
-      logger.debug('[WebSocket] readyState:', ws.readyState, '(1 = OPEN)');
-      setConnectionStatus('connected');
-      
-      // Попробуем отправить subscribe сообщение (если бэкенд этого требует)
-      // Раскомментируй нужный вариант:
-      
-      // Вариант 1: Пустое сообщение для "пинга"
-      // ws.send('');
-      
-      // Вариант 2: JSON subscribe
-      // ws.send(JSON.stringify({ action: 'subscribe', channel: 'spreads' }));
-      
-      // Вариант 3: Просто текст
-      // ws.send('subscribe');
-      
-      logger.debug('[WebSocket] Waiting for messages from server...');
-    };
-
-    ws.onmessage = (event) => {
-      const rawData = event.data as string;
+    const processMessage = (rawData: string) => {
       logger.info(`[WebSocket] 📩 MESSAGE received (${rawData.length} chars)`);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:234',message:'Processing message',data:{rawDataLength:rawData.length,rawDataPreview:rawData.slice(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       
       // Парсим сразу, без буферизации (данные приходят одним большим сообщением)
       try {
         const parsed = JSON.parse(rawData);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:240',message:'JSON parsed successfully',data:{isArray:Array.isArray(parsed),parsedType:typeof parsed,parsedKeys:typeof parsed==='object'&&parsed!==null?Object.keys(parsed):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
         const list = Array.isArray(parsed) ? parsed : [parsed];
         
         logger.info(`[WebSocket] Parsed ${list.length} items from message`);
@@ -259,26 +232,122 @@ async function fetchStraightSpreads(params: {
         // Логируем первый элемент для отладки
         if (list.length > 0 && messageCount === 0) {
           logger.debug('[WebSocket] First item sample:', JSON.stringify(list[0]));
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:247',message:'First item sample',data:{firstItem:list[0],hasToken:'token' in (list[0]||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+          // #endregion
         }
         
+        let itemsAdded = 0;
+        let itemsSkipped = 0;
         for (const item of list) {
-          const normalized = normalizeSpreadRow(item);
-          if (normalized) {
-            rows.push(normalized);
+          // Принимаем данные без изменений
+          if (item && typeof item === 'object' && 'token' in item) {
+            rows.push(item as StraightData);
+            itemsAdded++;
+          } else {
+            itemsSkipped++;
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:256',message:'Item skipped - does not match format',data:{item,hasToken:'token' in (item||{}),isObject:typeof item==='object',itemType:typeof item},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
           }
         }
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:262',message:'Items processed',data:{itemsAdded,itemsSkipped,totalRows:rows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         
         messageCount++;
         logger.info(`[WebSocket] Total rows so far: ${rows.length}`);
         
+        // Если получили данные, ждем 2 секунды на дополнительные сообщения, затем завершаем
+        // Это позволяет получить все данные, если они приходят несколькими сообщениями
+        if (dataReceivedTimeout) {
+          clearTimeout(dataReceivedTimeout);
+        }
+        dataReceivedTimeout = window.setTimeout(() => {
+          if (!settled && rows.length > 0) {
+            logger.info(`[WebSocket] Received ${rows.length} rows, finishing after 2s delay`);
+            finish(rows);
+          }
+        }, 2000); // 2 секунды задержка после последнего сообщения
+        
       } catch (err) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:275',message:'JSON parse error',data:{error:String(err),rawDataStart:rawData.slice(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         logger.error('[WebSocket] JSON parse error:', err);
         logger.debug('[WebSocket] Raw data start:', rawData.slice(0, 200));
         logger.debug('[WebSocket] Raw data end:', rawData.slice(-200));
       }
     };
 
+    ws.onopen = () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:194',message:'WebSocket onopen called',data:{readyState:ws.readyState,url:url.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      logger.info('[WebSocket] ✅ Connected successfully!');
+      logger.debug('[WebSocket] readyState:', ws.readyState, '(1 = OPEN)');
+      setConnectionStatus('connected');
+      
+      // Отправляем пустое сообщение для "активации" соединения
+      // Некоторые бэкенды требуют этого для начала передачи данных
+      try {
+        ws.send('');
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:202',message:'Sent empty activation message',data:{success:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        logger.debug('[WebSocket] Sent empty message to activate connection');
+      } catch (err) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:205',message:'Failed to send activation message',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        logger.warn('[WebSocket] Failed to send activation message:', err);
+      }
+      
+      logger.debug('[WebSocket] Waiting for messages from server...');
+    };
+
+    ws.onmessage = (event) => {
+      // #region agent log
+      const dataType = typeof event.data;
+      const dataIsString = typeof event.data === 'string';
+      const dataLength = dataIsString ? (event.data as string).length : (event.data as Blob).size || 0;
+      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:211',message:'WebSocket onmessage called',data:{dataType,dataIsString,dataLength,messageCount},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      
+      let rawData: string;
+      if (typeof event.data === 'string') {
+        rawData = event.data;
+      } else if (event.data instanceof Blob) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:217',message:'Data is Blob, converting to text',data:{size:event.data.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        // Если данные приходят как Blob, конвертируем в текст
+        event.data.text().then((text) => {
+          rawData = text;
+          processMessage(rawData);
+        }).catch((err) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:222',message:'Failed to convert Blob to text',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+          logger.error('[WebSocket] Failed to convert Blob to text:', err);
+        });
+        return;
+      } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:226',message:'Unknown data type',data:{dataType:typeof event.data,constructor:event.data?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        logger.error('[WebSocket] Unknown data type:', typeof event.data);
+        return;
+      }
+      
+      processMessage(rawData);
+    };
+
     ws.onerror = async (error) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:285',message:'WebSocket onerror called',data:{errorType:error?.type,readyState:ws.readyState,messageCount,rowsCount:rows.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       logger.error('[WebSocket] ❌ Error:', error);
       setConnectionStatus('error');
       
@@ -313,6 +382,9 @@ async function fetchStraightSpreads(params: {
     };
 
     ws.onclose = (event) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:367',message:'WebSocket onclose called',data:{code:event.code,reason:event.reason,wasClean:event.wasClean,messageCount,rowsCount:rows.length,settled,readyState:ws.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       logger.info(`[WebSocket] 🔌 Closed: code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`);
       logger.info(`[WebSocket] Stats: received ${messageCount} messages, parsed ${rows.length} rows`);
       
@@ -335,9 +407,16 @@ async function fetchStraightSpreads(params: {
 /**
  * Backend‑реализация адаптера.
  */
-class BackendApiAdapter implements IApiAdapter {
-  async getAllTokens(signal?: AbortSignal): Promise<TokenWithData[]> {
+  class BackendApiAdapter implements IApiAdapter {
+  async getAllTokens(signal?: AbortSignal): Promise<StraightData[]> {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:394',message:'getAllTokens called',data:{signalAborted:signal?.aborted},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     const rows = await fetchStraightSpreads({ signal });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-adapter.ts:398',message:'getAllTokens result',data:{rowsCount:rows.length,firstRow:rows[0]||null,allRows:rows},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     
     // Если WebSocket вернул пустой результат - возвращаем пустой массив
     if (rows.length === 0) {
@@ -345,49 +424,9 @@ class BackendApiAdapter implements IApiAdapter {
       return [];
     }
     
-    const map = new Map<string, TokenWithData>();
-
-    for (const row of rows) {
-      const key = `${row.token}-${row.chain}`;
-      const prev = map.get(key);
-
-      const base: TokenWithData =
-        prev ??
-        ({
-          symbol: row.token,
-          chain: row.chain,
-          address: undefined,
-          price: null,
-          directSpread: null,
-          reverseSpread: null,
-        } as TokenWithData);
-
-      const priceCandidates: number[] = [];
-      if (row.priceA != null) priceCandidates.push(row.priceA);
-      if (row.priceB != null) priceCandidates.push(row.priceB);
-      const price =
-        priceCandidates.length > 0
-          ? priceCandidates.reduce((sum, v) => sum + v, 0) /
-            priceCandidates.length
-          : (base.price ?? null);
-
-      const directSpread = row.spread ?? base.directSpread ?? null;
-
-      map.set(key, {
-        ...base,
-        price,
-        directSpread,
-        // обратный спред появится позже из отдельного эндпоинта
-        reverseSpread: base.reverseSpread ?? null,
-      });
-    }
-
-    const result = Array.from(map.values()).sort((a, b) =>
-      a.symbol.localeCompare(b.symbol)
-    );
-
-    logger.info(`[API] Loaded ${result.length} tokens from backend`);
-    return result;
+    // Возвращаем данные без изменений
+    logger.info(`[API] Loaded ${rows.length} tokens from backend`);
+    return rows;
   }
 
   async getAllPrices(token: Token, signal?: AbortSignal): Promise<AllPrices> {
@@ -399,8 +438,10 @@ class BackendApiAdapter implements IApiAdapter {
 
     const priceCandidates: number[] = [];
     for (const row of rows) {
-      if (row.priceA != null) priceCandidates.push(row.priceA);
-      if (row.priceB != null) priceCandidates.push(row.priceB);
+      const priceA = row.priceA ? Number(row.priceA) : null;
+      const priceB = row.priceB ? Number(row.priceB) : null;
+      if (priceA != null && Number.isFinite(priceA) && priceA > 0) priceCandidates.push(priceA);
+      if (priceB != null && Number.isFinite(priceB) && priceB > 0) priceCandidates.push(priceB);
     }
 
     const price =
@@ -439,21 +480,32 @@ class BackendApiAdapter implements IApiAdapter {
       signal,
     });
 
+    // Преобразуем network в chain для фильтрации
+    const network = token.chain === 'bsc' ? 'bsc' : 'solana';
     const relevant = rows.filter(
-      (r) => r.token === token.symbol.toUpperCase() && r.chain === token.chain
+      (r) => (r.token || '').toUpperCase().trim() === token.symbol.toUpperCase() && 
+             (r.network || '').toLowerCase() === network
     );
 
     const latest = relevant[0];
     const now = Date.now();
 
+    // Преобразуем строки в числа
+    const priceA = latest?.priceA ? Number(latest.priceA) : null;
+    const priceB = latest?.priceB ? Number(latest.priceB) : null;
+    
+    // Определяем какая биржа какая по aExchange/bExchange
+    const isJupiterA = latest?.aExchange?.toLowerCase().includes('jupiter');
+    const isMEXCB = latest?.bExchange?.toLowerCase().includes('mexc');
+    
     const current =
-      latest && (latest.priceA != null || latest.priceB != null)
+      latest && (priceA != null || priceB != null)
         ? {
             timestamp: now,
             mexc_bid: null,
             mexc_ask: null,
-            mexc_price: latest.priceB ?? null,
-            jupiter_price: latest.priceA ?? null,
+            mexc_price: isMEXCB ? priceB : (isJupiterA ? null : priceB),
+            jupiter_price: isJupiterA ? priceA : null,
             pancakeswap_price: null,
           }
         : null;
@@ -514,16 +566,20 @@ class BackendApiAdapter implements IApiAdapter {
 
     for (const token of tokens) {
       const key = `${token.symbol.toUpperCase()}-${token.chain}`;
+      const network = token.chain === 'bsc' ? 'bsc' : 'solana';
       const matches = rows.filter(
-        (r) => r.token === token.symbol.toUpperCase() && r.chain === token.chain
+        (r) => (r.token || '').toUpperCase().trim() === token.symbol.toUpperCase() && 
+               (r.network || '').toLowerCase() === network
       );
 
       if (!matches.length) continue;
 
       const priceCandidates: number[] = [];
       for (const row of matches) {
-        if (row.priceA != null) priceCandidates.push(row.priceA);
-        if (row.priceB != null) priceCandidates.push(row.priceB);
+        const priceA = row.priceA ? Number(row.priceA) : null;
+        const priceB = row.priceB ? Number(row.priceB) : null;
+        if (priceA != null && Number.isFinite(priceA) && priceA > 0) priceCandidates.push(priceA);
+        if (priceB != null && Number.isFinite(priceB) && priceB > 0) priceCandidates.push(priceB);
       }
 
       const price =
@@ -533,9 +589,10 @@ class BackendApiAdapter implements IApiAdapter {
           : null;
 
       const bestSpread = matches.reduce<number | null>((acc, row) => {
-        if (row.spread == null) return acc;
-        if (acc == null) return row.spread;
-        return Math.max(acc, row.spread);
+        const spread = row.spread ? Number(row.spread) : null;
+        if (spread == null || !Number.isFinite(spread)) return acc;
+        if (acc == null) return spread;
+        return Math.max(acc, spread);
       }, null);
 
       byKey.set(key, {

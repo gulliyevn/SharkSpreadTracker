@@ -24,15 +24,27 @@ export function ChartsPage() {
     if (chainFilter === 'all') {
       return tokens;
     }
-    return tokens.filter((token) => token.chain === chainFilter);
+    return tokens.filter((row) => {
+      const network = (row.network || '').toLowerCase();
+      if (chainFilter === 'bsc') {
+        return network === 'bsc' || network === 'bep20';
+      }
+      return network !== 'bsc' && network !== 'bep20';
+    });
   }, [tokens, chainFilter]);
 
   // Подсчет токенов по chain
   const chainCounts = useMemo(() => {
     const counts = {
       all: tokens.length,
-      solana: tokens.filter((t) => t.chain === 'solana').length,
-      bsc: tokens.filter((t) => t.chain === 'bsc').length,
+      solana: tokens.filter((row) => {
+        const network = (row.network || '').toLowerCase();
+        return network !== 'bsc' && network !== 'bep20';
+      }).length,
+      bsc: tokens.filter((row) => {
+        const network = (row.network || '').toLowerCase();
+        return network === 'bsc' || network === 'bep20';
+      }).length,
     };
     return counts;
   }, [tokens]);

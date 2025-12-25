@@ -40,17 +40,17 @@ export function ErrorDisplay({
         <AlertCircle className="h-16 w-16 sm:h-20 sm:w-20 text-error-500 dark:text-error-400" />
       </div>
 
-      <h2 className="text-xl sm:text-2xl font-bold mb-2 text-dark-950 dark:text-dark-50">
+      <h2 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-white">
         {title || t('common.error') || 'Error'}
       </h2>
 
-      <p className="text-sm sm:text-base text-light-600 dark:text-dark-400 mb-6 max-w-md">
+      <p className="text-sm sm:text-base text-gray-700 dark:text-gray-400 mb-6 max-w-md">
         {errorMessage}
       </p>
 
       {showDetails && error instanceof Error && (
         <details className="mb-6 text-left max-w-md w-full">
-          <summary className="cursor-pointer text-sm text-light-500 dark:text-dark-500 mb-2">
+          <summary className="cursor-pointer text-sm text-gray-600 dark:text-gray-500 mb-2">
             {t('common.details') || 'Details'}
           </summary>
           <pre className="text-xs bg-light-100 dark:bg-dark-800 p-3 rounded overflow-auto">

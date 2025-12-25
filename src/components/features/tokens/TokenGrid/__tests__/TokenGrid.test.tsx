@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { TokenGrid } from '../TokenGrid';
-import type { TokenWithFavorite } from '../TokenGrid';
+import type { StraightData } from '@/types';
 
 // Mock TokenCard - используем правильный путь
 vi.mock('@/components/features/tokens/TokenCard', () => ({
@@ -10,11 +10,11 @@ vi.mock('@/components/features/tokens/TokenCard', () => ({
     token,
     onFavoriteToggle,
   }: {
-    token: { symbol: string; chain: string };
-    onFavoriteToggle?: (token: { symbol: string; chain: string }) => void;
+    token: StraightData;
+    onFavoriteToggle?: (token: StraightData) => void;
   }) => (
-    <div data-testid={`token-card-${token.symbol}`}>
-      {token.symbol}
+    <div data-testid={`token-card-${token.token}`}>
+      {token.token}
       {onFavoriteToggle && (
         <button onClick={() => onFavoriteToggle(token)}>Toggle Favorite</button>
       )}
@@ -23,30 +23,36 @@ vi.mock('@/components/features/tokens/TokenCard', () => ({
 }));
 
 describe('TokenGrid', () => {
-  const mockTokens: TokenWithFavorite[] = [
+  const mockTokens: StraightData[] = [
     {
-      symbol: 'BTC',
-      chain: 'solana',
-      price: 50000,
-      directSpread: 5.5,
-      reverseSpread: -3.2,
-      isFavorite: false,
+      token: 'BTC',
+      aExchange: 'Jupiter',
+      bExchange: 'MEXC',
+      priceA: '50000',
+      priceB: '50250',
+      spread: '5.5',
+      network: 'solana',
+      limit: 'all',
     },
     {
-      symbol: 'ETH',
-      chain: 'bsc',
-      price: 3000,
-      directSpread: 2.1,
-      reverseSpread: null,
-      isFavorite: true,
+      token: 'ETH',
+      aExchange: 'PancakeSwap',
+      bExchange: 'MEXC',
+      priceA: '3000',
+      priceB: '3063',
+      spread: '2.1',
+      network: 'bsc',
+      limit: 'all',
     },
     {
-      symbol: 'SOL',
-      chain: 'solana',
-      price: 100,
-      directSpread: null,
-      reverseSpread: null,
-      isFavorite: false,
+      token: 'SOL',
+      aExchange: 'Jupiter',
+      bExchange: 'MEXC',
+      priceA: '100',
+      priceB: '100',
+      spread: '0',
+      network: 'solana',
+      limit: 'all',
     },
   ];
 
@@ -144,9 +150,27 @@ describe('TokenGrid', () => {
   });
 
   it('should generate unique keys for tokens', () => {
-    const duplicateTokens: TokenWithFavorite[] = [
-      { symbol: 'BTC', chain: 'solana', price: 50000 },
-      { symbol: 'BTC', chain: 'bsc', price: 50000 },
+    const duplicateTokens: StraightData[] = [
+      {
+        token: 'BTC',
+        aExchange: 'Jupiter',
+        bExchange: 'MEXC',
+        priceA: '50000',
+        priceB: '50100',
+        spread: '0.5',
+        network: 'solana',
+        limit: 'all',
+      },
+      {
+        token: 'BTC',
+        aExchange: 'PancakeSwap',
+        bExchange: 'MEXC',
+        priceA: '50000',
+        priceB: '50100',
+        spread: '0.5',
+        network: 'bsc',
+        limit: 'all',
+      },
     ];
 
     render(<TokenGrid tokens={duplicateTokens} />);

@@ -8,12 +8,12 @@ import { AutoRefreshToggle } from '../AutoRefreshToggle';
 import { CurrentPricesPanel } from '../CurrentPricesPanel';
 import { SpreadAnalysisPanel } from '../SpreadAnalysisPanel';
 import { useSpreadData } from '@/api/hooks/useSpreadData';
-import type { Token } from '@/types';
+import type { Token, StraightData } from '@/types';
 import type { SourceType } from '@/types';
 import type { TimeframeOption } from '@/types';
 
 export interface ChartsLayoutProps {
-  tokens: Token[];
+  tokens: StraightData[];
   className?: string;
 }
 
@@ -133,8 +133,18 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
 
   // Обработчики
   const handleTokenSelect = useCallback((token: Token) => {
-    setSelectedToken(token);
-  }, []);
+    // Находим соответствующий StraightData из tokens
+    const straightData = tokens.find(
+      (row) =>
+        (row.token || '').toUpperCase().trim() === token.symbol.toUpperCase() &&
+        ((row.network || '').toLowerCase() === token.chain ||
+          (token.chain === 'bsc' && (row.network || '').toLowerCase() === 'bep20'))
+    );
+    if (straightData) {
+      // Сохраняем только Token для useSpreadData
+      setSelectedToken(token);
+    }
+  }, [tokens]);
 
   const handleTimeframeChange = useCallback((value: TimeframeOption) => {
     setTimeframe(value);
@@ -162,13 +172,17 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
     }
   }, [selectedToken, refetchSpread]);
 
-  // Фильтруем токены для селектора (уникальные по symbol-chain)
+  // Фильтруем токены для селектора (уникальные по symbol-network)
   const uniqueTokens = useMemo(() => {
     const tokenMap = new Map<string, Token>();
-    tokens.forEach((token) => {
-      const key = `${token.symbol}-${token.chain}`;
+    tokens.forEach((row) => {
+      const network = (row.network || '').toLowerCase();
+      const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+      const symbol = (row.token || '').toUpperCase().trim();
+      if (!symbol) return;
+      const key = `${symbol}-${chain}`;
       if (!tokenMap.has(key)) {
-        tokenMap.set(key, token);
+        tokenMap.set(key, { symbol, chain });
       }
     });
     return Array.from(tokenMap.values()).sort((a, b) =>

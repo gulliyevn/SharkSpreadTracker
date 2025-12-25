@@ -1,23 +1,21 @@
-import { Star, Copy, Check, Pencil } from 'lucide-react';
+import { Star, Copy, Check, Pencil, ArrowLeftRight } from 'lucide-react';
 import { useState, memo, useCallback, useMemo } from 'react';
 import { cn } from '@/utils/cn';
-import type { Token } from '@/types';
-import { PriceDisplay } from '@/components/features/tokens/PriceDisplay';
-import { SpreadIndicator } from '@/components/features/tokens/SpreadIndicator';
-import { getSourcesForChain } from '@/constants/sources';
+import type { StraightData } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
-import { createJupiterSwapUrlWithUSDC } from '@/utils/jupiter-swap';
-import { createPancakeSwapUrlWithBUSD } from '@/utils/pancakeswap-swap';
-import { logger } from '@/utils/logger';
+import { createMexcFuturesUrl } from '@/utils/mexc-futures';
+
+// Иконки бирж и сетей из публичной папки assets
+const MEXC_LOGO = '/assets/MEXC Logo Mark_Blue.png';
+const SOLANA_LOGO = '/assets/solana-sol-logo.svg';
+const BSC_LOGO = '/assets/bnb-bnb-logo.svg';
 
 interface TokenCardProps {
-  token: Token;
-  price?: number | null;
-  directSpread?: number | null;
-  reverseSpread?: number | null;
+  token: StraightData;
+  reverseSpread?: number | null; // Обратный спред из отдельной ручки сервера
   isFavorite?: boolean;
-  onFavoriteToggle?: (token: Token) => void;
-  onEdit?: (token: Token) => void;
+  onFavoriteToggle?: (token: StraightData) => void;
+  onEdit?: (token: StraightData) => void;
 }
 
 /**
@@ -26,9 +24,7 @@ interface TokenCardProps {
  */
 export const TokenCard = memo(function TokenCard({
   token,
-  price = null,
-  directSpread = null,
-  reverseSpread = null,
+  reverseSpread = null, // Обратный спред из отдельной ручки сервера
   isFavorite = false,
   onFavoriteToggle,
   onEdit,
@@ -37,35 +33,51 @@ export const TokenCard = memo(function TokenCard({
   const [isCopied, setIsCopied] = useState(false);
   const { success } = useToast();
 
-  // Логируем данные для диагностики (только в dev режиме)
-  if (import.meta.env.DEV && token.symbol === 'BTC') {
-    logger.debug('[TokenCard] Price data for', token.symbol, ':', {
-      price,
-      priceType: typeof price,
-      directSpread,
-      reverseSpread,
-      token: { symbol: token.symbol, chain: token.chain },
-    });
-  }
+  // Извлекаем данные из StraightData
+  const tokenSymbol = (token.token || '').toUpperCase().trim();
+  const network = (token.network || '').toLowerCase();
+  const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+  const directSpread = token.spread ? Number(token.spread) : null; // Прямой спред (BNB/Sol → MEXC)
+  const limit = token.limit || 'all';
+  
+  // Форматируем лимит: если "all" - показываем "all", иначе число с $
+  const formattedLimit = limit === 'all' ? 'all' : limit.includes('$') ? limit : `${limit}$`;
 
-  // Получаем доступные источники для chain
-  const availableSources = getSourcesForChain(token.chain);
+  // Определяем биржи
+  const aExchange = (token.aExchange || '').toLowerCase();
+  const bExchange = (token.bExchange || '').toLowerCase();
+  const isMexcA = aExchange === 'mexc';
+  const isMexcB = bExchange === 'mexc';
+
+  // Определяем network exchange (не MEXC)
+  const networkExchange = isMexcB ? aExchange : (isMexcA ? bExchange : aExchange);
 
   // URL для бирж
-  const exchangeUrls = useMemo<Record<string, string>>(
-    () => ({
-      mexc: 'https://www.mexc.com',
-      jupiter:
-        token.address && token.chain === 'solana'
-          ? createJupiterSwapUrlWithUSDC(token.address, 'buy')
-          : 'https://jup.ag',
-      pancakeswap:
-        token.address && token.chain === 'bsc'
-          ? createPancakeSwapUrlWithBUSD(token.address, 'buy')
-          : 'https://pancakeswap.finance',
-    }),
-    [token]
-  );
+  const exchangeUrls = useMemo<Record<string, string>>(() => {
+    const urls: Record<string, string> = {};
+    
+    // MEXC Futures URL
+    urls.mexc = createMexcFuturesUrl(tokenSymbol);
+    
+    // Network exchange URL (Jupiter, Match, или PancakeSwap)
+    if (networkExchange === 'jupiter') {
+      urls.network = 'https://jup.ag';
+    } else if (networkExchange === 'match') {
+      urls.network = 'https://match.xyz';
+    } else if (networkExchange === 'pancakeswap') {
+      urls.network = 'https://pancakeswap.finance';
+    } else {
+      // Fallback
+      urls.network = chain === 'solana' ? 'https://jup.ag' : 'https://pancakeswap.finance';
+    }
+    
+    return urls;
+  }, [tokenSymbol, networkExchange, chain]);
+
+  // Иконка для сети (Solana или BSC)
+  const networkIcon = useMemo(() => {
+    return chain === 'solana' ? SOLANA_LOGO : BSC_LOGO;
+  }, [chain]);
 
   // Вычисляем максимальный спред для динамического ring
   const maxSpread = Math.max(directSpread || 0, reverseSpread || 0);
@@ -79,18 +91,16 @@ export const TokenCard = memo(function TokenCard({
   const handleMouseEnter = useCallback(() => setIsHovered(true), []);
   const handleMouseLeave = useCallback(() => setIsHovered(false), []);
 
-  const handleCopyAddress = useCallback(async () => {
-    if (!token.address) return;
-
+  const handleCopyToken = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(token.address);
+      await navigator.clipboard.writeText(tokenSymbol);
       setIsCopied(true);
-      success('Address copied to clipboard');
+      success('Token symbol copied to clipboard');
       setTimeout(() => setIsCopied(false), 2000);
     } catch {
       // Fallback для старых браузеров
       const textArea = document.createElement('textarea');
-      textArea.value = token.address;
+      textArea.value = tokenSymbol;
       textArea.style.position = 'fixed';
       textArea.style.opacity = '0';
       document.body.appendChild(textArea);
@@ -98,24 +108,28 @@ export const TokenCard = memo(function TokenCard({
       try {
         document.execCommand('copy');
         setIsCopied(true);
-        success('Address copied to clipboard');
+        success('Token symbol copied to clipboard');
         setTimeout(() => setIsCopied(false), 2000);
       } catch {
         // Игнорируем ошибку
       }
       document.body.removeChild(textArea);
     }
-  }, [token.address, success]);
+  }, [tokenSymbol, success]);
 
-  const handleExchangeClick = useCallback(
-    (sourceId: string) => {
-      const url = exchangeUrls[sourceId];
+  const handleMexcClick = useCallback(() => {
+    const url = exchangeUrls.mexc;
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }, [exchangeUrls]);
+
+  const handleNetworkExchangeClick = useCallback(() => {
+    const url = exchangeUrls.network;
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
       }
-    },
-    [exchangeUrls]
-  );
+  }, [exchangeUrls]);
 
   const handleEdit = useCallback(() => {
     onEdit?.(token);
@@ -124,7 +138,7 @@ export const TokenCard = memo(function TokenCard({
   return (
     <article
       className={cn(
-        'group relative bg-light-50 dark:bg-dark-800 border border-light-200 dark:border-dark-700 rounded-lg p-3 sm:p-4',
+        'group relative bg-white dark:bg-dark-800 border border-light-200 dark:border-dark-700 rounded-lg p-1',
         'hover:border-primary-500 dark:hover:border-primary-500 transition-all duration-200',
         'hover:shadow-md dark:hover:shadow-lg',
         isHovered && 'ring-2 ring-primary-500'
@@ -139,19 +153,19 @@ export const TokenCard = memo(function TokenCard({
       }
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      aria-label={`Token ${token.symbol} on ${token.chain}`}
+      aria-label={`Token ${tokenSymbol} on ${chain}`}
     >
-      <div className="flex items-start justify-between mb-2">
-        {/* Левая часть: звезда, название и кнопка копирования */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      {/* Основной контейнер: левая часть (название) и правая часть (иконки + спреды) */}
+      <div className="flex items-center gap-3 w-full">
+        {/* Звезда - выровнена по центру вертикально */}
           <button
             onClick={handleFavoriteToggle}
             className={cn(
-              'flex-shrink-0 p-2 transition-colors touch-manipulation',
-              'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
+            'flex-shrink-0 p-0 transition-colors touch-manipulation self-center',
+            'w-7 h-7 flex items-center justify-center',
               isFavorite
                 ? 'text-yellow-500'
-                : 'text-light-400 dark:text-dark-500 hover:text-yellow-500'
+              : 'text-gray-500 dark:text-gray-500 hover:text-yellow-500'
             )}
             aria-label={
               isFavorite ? 'Remove from favorites' : 'Add to favorites'
@@ -159,87 +173,128 @@ export const TokenCard = memo(function TokenCard({
           >
             <Star
               className={cn(
-                'h-4 w-4 sm:h-5 sm:w-5',
+              'h-4 w-4',
                 isFavorite && 'fill-current'
               )}
             />
           </button>
-          <span className="font-bold text-sm sm:text-base text-dark-950 dark:text-dark-50 truncate">
-            {token.symbol}
+
+        {/* Левая часть: название, лимит */}
+        <div className="flex flex-col gap-1 flex-1 min-w-0 basis-0">
+          {/* Верхняя строка: название, копирование */}
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-sm text-gray-900 dark:text-white truncate">
+              {tokenSymbol}
           </span>
-          {/* Кнопка копирования address */}
-          {token.address && (
+            {/* Кнопка копирования символа токена */}
             <button
-              onClick={handleCopyAddress}
+              onClick={handleCopyToken}
               className={cn(
-                'flex-shrink-0 p-2 rounded transition-colors touch-manipulation',
-                'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
+                'flex-shrink-0 p-0.5 rounded transition-colors touch-manipulation',
+                'w-5 h-5 flex items-center justify-center',
                 isCopied
                   ? 'text-green-500 dark:text-green-400'
-                  : 'text-light-500 dark:text-dark-400 hover:text-primary-500 dark:hover:text-primary-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400'
               )}
-              aria-label="Copy token address"
-              title="Copy address"
+              aria-label="Copy token symbol"
+              title="Copy token symbol"
             >
               {isCopied ? (
-                <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <Check className="h-3 w-3" />
               ) : (
-                <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <Copy className="h-3 w-3" />
               )}
             </button>
-          )}
+          </div>
+          {/* Средняя строка: Лимит */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              {formattedLimit}
+            </span>
+          </div>
         </div>
 
-        {/* Правая часть: цена */}
-        <div className="flex-shrink-0 ml-2">
-          <PriceDisplay
-            value={price}
-            className="font-bold text-sm sm:text-base"
-          />
-        </div>
-      </div>
-
-      {/* Процентные метки (зеленая и красная) */}
-      <div className="flex items-center gap-2 mb-3">
-        <SpreadIndicator value={directSpread} type="direct" className="mr-1" />
-        <SpreadIndicator value={reverseSpread} type="reverse" />
-      </div>
-
-      {/* Иконки бирж (кликабельные) и кнопка редактирования */}
-      <div className="flex items-center gap-1.5 sm:gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        {/* Иконки бирж */}
-        {availableSources.map((source) => (
+        {/* Средняя часть: Network иконка, стрелка, MEXC иконка */}
+        <div className="flex items-center gap-1.5 flex-shrink-0 basis-auto">
           <button
-            key={source.id}
-            onClick={() => handleExchangeClick(source.id)}
+            onClick={handleNetworkExchangeClick}
             className={cn(
-              'p-2 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation',
-              'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
+              'p-0.5 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation',
+              'w-6 h-6 flex items-center justify-center',
               'hover:scale-110 active:scale-95'
             )}
-            title={`Open ${source.label}`}
-            aria-label={`Open ${source.label} exchange`}
+            title={`Open ${networkExchange} on ${chain}`}
+            aria-label={`Open ${networkExchange} on ${chain}`}
           >
-            <span
-              className={cn('text-lg sm:text-xl', source.colorTailwind)}
-              role="img"
-              aria-label={source.label}
-            >
-              {source.emoji}
-            </span>
+            <img
+              src={networkIcon}
+              alt={chain}
+              className="h-5 w-5 object-contain"
+            />
           </button>
-        ))}
-        {/* Кнопка редактирования */}
-        {onEdit && (
+          <ArrowLeftRight className="h-4 w-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
+          <button
+            onClick={handleMexcClick}
+            className={cn(
+              'p-0.5 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation',
+              'w-6 h-6 flex items-center justify-center',
+              'hover:scale-110 active:scale-95'
+            )}
+            title="Open MEXC Futures"
+            aria-label="Open MEXC Futures"
+          >
+            <img
+              src={MEXC_LOGO}
+              alt="MEXC"
+              className="h-5 w-5 object-contain"
+            />
+          </button>
+        </div>
+
+        {/* Правая часть: Кнопка редактирования и два спреда (зеленый и красный) */}
+        <div className="flex items-center gap-2 flex-shrink-0 basis-auto">
+          {/* Кнопка редактирования - всегда показываем */}
           <button
             onClick={handleEdit}
-            className="p-2 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-0 rounded border border-light-300 dark:border-dark-600 hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation w-7 h-7 flex items-center justify-center"
             title="Edit token settings"
             aria-label="Edit token settings"
           >
-            <Pencil className="h-4 w-4 sm:h-5 sm:w-5 text-light-600 dark:text-dark-400" />
+            <Pencil className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </button>
-        )}
+          {/* Контейнер для спредов: зеленый слева, красный/серый справа, разделены по середине */}
+          <div className="flex h-7 rounded overflow-hidden">
+            {/* Зеленый спред (прямой: BNB/Sol → MEXC) - слева */}
+            {directSpread !== null ? (
+              <div className="bg-green-500 dark:bg-green-600 px-2.5 min-w-[50px] h-full flex items-center justify-center text-center">
+                <span className="text-white text-xs font-medium">
+                  {directSpread.toFixed(2)}%
+                </span>
+              </div>
+            ) : (
+              <div className="bg-gray-400 dark:bg-gray-600 px-2.5 min-w-[50px] h-full flex items-center justify-center text-center">
+                <span className="text-white text-xs font-medium">
+                  —
+                </span>
+              </div>
+            )}
+            {/* Обратный спред (обратный: MEXC → BNB/Sol, из отдельной ручки сервера) - справа */}
+            <div
+              className={cn(
+                'px-2.5 min-w-[50px] h-full flex items-center justify-center text-center',
+                reverseSpread !== null && !isNaN(reverseSpread)
+                  ? 'bg-red-500 dark:bg-red-600'
+                  : 'bg-gray-400 dark:bg-gray-600'
+              )}
+            >
+              <span className="text-white text-xs font-medium">
+                {reverseSpread !== null && !isNaN(reverseSpread)
+                  ? `${reverseSpread.toFixed(2)}%`
+                  : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </article>
   );

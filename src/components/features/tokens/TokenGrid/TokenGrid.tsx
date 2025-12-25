@@ -1,16 +1,12 @@
 import { useState, useEffect, memo, useCallback } from 'react';
 import { TokenCard } from '../TokenCard';
-import type { TokenWithData } from '@/types';
+import type { StraightData } from '@/types';
 import { logger } from '@/utils/logger';
 
-export interface TokenWithFavorite extends TokenWithData {
-  isFavorite?: boolean;
-}
-
 export interface TokenGridProps {
-  tokens: TokenWithFavorite[];
-  onFavoriteToggle?: (token: TokenWithFavorite) => void;
-  onEdit?: (token: TokenWithFavorite) => void;
+  tokens: StraightData[];
+  onFavoriteToggle?: (token: StraightData) => void;
+  onEdit?: (token: StraightData) => void;
 }
 
 /**
@@ -75,18 +71,21 @@ export const TokenGrid = memo(function TokenGrid({
         gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
       }}
     >
-      {tokens.map((token, index) => (
-        <TokenCard
-          key={`${token.symbol}-${token.chain}-${index}`}
-          token={token}
-          price={token.price}
-          directSpread={token.directSpread}
-          reverseSpread={token.reverseSpread}
-          isFavorite={token.isFavorite}
-          onFavoriteToggle={onFavoriteToggle}
-          onEdit={onEdit}
-        />
-      ))}
+      {tokens.map((row, index) => {
+        const network = (row.network || '').toLowerCase();
+        const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+        const symbol = (row.token || '').toUpperCase().trim();
+        
+        return (
+          <TokenCard
+            key={`${symbol}-${chain}-${index}`}
+            token={row}
+            isFavorite={false}
+            onFavoriteToggle={onFavoriteToggle ? () => onFavoriteToggle(row) : undefined}
+            onEdit={onEdit ? () => onEdit(row) : undefined}
+          />
+        );
+      })}
     </div>
   );
 });

@@ -15,7 +15,9 @@
     "retry": "Try Again",
     "goHome": "Go Home",
     "details": "Details",
-    "loaded": "loaded"
+    "loaded": "loaded",
+    "auto": "Auto",
+    "refresh": "Refresh"
   },
   "app": {
     "title": "Shark Spread Tracker",
@@ -75,10 +77,14 @@
     "allLoaded": "All tokens loaded"
   },
   "filters": {
-    "minSpread": "OT:",
-    "directOnly": "Only direct",
-    "reverseOnly": "Only reverse",
-    "sort": "Sort:"
+    "minSpread": "Min:",
+    "all": "All",
+    "directOnly": "Direct",
+    "reverseOnly": "Reverse",
+    "sort": "Sort:",
+    "sortBySpread": "By Spread",
+    "sortByName": "By Name",
+    "sortByPrice": "By Price"
   },
   "validation": {
     "invalidApiKey": "Invalid API key format",

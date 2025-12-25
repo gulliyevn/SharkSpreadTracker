@@ -17,13 +17,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           className={cn(
             'w-full px-3 py-2 rounded-lg border transition-colors',
-            'bg-light-50 dark:bg-dark-800',
+            'bg-white dark:bg-dark-800',
             'border-light-300 dark:border-dark-700',
-            'text-dark-950 dark:text-dark-50',
-            'placeholder:text-light-500 dark:placeholder:text-dark-500',
-            'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+            'text-gray-900 dark:text-white',
+            'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+            'focus:outline-none',
             error &&
-              'border-error-500 dark:border-error-500 focus:ring-error-500',
+              'border-error-500 dark:border-error-500',
             className
           )}
           {...props}
@@ -34,7 +34,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               'mt-1 text-xs',
               error
                 ? 'text-error-600 dark:text-error-400'
-                : 'text-light-600 dark:text-dark-400'
+                : 'text-gray-700 dark:text-gray-400'
             )}
           >
             {helperText}

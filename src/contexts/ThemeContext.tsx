@@ -27,6 +27,7 @@ function getSystemTheme(): 'light' | 'dark' {
 
 /**
  * Применить тему к документу
+ * Tailwind использует darkMode: 'class', поэтому для светлой темы просто удаляем класс 'dark'
  */
 function applyTheme(theme: 'light' | 'dark') {
   if (typeof document === 'undefined') {
@@ -36,9 +37,7 @@ function applyTheme(theme: 'light' | 'dark') {
   const root = document.documentElement;
   if (theme === 'dark') {
     root.classList.add('dark');
-    root.classList.remove('light');
   } else {
-    root.classList.add('light');
     root.classList.remove('dark');
   }
 }
