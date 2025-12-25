@@ -13,9 +13,8 @@ import type {
   TokenWithData,
   AllPrices,
 } from '@/types';
-import { WEBSOCKET_URL, USE_MOCK_DATA } from '@/constants/api';
+import { WEBSOCKET_URL } from '@/constants/api';
 import { logger } from '@/utils/logger';
-import { getMockTokens, MOCK_TOKENS } from '@/api/mockData/tokens.mock';
 
 // Состояние соединения для экспорта
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
@@ -128,22 +127,6 @@ async function fetchStraightSpreads(params: {
   _reconnectAttempt?: number;
 }): Promise<SpreadRow[]> {
   const reconnectAttempt = params._reconnectAttempt ?? 0;
-
-  // Если включен режим mock данных
-  if (USE_MOCK_DATA) {
-    logger.info('[API] Using mock data (USE_MOCK_DATA=true)');
-    setConnectionStatus('connected');
-    return MOCK_TOKENS.map((t) => ({
-      token: t.symbol,
-      chain: t.chain,
-      aExchange: 'Jupiter',
-      bExchange: 'MEXC',
-      priceA: t.price ?? null,
-      priceB: t.price ? t.price * 1.02 : null,
-      spread: t.directSpread ?? null,
-      limit: 'all',
-    }));
-  }
 
   if (!WEBSOCKET_URL) {
     logger.warn('[WebSocket] WEBSOCKET_URL not configured, using mock data');
@@ -337,11 +320,10 @@ class BackendApiAdapter implements IApiAdapter {
   async getAllTokens(signal?: AbortSignal): Promise<TokenWithData[]> {
     const rows = await fetchStraightSpreads({ signal });
     
-    // Если WebSocket вернул пустой результат - используем mock данные
+    // Если WebSocket вернул пустой результат - возвращаем пустой массив
     if (rows.length === 0) {
-      logger.warn('[API] WebSocket returned empty result, falling back to mock data');
-      const mockTokens = await getMockTokens();
-      return mockTokens;
+      logger.warn('[API] WebSocket returned empty result - no data available');
+      return [];
     }
     
     const map = new Map<string, TokenWithData>();
