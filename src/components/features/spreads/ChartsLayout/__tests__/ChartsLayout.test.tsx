@@ -77,7 +77,9 @@ const mockSpreadData = {
 // Helper для преобразования StraightData в Token для localStorage
 const straightDataToToken = (data: StraightData) => ({
   symbol: data.token,
-  chain: (data.network === 'bsc' || data.network === 'bep20' ? 'bsc' : 'solana') as 'solana' | 'bsc',
+  chain: (data.network === 'bsc' || data.network === 'bep20'
+    ? 'bsc'
+    : 'solana') as 'solana' | 'bsc',
 });
 
 describe('ChartsLayout', () => {

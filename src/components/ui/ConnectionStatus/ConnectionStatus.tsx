@@ -3,7 +3,11 @@ import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-export type ConnectionState = 'connected' | 'connecting' | 'disconnected' | 'error';
+export type ConnectionState =
+  | 'connected'
+  | 'connecting'
+  | 'disconnected'
+  | 'error';
 
 interface ConnectionStatusProps {
   className?: string;
@@ -13,7 +17,10 @@ interface ConnectionStatusProps {
 /**
  * Компонент для отображения статуса подключения к бэкенду
  */
-export function ConnectionStatus({ className, showLabel = true }: ConnectionStatusProps) {
+export function ConnectionStatus({
+  className,
+  showLabel = true,
+}: ConnectionStatusProps) {
   const { t } = useLanguage();
   const [state, setState] = useState<ConnectionState>('connecting');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -21,7 +28,7 @@ export function ConnectionStatus({ className, showLabel = true }: ConnectionStat
 
   const checkConnection = useCallback(async () => {
     const wsUrl = import.meta.env.VITE_WEBSOCKET_URL;
-    
+
     if (!wsUrl) {
       setState('error');
       return;
@@ -31,7 +38,7 @@ export function ConnectionStatus({ className, showLabel = true }: ConnectionStat
 
     try {
       const ws = new WebSocket(wsUrl);
-      
+
       const timeout = setTimeout(() => {
         ws.close();
         setState('disconnected');
@@ -56,7 +63,6 @@ export function ConnectionStatus({ className, showLabel = true }: ConnectionStat
       ws.onmessage = () => {
         setLastUpdate(new Date());
       };
-
     } catch {
       setState('error');
       setRetryCount((prev) => prev + 1);
@@ -65,10 +71,10 @@ export function ConnectionStatus({ className, showLabel = true }: ConnectionStat
 
   useEffect(() => {
     checkConnection();
-    
+
     // Проверяем соединение каждые 30 секунд
     const interval = setInterval(checkConnection, 30000);
-    
+
     return () => clearInterval(interval);
   }, [checkConnection]);
 
@@ -119,26 +125,23 @@ export function ConnectionStatus({ className, showLabel = true }: ConnectionStat
         config.bgColor,
         className
       )}
-      title={lastUpdate ? `Last update: ${lastUpdate.toLocaleTimeString()}` : undefined}
+      title={
+        lastUpdate
+          ? `Last update: ${lastUpdate.toLocaleTimeString()}`
+          : undefined
+      }
     >
       <Icon
-        className={cn(
-          'h-4 w-4',
-          config.color,
-          config.pulse && 'animate-spin'
-        )}
+        className={cn('h-4 w-4', config.color, config.pulse && 'animate-spin')}
       />
       {showLabel && (
         <span className={cn('font-medium', config.color)}>
           {config.label}
           {retryCount > 0 && state !== 'connected' && (
-            <span className="ml-1 text-xs opacity-70">
-              ({retryCount})
-            </span>
+            <span className="ml-1 text-xs opacity-70">({retryCount})</span>
           )}
         </span>
       )}
     </div>
   );
 }
-

@@ -22,7 +22,7 @@ export function AutoRefreshToggle({
 }: AutoRefreshToggleProps) {
   const { t } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     onRefresh();
@@ -31,7 +31,7 @@ export function AutoRefreshToggle({
       setIsRefreshing(false);
     }, 500);
   };
-  
+
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <button

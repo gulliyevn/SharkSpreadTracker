@@ -41,4 +41,3 @@ export const STORAGE_KEYS = {
   THEME: 'shark_theme',
   LANGUAGE: 'i18nextLng', // i18next использует этот ключ по умолчанию
 } as const;
-

@@ -67,10 +67,12 @@ export const TokenGrid = memo(function TokenGrid({
     const handleScroll = () => {
       const scrollBottom = window.innerHeight + window.scrollY;
       const documentHeight = document.documentElement.scrollHeight;
-      
+
       // Загружаем больше токенов когда пользователь близко к низу страницы
       if (scrollBottom >= documentHeight - 500) {
-        setVisibleCount((prev) => Math.min(prev + LOAD_MORE_BATCH, tokens.length));
+        setVisibleCount((prev) =>
+          Math.min(prev + LOAD_MORE_BATCH, tokens.length)
+        );
       }
     };
 
@@ -116,15 +118,18 @@ export const TokenGrid = memo(function TokenGrid({
       >
         {visibleTokens.map((row, index) => {
           const network = (row.network || '').toLowerCase();
-          const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+          const chain: 'solana' | 'bsc' =
+            network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
           const symbol = (row.token || '').toUpperCase().trim();
-          
+
           return (
             <TokenCard
               key={`${symbol}-${chain}-${index}`}
               token={row}
               isFavorite={false}
-              onFavoriteToggle={onFavoriteToggle ? () => onFavoriteToggle(row) : undefined}
+              onFavoriteToggle={
+                onFavoriteToggle ? () => onFavoriteToggle(row) : undefined
+              }
               onEdit={onEdit ? () => onEdit(row) : undefined}
             />
           );
@@ -132,7 +137,8 @@ export const TokenGrid = memo(function TokenGrid({
       </div>
       {visibleCount < tokens.length && (
         <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          Показано {visibleCount} из {tokens.length} токенов. Прокрутите вниз для загрузки остальных.
+          Показано {visibleCount} из {tokens.length} токенов. Прокрутите вниз
+          для загрузки остальных.
         </div>
       )}
     </>

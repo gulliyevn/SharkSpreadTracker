@@ -1,5 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { TrendingUp, ArrowUpAZ, DollarSign, Layers, ArrowRightCircle, ArrowLeftCircle } from 'lucide-react';
+import {
+  TrendingUp,
+  ArrowUpAZ,
+  DollarSign,
+  Layers,
+  ArrowRightCircle,
+  ArrowLeftCircle,
+} from 'lucide-react';
 import { Container } from '@/components/layout/Container';
 import { useSearch } from '@/contexts/SearchContext';
 import { useMinSpread } from '@/contexts/MinSpreadContext';
@@ -63,7 +70,6 @@ export function TokensPage() {
     refetch,
   } = useTokensWithSpreads();
 
-
   // Подсчет токенов по chain
   const chainCounts = useMemo(() => {
     const counts = {
@@ -126,7 +132,7 @@ export function TokensPage() {
     filtered.sort((a, b) => {
       const symbolA = (a.token || '').toUpperCase().trim();
       const symbolB = (b.token || '').toUpperCase().trim();
-      
+
       if (sortOption === 'spread') {
         // Сортировка по спреду (по убыванию)
         const spreadA = a.spread ? Number(a.spread) : 0;
@@ -147,9 +153,21 @@ export function TokensPage() {
         const priceA2 = a.priceB ? Number(a.priceB) : 0;
         const priceB1 = b.priceA ? Number(b.priceA) : 0;
         const priceB2 = b.priceB ? Number(b.priceB) : 0;
-        
-        const avgPriceA = (priceA1 + priceA2) / (priceA1 > 0 && priceA2 > 0 ? 2 : priceA1 > 0 || priceA2 > 0 ? 1 : 0) || 0;
-        const avgPriceB = (priceB1 + priceB2) / (priceB1 > 0 && priceB2 > 0 ? 2 : priceB1 > 0 || priceB2 > 0 ? 1 : 0) || 0;
+
+        const avgPriceA =
+          (priceA1 + priceA2) /
+            (priceA1 > 0 && priceA2 > 0
+              ? 2
+              : priceA1 > 0 || priceA2 > 0
+                ? 1
+                : 0) || 0;
+        const avgPriceB =
+          (priceB1 + priceB2) /
+            (priceB1 > 0 && priceB2 > 0
+              ? 2
+              : priceB1 > 0 || priceB2 > 0
+                ? 1
+                : 0) || 0;
 
         if (avgPriceB !== avgPriceA) {
           return avgPriceB - avgPriceA;
@@ -197,25 +215,31 @@ export function TokensPage() {
   // Мемоизированные обработчики для предотвращения лишних ререндеров
   // Поиск теперь управляется через SearchContext в Header
 
-  const handleMinSpreadChange = useCallback((value: number) => {
-    setMinSpread(value);
-    if (value > 0) {
-      trackTokenFilter('minSpread', value);
-    }
-  }, [setMinSpread]);
+  const handleMinSpreadChange = useCallback(
+    (value: number) => {
+      setMinSpread(value);
+      if (value > 0) {
+        trackTokenFilter('minSpread', value);
+      }
+    },
+    [setMinSpread]
+  );
 
-  const handleMinSpreadInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    // Разрешаем пустое значение
-    if (inputValue === '') {
-      setMinSpread(0);
-      return;
-    }
-    const value = parseFloat(inputValue);
-    if (!isNaN(value) && value >= 0) {
-      handleMinSpreadChange(value);
-    }
-  }, [setMinSpread, handleMinSpreadChange]);
+  const handleMinSpreadInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value;
+      // Разрешаем пустое значение
+      if (inputValue === '') {
+        setMinSpread(0);
+        return;
+      }
+      const value = parseFloat(inputValue);
+      if (!isNaN(value) && value >= 0) {
+        handleMinSpreadChange(value);
+      }
+    },
+    [setMinSpread, handleMinSpreadChange]
+  );
 
   const handleDirectOnlyChange = useCallback((value: boolean) => {
     setShowDirectOnly(value);
@@ -268,7 +292,8 @@ export function TokensPage() {
 
   const handleTokenEdit = useCallback((token: StraightData) => {
     const network = (token.network || '').toLowerCase();
-    const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+    const chain: 'solana' | 'bsc' =
+      network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
     const symbol = (token.token || '').toUpperCase().trim();
     setEditingToken({ symbol, chain });
     trackTokenSelected(symbol, chain);
@@ -284,9 +309,11 @@ export function TokensPage() {
     return (
       filteredTokens.find(
         (row) =>
-          (row.token || '').toUpperCase().trim() === editingToken.symbol.toUpperCase() &&
+          (row.token || '').toUpperCase().trim() ===
+            editingToken.symbol.toUpperCase() &&
           ((row.network || '').toLowerCase() === editingToken.chain ||
-            (editingToken.chain === 'bsc' && (row.network || '').toLowerCase() === 'bep20'))
+            (editingToken.chain === 'bsc' &&
+              (row.network || '').toLowerCase() === 'bep20'))
       ) || null
     );
   }, [editingToken, filteredTokens]);
@@ -382,8 +409,10 @@ export function TokensPage() {
                   placeholder=""
                   className="w-12 px-1.5 py-0.5 rounded text-xs bg-white dark:bg-dark-900 border border-light-300 dark:border-dark-700 text-gray-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-400">%</span>
-            </div>
+                <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-400">
+                  %
+                </span>
+              </div>
 
               {/* Auto Refresh и Refresh */}
               <AutoRefreshToggle
@@ -416,10 +445,10 @@ export function TokensPage() {
 
           {/* Состояния загрузки и ошибки */}
           {isLoading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <TokenCardSkeleton key={i} />
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {[...Array(6)].map((_, i) => (
+                <TokenCardSkeleton key={i} />
+              ))}
             </div>
           )}
 
@@ -468,14 +497,18 @@ export function TokensPage() {
           token={editingToken}
           price={
             editingTokenData.priceA && editingTokenData.priceB
-              ? (Number(editingTokenData.priceA) + Number(editingTokenData.priceB)) / 2
+              ? (Number(editingTokenData.priceA) +
+                  Number(editingTokenData.priceB)) /
+                2
               : editingTokenData.priceA
                 ? Number(editingTokenData.priceA)
                 : editingTokenData.priceB
                   ? Number(editingTokenData.priceB)
                   : null
           }
-          directSpread={editingTokenData.spread ? Number(editingTokenData.spread) : null}
+          directSpread={
+            editingTokenData.spread ? Number(editingTokenData.spread) : null
+          }
           reverseSpread={null}
         />
       )}

@@ -12,7 +12,10 @@ import type {
 } from '@/types';
 import { WEBSOCKET_URL } from '@/constants/api';
 import { logger } from '@/utils/logger';
-import { requestDeduplicator, createDeduplicationKey } from '@/utils/request-deduplication';
+import {
+  requestDeduplicator,
+  createDeduplicationKey,
+} from '@/utils/request-deduplication';
 import {
   filterByToken,
   extractValidPrices,
@@ -28,15 +31,22 @@ import {
 } from './utils/websocket-client';
 
 // Состояние соединения для экспорта
-export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
+export type ConnectionStatus =
+  | 'connected'
+  | 'connecting'
+  | 'disconnected'
+  | 'error';
 let currentConnectionStatus: ConnectionStatus = 'disconnected';
-const connectionStatusListeners: Set<(status: ConnectionStatus) => void> = new Set();
+const connectionStatusListeners: Set<(status: ConnectionStatus) => void> =
+  new Set();
 
 export function getConnectionStatus(): ConnectionStatus {
   return currentConnectionStatus;
 }
 
-export function subscribeToConnectionStatus(listener: (status: ConnectionStatus) => void): () => void {
+export function subscribeToConnectionStatus(
+  listener: (status: ConnectionStatus) => void
+): () => void {
   connectionStatusListeners.add(listener);
   // Сразу вызываем с текущим статусом
   listener(currentConnectionStatus);
@@ -101,9 +111,11 @@ let cachedAllTokensTimestamp: number = 0;
 /**
  * Внутренняя функция для выполнения WebSocket запроса
  */
-async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
-  _reconnectAttempt?: number;
-}): Promise<StraightData[]> {
+async function _fetchStraightSpreadsInternal(
+  params: WebSocketParams & {
+    _reconnectAttempt?: number;
+  }
+): Promise<StraightData[]> {
   const reconnectAttempt = params._reconnectAttempt ?? 0;
 
   if (!WEBSOCKET_URL) {
@@ -122,7 +134,9 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
   logger.debug(`[WebSocket] Environment check:`, {
     VITE_WEBSOCKET_URL: import.meta.env.VITE_WEBSOCKET_URL,
     VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
-    BACKEND_URL: import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL.replace(/^http/, 'ws')}/socket/sharkStraight` : 'not set',
+    BACKEND_URL: import.meta.env.VITE_BACKEND_URL
+      ? `${import.meta.env.VITE_BACKEND_URL.replace(/^http/, 'ws')}/socket/sharkStraight`
+      : 'not set',
     final_WEBSOCKET_URL: WEBSOCKET_URL,
   });
   setConnectionStatus('connecting');
@@ -148,11 +162,15 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
       search: url.search,
       hash: url.hash,
     });
-    
+
     const ws = new WebSocket(url.toString());
-    
+
     // Логируем создание WebSocket для отладки
-    logger.debug('[WebSocket] WebSocket instance created, readyState:', ws.readyState, '(0 = CONNECTING)');
+    logger.debug(
+      '[WebSocket] WebSocket instance created, readyState:',
+      ws.readyState,
+      '(0 = CONNECTING)'
+    );
 
     const cleanup = () => {
       if (timeoutId) {
@@ -166,14 +184,22 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
       // НЕ закрываем соединение вручную, если оно уже закрыто или закрывается
       // Позволяем серверу/браузеру управлять закрытием
       try {
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        if (
+          ws.readyState === WebSocket.OPEN ||
+          ws.readyState === WebSocket.CONNECTING
+        ) {
           logger.debug('[WebSocket] Cleanup: closing WebSocket connection');
           ws.close();
         } else {
-          logger.debug(`[WebSocket] Cleanup: WebSocket already in state ${ws.readyState}, not closing`);
+          logger.debug(
+            `[WebSocket] Cleanup: WebSocket already in state ${ws.readyState}, not closing`
+          );
         }
       } catch (err) {
-        logger.debug('[WebSocket] Cleanup: error closing WebSocket (ignored):', err);
+        logger.debug(
+          '[WebSocket] Cleanup: error closing WebSocket (ignored):',
+          err
+        );
       }
     };
 
@@ -183,13 +209,15 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
       }
       settled = true;
       cleanup();
-      
-      logger.info(`[WebSocket] Finished with ${result.length} rows from ${messageCount} messages`);
-      
+
+      logger.info(
+        `[WebSocket] Finished with ${result.length} rows from ${messageCount} messages`
+      );
+
       if (result.length > 0) {
         setConnectionStatus('connected');
       }
-      
+
       resolve(result);
     };
 
@@ -197,7 +225,9 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
     timeoutId = setTimeout(async () => {
       if (settled) return;
       settled = true;
-      logger.warn(`[WebSocket] Timeout after ${WS_TIMEOUT}ms, received ${messageCount} messages, ${rows.length} rows`);
+      logger.warn(
+        `[WebSocket] Timeout after ${WS_TIMEOUT}ms, received ${messageCount} messages, ${rows.length} rows`
+      );
       setConnectionStatus('disconnected');
       cleanup();
 
@@ -230,15 +260,17 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
 
     const handleMessage = (newRows: StraightData[]) => {
       const itemsAdded = newRows.length;
-      
+
       // Используем цикл вместо spread operator для избежания переполнения стека при больших массивах
       for (const row of newRows) {
         rows.push(row);
       }
       messageCount++;
-      
-      logger.info(`[WebSocket] Total rows so far: ${rows.length} (added ${itemsAdded} from this message)`);
-      
+
+      logger.info(
+        `[WebSocket] Total rows so far: ${rows.length} (added ${itemsAdded} from this message)`
+      );
+
       // Согласно документации API, сервер отправляет все данные сразу и затем закрывает соединение
       // Если получили данные, даем небольшую задержку на случай множественных сообщений
       if (dataReceivedTimeout) {
@@ -247,10 +279,14 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
       dataReceivedTimeout = setTimeout(() => {
         if (!settled) {
           if (rows.length > 0) {
-            logger.info(`[WebSocket] Received ${rows.length} rows, finishing after ${DATA_RECEIVED_DELAY}ms delay`);
+            logger.info(
+              `[WebSocket] Received ${rows.length} rows, finishing after ${DATA_RECEIVED_DELAY}ms delay`
+            );
             finish(rows);
           } else {
-            logger.debug(`[WebSocket] No data in timeout callback, connection will be handled by onclose`);
+            logger.debug(
+              `[WebSocket] No data in timeout callback, connection will be handled by onclose`
+            );
           }
         }
       }, DATA_RECEIVED_DELAY);
@@ -263,47 +299,66 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
       logger.debug('[WebSocket] Protocol:', ws.protocol || 'none');
       logger.debug('[WebSocket] Extensions:', ws.extensions || 'none');
       setConnectionStatus('connected');
-      
+
       // Согласно документации API, сервер отправляет данные сразу после handshake
       // и затем закрывает соединение. Не нужно отправлять активационное сообщение.
-      logger.debug('[WebSocket] Waiting for data from server (server sends data immediately after handshake)...');
-      
+      logger.debug(
+        '[WebSocket] Waiting for data from server (server sends data immediately after handshake)...'
+      );
+
       // Проверяем состояние соединения через разные интервалы
       const checkIntervals = [50, 100, 200, 500, 1000, 2000, 5000];
       checkIntervals.forEach((delay) => {
         setTimeout(() => {
           const state = ws.readyState;
-          logger.debug(`[WebSocket] State check after ${delay}ms: readyState=${state} (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED), messages=${messageCount}`);
-          
+          logger.debug(
+            `[WebSocket] State check after ${delay}ms: readyState=${state} (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED), messages=${messageCount}`
+          );
+
           if (state === WebSocket.OPEN && messageCount === 0) {
-            logger.warn(`[WebSocket] ⚠️ Connection is OPEN but no messages received after ${delay}ms`);
+            logger.warn(
+              `[WebSocket] ⚠️ Connection is OPEN but no messages received after ${delay}ms`
+            );
           }
-          
+
           if (state === WebSocket.CLOSED || state === WebSocket.CLOSING) {
-            logger.warn(`[WebSocket] ⚠️ Connection is ${state === WebSocket.CLOSED ? 'CLOSED' : 'CLOSING'} after ${delay}ms, messages received: ${messageCount}`);
+            logger.warn(
+              `[WebSocket] ⚠️ Connection is ${state === WebSocket.CLOSED ? 'CLOSED' : 'CLOSING'} after ${delay}ms, messages received: ${messageCount}`
+            );
           }
         }, delay);
       });
     };
 
     ws.onmessage = (event) => {
-      logger.info(`[WebSocket] 📩 MESSAGE received (message #${messageCount + 1})`);
+      logger.info(
+        `[WebSocket] 📩 MESSAGE received (message #${messageCount + 1})`
+      );
       logger.debug('[WebSocket] Message data type:', typeof event.data);
       logger.debug('[WebSocket] Message is Blob:', event.data instanceof Blob);
-      logger.debug('[WebSocket] Message is string:', typeof event.data === 'string');
+      logger.debug(
+        '[WebSocket] Message is string:',
+        typeof event.data === 'string'
+      );
       logger.debug('[WebSocket] readyState during message:', ws.readyState);
-      
+
       if (event.data instanceof Blob) {
         logger.debug('[WebSocket] Blob size:', event.data.size);
         logger.debug('[WebSocket] Blob type:', event.data.type);
       } else if (typeof event.data === 'string') {
         logger.debug('[WebSocket] String length:', event.data.length);
-        logger.debug('[WebSocket] String preview (first 200 chars):', event.data.slice(0, 200));
+        logger.debug(
+          '[WebSocket] String preview (first 200 chars):',
+          event.data.slice(0, 200)
+        );
         if (event.data.length > 0) {
-          logger.debug('[WebSocket] String preview (last 200 chars):', event.data.slice(-200));
+          logger.debug(
+            '[WebSocket] String preview (last 200 chars):',
+            event.data.slice(-200)
+          );
         }
       }
-      
+
       // Обрабатываем данные синхронно для строк, асинхронно для Blob
       if (typeof event.data === 'string') {
         try {
@@ -316,16 +371,25 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
         }
       } else if (event.data instanceof Blob) {
         logger.debug('[WebSocket] Processing Blob message asynchronously');
-        const blobPromise = processWebSocketData(event.data, handleMessage).catch((err) => {
+        const blobPromise = processWebSocketData(
+          event.data,
+          handleMessage
+        ).catch((err) => {
           logger.error('[WebSocket] Failed to process Blob message:', err);
         });
         pendingBlobPromises.push(blobPromise);
         // Ждем завершения обработки Blob перед закрытием
         blobPromise.finally(() => {
-          pendingBlobPromises = pendingBlobPromises.filter(p => p !== blobPromise);
+          pendingBlobPromises = pendingBlobPromises.filter(
+            (p) => p !== blobPromise
+          );
         });
       } else {
-        logger.error('[WebSocket] Unknown data type:', typeof event.data, event.data);
+        logger.error(
+          '[WebSocket] Unknown data type:',
+          typeof event.data,
+          event.data
+        );
       }
     };
 
@@ -339,16 +403,20 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
         messageCount,
       });
       setConnectionStatus('error');
-      
+
       // НЕ устанавливаем settled = true здесь, так как onclose тоже должен сработать
       // Если соединение закрылось с ошибкой, onclose обработает завершение
-      
+
       // НЕ делаем cleanup здесь, пусть onclose обработает это
     };
 
     ws.onclose = (event) => {
-      logger.info(`[WebSocket] 🔌 Closed: code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`);
-      logger.info(`[WebSocket] Stats: received ${messageCount} messages, parsed ${rows.length} rows`);
+      logger.info(
+        `[WebSocket] 🔌 Closed: code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`
+      );
+      logger.info(
+        `[WebSocket] Stats: received ${messageCount} messages, parsed ${rows.length} rows`
+      );
       logger.debug(`[WebSocket] Close event details:`, {
         code: event.code,
         reason: event.reason,
@@ -356,52 +424,70 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
         wasSettled: settled,
         readyStateBeforeClose: ws.readyState,
       });
-      
+
       if (event.code === 1006) {
-        logger.warn('[WebSocket] ⚠️ Abnormal closure (code 1006) - connection was interrupted or closed unexpectedly');
-        logger.warn('[WebSocket] This usually means the connection was closed without a proper WebSocket close handshake');
+        logger.warn(
+          '[WebSocket] ⚠️ Abnormal closure (code 1006) - connection was interrupted or closed unexpectedly'
+        );
+        logger.warn(
+          '[WebSocket] This usually means the connection was closed without a proper WebSocket close handshake'
+        );
       }
-      
+
       // Согласно документации API, сервер закрывает соединение после отправки данных
       // Если соединение закрылось и мы еще не завершили, нужно дождаться обработки всех сообщений
       if (!settled) {
         // Если были сообщения (особенно Blob), ждем их обработки
         if (pendingBlobPromises.length > 0) {
           const delay = 500; // Небольшая задержка для обработки Blob
-          logger.debug(`[WebSocket] Waiting ${delay}ms for ${pendingBlobPromises.length} pending Blob operations`);
-          
+          logger.debug(
+            `[WebSocket] Waiting ${delay}ms for ${pendingBlobPromises.length} pending Blob operations`
+          );
+
           Promise.all(pendingBlobPromises).finally(() => {
             setTimeout(() => {
               if (!settled) {
-                logger.debug(`[WebSocket] Finishing after Blob processing, final rows: ${rows.length}`);
+                logger.debug(
+                  `[WebSocket] Finishing after Blob processing, final rows: ${rows.length}`
+                );
                 finish(rows);
               }
             }, 50);
           });
-          
+
           // Fallback таймаут
           setTimeout(() => {
             if (!settled) {
-              logger.debug(`[WebSocket] Finishing after fallback timeout, final rows: ${rows.length}`);
+              logger.debug(
+                `[WebSocket] Finishing after fallback timeout, final rows: ${rows.length}`
+              );
               finish(rows);
             }
           }, delay + 200);
         } else {
           // Нет асинхронных операций, завершаем сразу
-          logger.debug(`[WebSocket] No pending operations, finishing immediately with ${rows.length} rows`);
-          logger.debug(`[WebSocket] Connection closed with code ${event.code}, had ${messageCount} messages`);
-          
+          logger.debug(
+            `[WebSocket] No pending operations, finishing immediately with ${rows.length} rows`
+          );
+          logger.debug(
+            `[WebSocket] Connection closed with code ${event.code}, had ${messageCount} messages`
+          );
+
           // Если соединение закрылось без сообщений, это может означать что:
           // 1. Сервер закрыл соединение до отправки данных
           // 2. Соединение было прервано на сетевом уровне
           if (messageCount === 0 && event.code === 1006) {
-            logger.warn('[WebSocket] Connection closed abnormally without receiving any messages - possible server issue or network problem');
+            logger.warn(
+              '[WebSocket] Connection closed abnormally without receiving any messages - possible server issue or network problem'
+            );
           }
-          
+
           finish(rows);
         }
       } else {
-        logger.debug('[WebSocket] Connection closed, but already settled (probably finished earlier)');
+        logger.debug(
+          '[WebSocket] Connection closed, but already settled (probably finished earlier)'
+        );
       }
     };
   });
@@ -410,14 +496,18 @@ async function _fetchStraightSpreadsInternal(params: WebSocketParams & {
 /**
  * Публичная функция для получения данных с дедупликацией и кэшированием
  */
-async function fetchStraightSpreads(params: WebSocketParams & {
-  _reconnectAttempt?: number;
-}): Promise<StraightData[]> {
+async function fetchStraightSpreads(
+  params: WebSocketParams & {
+    _reconnectAttempt?: number;
+  }
+): Promise<StraightData[]> {
   // Если запрашиваются все токены без фильтров, проверяем кэш
   if (!params.token && !params.network) {
     const now = Date.now();
-    if (cachedAllTokens && (now - cachedAllTokensTimestamp) < CACHE_TTL) {
-      logger.debug(`[API] Using cached all tokens (${cachedAllTokens.length} items)`);
+    if (cachedAllTokens && now - cachedAllTokensTimestamp < CACHE_TTL) {
+      logger.debug(
+        `[API] Using cached all tokens (${cachedAllTokens.length} items)`
+      );
       return cachedAllTokens;
     }
   }
@@ -429,9 +519,8 @@ async function fetchStraightSpreads(params: WebSocketParams & {
   });
 
   // Выполняем запрос с дедупликацией
-  const result = await requestDeduplicator.deduplicate(
-    dedupeKey,
-    () => _fetchStraightSpreadsInternal(params)
+  const result = await requestDeduplicator.deduplicate(dedupeKey, () =>
+    _fetchStraightSpreadsInternal(params)
   );
 
   // Обновляем кэш если получили все токены
@@ -451,13 +540,13 @@ class BackendApiAdapter implements IApiAdapter {
   async getAllTokens(signal?: AbortSignal): Promise<StraightData[]> {
     // Используем fetchStraightSpreads который уже имеет кэширование и дедупликацию
     const rows = await fetchStraightSpreads({ signal });
-    
+
     // Если WebSocket вернул пустой результат - возвращаем пустой массив
     if (rows.length === 0) {
       logger.warn('[API] WebSocket returned empty result - no data available');
       return [];
     }
-    
+
     // Возвращаем данные без изменений
     logger.info(`[API] Loaded ${rows.length} tokens from backend`);
     return rows;
@@ -514,18 +603,18 @@ class BackendApiAdapter implements IApiAdapter {
     // Преобразуем строки в числа
     const priceA = latest?.priceA ? Number(latest.priceA) : null;
     const priceB = latest?.priceB ? Number(latest.priceB) : null;
-    
+
     // Определяем какая биржа какая по aExchange/bExchange
     const isJupiterA = latest?.aExchange?.toLowerCase().includes('jupiter');
     const isMEXCB = latest?.bExchange?.toLowerCase().includes('mexc');
-    
+
     const current =
       latest && (priceA != null || priceB != null)
         ? {
             timestamp: now,
             mexc_bid: null,
             mexc_ask: null,
-            mexc_price: isMEXCB ? priceB : (isJupiterA ? null : priceB),
+            mexc_price: isMEXCB ? priceB : isJupiterA ? null : priceB,
             jupiter_price: isJupiterA ? priceA : null,
             pancakeswap_price: null,
           }

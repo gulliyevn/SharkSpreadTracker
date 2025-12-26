@@ -5,7 +5,9 @@ interface MinSpreadContextType {
   setMinSpread: (value: number) => void;
 }
 
-const MinSpreadContext = createContext<MinSpreadContextType | undefined>(undefined);
+const MinSpreadContext = createContext<MinSpreadContextType | undefined>(
+  undefined
+);
 
 interface MinSpreadProviderProps {
   children: React.ReactNode;
@@ -47,4 +49,3 @@ export function useMinSpread() {
   }
   return context;
 }
-

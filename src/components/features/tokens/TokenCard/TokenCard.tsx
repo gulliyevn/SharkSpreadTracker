@@ -36,12 +36,14 @@ export const TokenCard = memo(function TokenCard({
   // Извлекаем данные из StraightData
   const tokenSymbol = (token.token || '').toUpperCase().trim();
   const network = (token.network || '').toLowerCase();
-  const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+  const chain: 'solana' | 'bsc' =
+    network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
   const directSpread = token.spread ? Number(token.spread) : null; // Прямой спред (BNB/Sol → MEXC)
   const limit = token.limit || 'all';
-  
+
   // Форматируем лимит: если "all" - показываем "all", иначе число с $
-  const formattedLimit = limit === 'all' ? 'all' : limit.includes('$') ? limit : `${limit}$`;
+  const formattedLimit =
+    limit === 'all' ? 'all' : limit.includes('$') ? limit : `${limit}$`;
 
   // Определяем биржи
   const aExchange = (token.aExchange || '').toLowerCase();
@@ -50,15 +52,15 @@ export const TokenCard = memo(function TokenCard({
   const isMexcB = bExchange === 'mexc';
 
   // Определяем network exchange (не MEXC)
-  const networkExchange = isMexcB ? aExchange : (isMexcA ? bExchange : aExchange);
+  const networkExchange = isMexcB ? aExchange : isMexcA ? bExchange : aExchange;
 
   // URL для бирж
   const exchangeUrls = useMemo<Record<string, string>>(() => {
     const urls: Record<string, string> = {};
-    
+
     // MEXC Futures URL
     urls.mexc = createMexcFuturesUrl(tokenSymbol);
-    
+
     // Network exchange URL (Jupiter, Match, или PancakeSwap)
     if (networkExchange === 'jupiter') {
       urls.network = 'https://jup.ag';
@@ -68,9 +70,10 @@ export const TokenCard = memo(function TokenCard({
       urls.network = 'https://pancakeswap.finance';
     } else {
       // Fallback
-      urls.network = chain === 'solana' ? 'https://jup.ag' : 'https://pancakeswap.finance';
+      urls.network =
+        chain === 'solana' ? 'https://jup.ag' : 'https://pancakeswap.finance';
     }
-    
+
     return urls;
   }, [tokenSymbol, networkExchange, chain]);
 
@@ -126,9 +129,9 @@ export const TokenCard = memo(function TokenCard({
 
   const handleNetworkExchangeClick = useCallback(() => {
     const url = exchangeUrls.network;
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }, [exchangeUrls]);
 
   const handleEdit = useCallback(() => {
@@ -158,26 +161,19 @@ export const TokenCard = memo(function TokenCard({
       {/* Основной контейнер: левая часть (название) и правая часть (иконки + спреды) */}
       <div className="flex items-center gap-3 w-full">
         {/* Звезда - выровнена по центру вертикально */}
-          <button
-            onClick={handleFavoriteToggle}
-            className={cn(
+        <button
+          onClick={handleFavoriteToggle}
+          className={cn(
             'flex-shrink-0 p-0 transition-colors touch-manipulation self-center',
             'w-7 h-7 flex items-center justify-center',
-              isFavorite
-                ? 'text-yellow-500'
+            isFavorite
+              ? 'text-yellow-500'
               : 'text-gray-500 dark:text-gray-500 hover:text-yellow-500'
-            )}
-            aria-label={
-              isFavorite ? 'Remove from favorites' : 'Add to favorites'
-            }
-          >
-            <Star
-              className={cn(
-              'h-4 w-4',
-                isFavorite && 'fill-current'
-              )}
-            />
-          </button>
+          )}
+          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Star className={cn('h-4 w-4', isFavorite && 'fill-current')} />
+        </button>
 
         {/* Левая часть: название, лимит */}
         <div className="flex flex-col gap-1 flex-1 min-w-0 basis-0">
@@ -185,7 +181,7 @@ export const TokenCard = memo(function TokenCard({
           <div className="flex items-center gap-1.5">
             <span className="font-bold text-sm text-gray-900 dark:text-white truncate">
               {tokenSymbol}
-          </span>
+            </span>
             {/* Кнопка копирования символа токена */}
             <button
               onClick={handleCopyToken}
@@ -273,9 +269,7 @@ export const TokenCard = memo(function TokenCard({
               </div>
             ) : (
               <div className="bg-gray-400 dark:bg-gray-600 px-2.5 min-w-[50px] h-full flex items-center justify-center text-center">
-                <span className="text-white text-xs font-medium">
-                  —
-                </span>
+                <span className="text-white text-xs font-medium">—</span>
               </div>
             )}
             {/* Обратный спред (обратный: MEXC → BNB/Sol, из отдельной ручки сервера) - справа */}

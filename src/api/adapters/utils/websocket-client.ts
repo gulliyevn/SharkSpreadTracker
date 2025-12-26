@@ -30,20 +30,26 @@ export interface MessageHandler {
 /**
  * Создает URL для WebSocket соединения
  */
-export function createWebSocketUrl(baseUrl: string, params: WebSocketParams): URL {
+export function createWebSocketUrl(
+  baseUrl: string,
+  params: WebSocketParams
+): URL {
   if (!baseUrl || baseUrl.trim().length === 0) {
     throw new Error('WebSocket baseUrl cannot be empty');
   }
-  
+
   // Если baseUrl уже полный URL (начинается с ws:// или wss://), используем его напрямую
   // Иначе создаем новый URL относительно текущего location
   let url: URL;
   if (baseUrl.startsWith('ws://') || baseUrl.startsWith('wss://')) {
     url = new URL(baseUrl);
   } else {
-    url = new URL(baseUrl, typeof window !== 'undefined' ? window.location.href : 'http://localhost');
+    url = new URL(
+      baseUrl,
+      typeof window !== 'undefined' ? window.location.href : 'http://localhost'
+    );
   }
-  
+
   // Добавляем query параметры если они указаны
   if (params.token) {
     url.searchParams.set('token', params.token);
@@ -51,14 +57,14 @@ export function createWebSocketUrl(baseUrl: string, params: WebSocketParams): UR
   if (params.network) {
     url.searchParams.set('network', params.network);
   }
-  
+
   logger.debug('[WebSocket] Created URL:', {
     baseUrl,
     finalUrl: url.toString(),
     hasToken: !!params.token,
     hasNetwork: !!params.network,
   });
-  
+
   return url;
 }
 
@@ -71,53 +77,68 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
     logger.debug('[WebSocket] Received empty message');
     return [];
   }
-  
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawData);
   } catch (err) {
     logger.error('[WebSocket] Failed to parse JSON:', err);
     logger.debug('[WebSocket] Raw data preview:', rawData.slice(0, 500));
-    throw new Error(`Invalid JSON: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(
+      `Invalid JSON: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
-  
+
   // Нормализуем в массив
   const list = Array.isArray(parsed) ? parsed : [parsed];
-  
+
   // Обрабатываем пустой массив
   if (list.length === 0) {
     logger.debug('[WebSocket] Received empty array');
     return [];
   }
-  
+
   const rows: StraightData[] = [];
   let itemsSkipped = 0;
-  
+
   for (const item of list) {
     // Игнорируем служебные сообщения типа {"type":"connected"}
-    if (item && typeof item === 'object' && 'type' in item && item.type !== undefined) {
+    if (
+      item &&
+      typeof item === 'object' &&
+      'type' in item &&
+      item.type !== undefined
+    ) {
       logger.debug('[WebSocket] Ignoring service message:', item);
       itemsSkipped++;
       continue;
     }
-    
+
     // Проверяем, что элемент является объектом с обязательным полем 'token'
-    if (item && typeof item === 'object' && 'token' in item && item.token != null) {
+    if (
+      item &&
+      typeof item === 'object' &&
+      'token' in item &&
+      item.token != null
+    ) {
       rows.push(item as StraightData);
     } else {
       itemsSkipped++;
-      if (itemsSkipped <= 3) { // Логируем только первые несколько для избежания спама
+      if (itemsSkipped <= 3) {
+        // Логируем только первые несколько для избежания спама
         logger.debug('[WebSocket] Skipped invalid item:', item);
       }
     }
   }
-  
+
   if (itemsSkipped > 0) {
-    logger.debug(`[WebSocket] Skipped ${itemsSkipped} invalid items out of ${list.length} total`);
+    logger.debug(
+      `[WebSocket] Skipped ${itemsSkipped} invalid items out of ${list.length} total`
+    );
   }
-  
+
   logger.debug(`[WebSocket] Successfully parsed ${rows.length} valid items`);
-  
+
   return rows;
 }
 
@@ -130,7 +151,7 @@ export async function processWebSocketData(
 ): Promise<void> {
   try {
     let rawData: string;
-    
+
     if (typeof data === 'string') {
       rawData = data;
     } else if (data instanceof Blob) {
@@ -141,7 +162,7 @@ export async function processWebSocketData(
       logger.error('[WebSocket] Unknown data type:', typeof data);
       return;
     }
-    
+
     logger.debug('[WebSocket] Parsing message, length:', rawData.length);
     const rows = parseWebSocketMessage(rawData);
     logger.debug('[WebSocket] Parsed rows:', rows.length);
@@ -154,4 +175,3 @@ export async function processWebSocketData(
     }
   }
 }
-

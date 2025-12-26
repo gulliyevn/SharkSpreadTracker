@@ -39,8 +39,8 @@ export function TokenCardSkeleton() {
           <div className="flex items-center h-7 rounded overflow-hidden">
             <Skeleton variant="rectangular" className="min-w-[50px] h-full" />
             <Skeleton variant="rectangular" className="min-w-[50px] h-full" />
-      </div>
-      </div>
+          </div>
+        </div>
       </div>
     </div>
   );

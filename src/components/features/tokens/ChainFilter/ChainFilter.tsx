@@ -24,7 +24,7 @@ export const ChainFilter = memo(function ChainFilter({
   counts,
 }: ChainFilterProps) {
   const { t } = useLanguage();
-  
+
   const handleClick = useCallback(() => {
     // Циклическое переключение: All → SOL → BSC → All
     if (value === 'all') {

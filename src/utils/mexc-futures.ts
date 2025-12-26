@@ -12,4 +12,3 @@ export function createMexcFuturesUrl(tokenSymbol: string): string {
   const symbol = tokenSymbol.toUpperCase().trim();
   return `https://contract.mexc.com/exchange/${symbol}_USDT`;
 }
-

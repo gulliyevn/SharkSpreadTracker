@@ -50,7 +50,7 @@ function App() {
     <ViewProvider>
       <SearchProvider>
         <MinSpreadProvider>
-      <AppContent />
+          <AppContent />
         </MinSpreadProvider>
       </SearchProvider>
     </ViewProvider>

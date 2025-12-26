@@ -132,19 +132,24 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
   );
 
   // Обработчики
-  const handleTokenSelect = useCallback((token: Token) => {
-    // Находим соответствующий StraightData из tokens
-    const straightData = tokens.find(
-      (row) =>
-        (row.token || '').toUpperCase().trim() === token.symbol.toUpperCase() &&
-        ((row.network || '').toLowerCase() === token.chain ||
-          (token.chain === 'bsc' && (row.network || '').toLowerCase() === 'bep20'))
-    );
-    if (straightData) {
-      // Сохраняем только Token для useSpreadData
-      setSelectedToken(token);
-    }
-  }, [tokens]);
+  const handleTokenSelect = useCallback(
+    (token: Token) => {
+      // Находим соответствующий StraightData из tokens
+      const straightData = tokens.find(
+        (row) =>
+          (row.token || '').toUpperCase().trim() ===
+            token.symbol.toUpperCase() &&
+          ((row.network || '').toLowerCase() === token.chain ||
+            (token.chain === 'bsc' &&
+              (row.network || '').toLowerCase() === 'bep20'))
+      );
+      if (straightData) {
+        // Сохраняем только Token для useSpreadData
+        setSelectedToken(token);
+      }
+    },
+    [tokens]
+  );
 
   const handleTimeframeChange = useCallback((value: TimeframeOption) => {
     setTimeframe(value);
@@ -177,7 +182,8 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
     const tokenMap = new Map<string, Token>();
     tokens.forEach((row) => {
       const network = (row.network || '').toLowerCase();
-      const chain: 'solana' | 'bsc' = network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+      const chain: 'solana' | 'bsc' =
+        network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
       const symbol = (row.token || '').toUpperCase().trim();
       if (!symbol) return;
       const key = `${symbol}-${chain}`;

@@ -41,7 +41,9 @@ export function Header() {
             <TokenSearch
               value={searchTerm}
               onChange={setSearchTerm}
-              placeholder={t('tokens.searchPlaceholder') || 'Search token (BTC, SOL)...'}
+              placeholder={
+                t('tokens.searchPlaceholder') || 'Search token (BTC, SOL)...'
+              }
             />
           </div>
 
@@ -49,7 +51,7 @@ export function Header() {
           <div className="flex items-center gap-1 sm:gap-2 order-2 sm:order-3">
             {/* Connection Status */}
             <ConnectionStatus showLabel={false} className="hidden sm:flex" />
-            
+
             {/* View Switcher - кнопка для графиков */}
             <button
               onClick={() =>
@@ -75,7 +77,7 @@ export function Header() {
             </button>
 
             {/* Language Switcher - циклическая кнопка: EN → RU → TR → EN */}
-              <button
+            <button
               onClick={() => {
                 if (currentLanguage === 'en') {
                   changeLanguage('ru');
@@ -85,22 +87,22 @@ export function Header() {
                   changeLanguage('en');
                 }
               }}
-                className={cn(
+              className={cn(
                 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors border',
                 'bg-primary-600 border-primary-600 text-white hover:bg-primary-700',
                 'min-w-[44px] min-h-[44px] sm:min-w-auto sm:min-h-auto flex items-center justify-center touch-manipulation'
               )}
               title={
-                  currentLanguage === 'en'
+                currentLanguage === 'en'
                   ? 'English (click to switch to Russian)'
                   : currentLanguage === 'ru'
                     ? 'Русский (нажмите для переключения на турецкий)'
-                    : 'Türkçe (İngilizce\'ye geçmek için tıklayın)'
+                    : "Türkçe (İngilizce'ye geçmek için tıklayın)"
               }
               aria-label={`Current language: ${currentLanguage.toUpperCase()}, click to switch`}
             >
               {currentLanguage.toUpperCase()}
-              </button>
+            </button>
 
             {/* Theme Switcher - циклическая кнопка */}
             <button
