@@ -118,7 +118,7 @@ describe('Integration Tests', () => {
 
       // Кликаем, чтобы переключить EN -> RU
       await user.click(langButton);
-      
+
       // Проверяем, что кнопка обновилась (может быть новый aria-label или текст изменился)
       await waitFor(
         () => {
@@ -152,7 +152,7 @@ describe('Integration Tests', () => {
         },
         { timeout: 3000 }
       );
-      
+
       // Если Header не рендерится вместе с TokensPage, просто проверяем базовую функциональность
       // В реальном приложении поиск происходит через SearchContext, который доступен через Header
     });

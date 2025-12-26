@@ -70,7 +70,7 @@ describe('request-queue', () => {
 
     it('should check rate limit before adding request', async () => {
       vi.useFakeTimers();
-      
+
       // Сначала rate limit запрещен
       vi.mocked(rateLimiter.isAllowed).mockReturnValueOnce(false);
       // Потом разрешен (для повторной попытки)
@@ -96,7 +96,7 @@ describe('request-queue', () => {
 
     it('should retry on rate limit error', async () => {
       vi.useFakeTimers();
-      
+
       let callCount = 0;
       const requestFn = vi.fn().mockImplementation(async () => {
         callCount++;

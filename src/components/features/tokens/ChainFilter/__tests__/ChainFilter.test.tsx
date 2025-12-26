@@ -96,7 +96,7 @@ describe('ChainFilter', () => {
 
     // Компонент показывает только текущий активный фильтр с его счетом
     expect(screen.getByText(/All \(100\)/)).toBeInTheDocument();
-    
+
     // Проверяем другие значения через rerender
     const { rerender } = render(
       <TestWrapper>
@@ -104,7 +104,7 @@ describe('ChainFilter', () => {
       </TestWrapper>
     );
     expect(screen.getByText(/BSC \(50\)/)).toBeInTheDocument();
-    
+
     rerender(
       <TestWrapper>
         <ChainFilter value="solana" onChange={onChange} counts={counts} />
@@ -149,7 +149,9 @@ describe('ChainFilter', () => {
       </TestWrapper>
     );
 
-    const allButton = screen.getByLabelText('Show all tokens, click to filter by SOL');
+    const allButton = screen.getByLabelText(
+      'Show all tokens, click to filter by SOL'
+    );
     expect(allButton).toHaveAttribute('aria-pressed', 'true');
   });
 });
