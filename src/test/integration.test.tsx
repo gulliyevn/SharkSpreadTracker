@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ViewProvider } from '@/contexts/ViewContext';
+import { SearchProvider } from '@/contexts/SearchContext';
+import { MinSpreadProvider } from '@/contexts/MinSpreadContext';
 import { TokensPage } from '@/pages/TokensPage';
 import { Header } from '@/components/layout/Header';
 import '@/lib/i18n'; // Инициализируем i18n перед тестами
@@ -26,7 +28,11 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <LanguageProvider>
-          <ViewProvider>{children}</ViewProvider>
+          <SearchProvider>
+            <MinSpreadProvider>
+              <ViewProvider>{children}</ViewProvider>
+            </MinSpreadProvider>
+          </SearchProvider>
         </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>

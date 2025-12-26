@@ -58,7 +58,8 @@ describe('ThemeContext', () => {
 
       expect(result.current.theme).toBe('light');
       expect(result.current.resolvedTheme).toBe('light');
-      expect(document.documentElement.classList.contains('light')).toBe(true);
+      // Tailwind использует darkMode: 'class', поэтому для светлой темы просто удаляется класс 'dark'
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
     });
 
     it('should apply dark theme when stored theme is dark', () => {

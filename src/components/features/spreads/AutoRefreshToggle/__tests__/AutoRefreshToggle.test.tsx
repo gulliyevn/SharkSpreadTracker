@@ -2,17 +2,25 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AutoRefreshToggle } from '../AutoRefreshToggle';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import '@/lib/i18n';
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+  return <LanguageProvider>{children}</LanguageProvider>;
+};
 
 describe('AutoRefreshToggle', () => {
   it('should render Auto and Refresh buttons', () => {
     const onToggle = vi.fn();
     const onRefresh = vi.fn();
     render(
-      <AutoRefreshToggle
-        isAuto={true}
-        onToggle={onToggle}
-        onRefresh={onRefresh}
-      />
+      <TestWrapper>
+        <AutoRefreshToggle
+          isAuto={true}
+          onToggle={onToggle}
+          onRefresh={onRefresh}
+        />
+      </TestWrapper>
     );
 
     expect(screen.getByText('Auto')).toBeInTheDocument();
@@ -23,11 +31,13 @@ describe('AutoRefreshToggle', () => {
     const onToggle = vi.fn();
     const onRefresh = vi.fn();
     render(
-      <AutoRefreshToggle
-        isAuto={true}
-        onToggle={onToggle}
-        onRefresh={onRefresh}
-      />
+      <TestWrapper>
+        <AutoRefreshToggle
+          isAuto={true}
+          onToggle={onToggle}
+          onRefresh={onRefresh}
+        />
+      </TestWrapper>
     );
 
     const autoButton = screen.getByText('Auto').closest('button');
@@ -56,11 +66,13 @@ describe('AutoRefreshToggle', () => {
     const onToggle = vi.fn();
     const onRefresh = vi.fn();
     render(
-      <AutoRefreshToggle
-        isAuto={true}
-        onToggle={onToggle}
-        onRefresh={onRefresh}
-      />
+      <TestWrapper>
+        <AutoRefreshToggle
+          isAuto={true}
+          onToggle={onToggle}
+          onRefresh={onRefresh}
+        />
+      </TestWrapper>
     );
 
     const autoButton = screen.getByText('Auto').closest('button');
@@ -75,11 +87,13 @@ describe('AutoRefreshToggle', () => {
     const onToggle = vi.fn();
     const onRefresh = vi.fn();
     render(
-      <AutoRefreshToggle
-        isAuto={true}
-        onToggle={onToggle}
-        onRefresh={onRefresh}
-      />
+      <TestWrapper>
+        <AutoRefreshToggle
+          isAuto={true}
+          onToggle={onToggle}
+          onRefresh={onRefresh}
+        />
+      </TestWrapper>
     );
 
     const refreshButton = screen.getByText('Refresh').closest('button');
