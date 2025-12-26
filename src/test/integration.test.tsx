@@ -137,7 +137,6 @@ describe('Integration Tests', () => {
 
   describe('TokensPage Interactions', () => {
     it('should filter tokens by search term', async () => {
-      const user = userEvent.setup();
       render(
         <TestWrapper>
           <TokensPage />
