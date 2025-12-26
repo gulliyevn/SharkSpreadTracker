@@ -1,3 +1,7 @@
+// Инициализация темы ДО импорта React для избежания мигания
+import { initTheme } from './utils/theme-init';
+initTheme();
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -42,7 +46,10 @@ window.addEventListener('error', (event) => {
     event.filename?.includes('extension://') ||
     event.filename?.includes('chrome-extension://') ||
     event.filename?.includes('moz-extension://') ||
-    event.message?.includes('contentScript')
+    event.message?.includes('contentScript') ||
+    event.message?.includes('inpage.js') ||
+    event.message?.includes('IN_PAGE_CHANNEL_NODE_ID') ||
+    event.message?.includes('in-page-channel-node-id')
   ) {
     logger.warn(
       'Browser extension error detected (ignored):',
@@ -65,10 +72,18 @@ window.addEventListener('error', (event) => {
 // Обработчик необработанных промисов
 window.addEventListener('unhandledrejection', (event) => {
   // Игнорируем ошибки из расширений
+  const reason = event.reason;
+  const errorMessage =
+    reason?.message || reason?.toString() || String(reason || '');
+  const errorStack = reason?.stack || '';
+
   if (
-    event.reason?.stack?.includes('contentScript') ||
-    event.reason?.stack?.includes('extension://') ||
-    event.reason?.message?.includes('contentScript')
+    errorStack.includes('contentScript') ||
+    errorStack.includes('extension://') ||
+    errorMessage.includes('contentScript') ||
+    errorMessage.includes('inpage.js') ||
+    errorMessage.includes('IN_PAGE_CHANNEL_NODE_ID') ||
+    errorMessage.includes('in-page-channel-node-id')
   ) {
     logger.warn('Browser extension promise rejection (ignored):', event.reason);
     event.preventDefault();

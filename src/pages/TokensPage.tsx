@@ -468,14 +468,27 @@ export function TokensPage() {
             <>
               {filteredTokens.length === 0 ? (
                 <EmptyState
-                  icon="search"
+                  icon={tokens.length === 0 ? 'alert' : 'search'}
                   title={t('tokens.noTokens') || 'No tokens found'}
                   description={
-                    searchTerm
-                      ? t('tokens.noTokensWithSearch') ||
-                        `No tokens match "${searchTerm}"`
-                      : t('tokens.noTokensDescription') ||
-                        'Try adjusting your filters or search query'
+                    tokens.length === 0
+                      ? t('tokens.noTokensDescription') ||
+                        'Unable to load tokens from the server. Please check your connection and try refreshing the page.'
+                      : searchTerm
+                        ? t('tokens.noTokensWithSearch') ||
+                          `No tokens match "${searchTerm}"`
+                        : t('tokens.noTokensDescription') ||
+                          'Try adjusting your filters or search query'
+                  }
+                  action={
+                    tokens.length === 0 ? (
+                      <button
+                        onClick={() => refetch()}
+                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                      >
+                        {t('common.refresh') || 'Refresh'}
+                      </button>
+                    ) : undefined
                   }
                 />
               ) : (

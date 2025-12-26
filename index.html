@@ -79,20 +79,6 @@
       }
     }
     </script>
-    <!-- Применить тему синхронно до рендера React, чтобы избежать мигания -->
-    <script>
-      (function() {
-        const theme = localStorage.getItem('shark_theme') || 'system';
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        const resolvedTheme = theme === 'system' ? systemTheme : theme;
-        
-        if (resolvedTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>
