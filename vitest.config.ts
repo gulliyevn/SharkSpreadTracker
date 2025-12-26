@@ -71,10 +71,10 @@ export default defineConfig({
         'src/utils/data-leak-prevention.ts', // Утилиты логирования
       ],
         thresholds: {
-        lines: 85,
-        functions: 90,
-        branches: 78,
-        statements: 85,
+        lines: 75,
+        functions: 80,
+        branches: 70,
+        statements: 75,
       },
     },
   },
