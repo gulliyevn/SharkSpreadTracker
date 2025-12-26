@@ -50,15 +50,19 @@ describe('AutoRefreshToggle', () => {
     const onToggle = vi.fn();
     const onRefresh = vi.fn();
     render(
-      <AutoRefreshToggle
-        isAuto={false}
-        onToggle={onToggle}
-        onRefresh={onRefresh}
-      />
+      <TestWrapper>
+        <AutoRefreshToggle
+          isAuto={false}
+          onToggle={onToggle}
+          onRefresh={onRefresh}
+        />
+      </TestWrapper>
     );
 
     const autoButton = screen.getByText('Auto').closest('button');
-    expect(autoButton).not.toHaveClass('bg-primary-500');
+    expect(autoButton).toBeInTheDocument();
+    // Проверяем что кнопка не имеет primary стиль при isAuto=false
+    expect(autoButton?.className).not.toMatch(/bg-primary-500/);
   });
 
   it('should call onToggle when Auto button is clicked', async () => {

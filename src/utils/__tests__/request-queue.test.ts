@@ -68,30 +68,40 @@ describe('request-queue', () => {
       expect(results).toContain(2);
     });
 
-    it.skip('should check rate limit before adding request', async () => {
-      // Пропускаем из-за сложности тестирования асинхронной логики с таймерами
-      // Функциональность работает корректно в production
-      vi.mocked(rateLimiter.isAllowed).mockReturnValue(false);
+    it('should check rate limit before adding request', async () => {
+      vi.useFakeTimers();
+      
+      // Сначала rate limit запрещен
+      vi.mocked(rateLimiter.isAllowed).mockReturnValueOnce(false);
+      // Потом разрешен (для повторной попытки)
+      vi.mocked(rateLimiter.isAllowed).mockReturnValue(true);
 
       const requestFn = vi.fn().mockResolvedValue('result');
 
       const promise = requestQueue.add(requestFn, { rateLimitKey: 'test-api' });
 
+      // Rate limiter должен быть вызван
       expect(rateLimiter.isAllowed).toHaveBeenCalledWith('test-api');
+
+      // Продвигаем таймеры для обработки backoff и повторной попытки
+      await vi.advanceTimersByTimeAsync(2000);
 
       const result = await promise;
 
       expect(result).toBe('result');
       expect(requestFn).toHaveBeenCalled();
+
+      vi.useRealTimers();
     }, 15000);
 
-    it.skip('should retry on rate limit error', async () => {
-      // Пропускаем из-за сложности тестирования асинхронной логики с таймерами
-      // Функциональность работает корректно в production
+    it('should retry on rate limit error', async () => {
+      vi.useFakeTimers();
+      
       let callCount = 0;
       const requestFn = vi.fn().mockImplementation(async () => {
         callCount++;
         if (callCount < 2) {
+          // Создаем ошибку с сообщением, которое распознается как rate limit error
           throw new Error('rate limit exceeded');
         }
         return 'result';
@@ -102,10 +112,15 @@ describe('request-queue', () => {
         rateLimitKey: 'test-api',
       });
 
+      // Продвигаем таймеры для обработки retry (backoff увеличивается)
+      await vi.advanceTimersByTimeAsync(3000);
+
       const result = await resultPromise;
 
       expect(result).toBe('result');
       expect(callCount).toBeGreaterThanOrEqual(2);
+
+      vi.useRealTimers();
     }, 15000);
 
     it('should not retry on non-rate-limit error', async () => {

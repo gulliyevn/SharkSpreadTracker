@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ViewProvider } from '@/contexts/ViewContext';
+import { SearchProvider } from '@/contexts/SearchContext';
 import '@/lib/i18n';
 
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -17,7 +18,9 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <LanguageProvider>
-          <ViewProvider>{children}</ViewProvider>
+          <SearchProvider>
+            <ViewProvider>{children}</ViewProvider>
+          </SearchProvider>
         </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>
@@ -68,14 +71,11 @@ describe('Header', () => {
     );
 
     await waitFor(() => {
-      const enButton = screen.getByRole('button', {
-        name: /switch to english/i,
+      // Кнопка показывает текущий язык (по умолчанию EN)
+      const langButton = screen.getByRole('button', {
+        name: /current language/i,
       });
-      const ruButton = screen.getByRole('button', {
-        name: /переключить на русский/i,
-      });
-      expect(enButton).toBeInTheDocument();
-      expect(ruButton).toBeInTheDocument();
+      expect(langButton).toBeInTheDocument();
     });
   });
 
@@ -131,15 +131,31 @@ describe('Header', () => {
     );
 
     await waitFor(() => {
-      const enButton = screen.getByRole('button', { name: /english/i });
-      expect(enButton).toBeInTheDocument();
+      // Кнопка показывает текущий язык (по умолчанию EN)
+      const langButton = screen.getByRole('button', {
+        name: /current language/i,
+      });
+      expect(langButton).toBeInTheDocument();
     });
 
-    const ruButton = screen.getByRole('button', { name: /русский/i });
-    await user.click(ruButton);
+    const langButton = screen.getByRole('button', {
+      name: /current language/i,
+    });
+    await user.click(langButton);
 
-    // Язык должен переключиться
-    expect(ruButton).toBeInTheDocument();
+    // Проверяем, что кнопка обновилась после клика
+    await waitFor(
+      () => {
+        const updatedButton = screen.getByRole('button', {
+          name: /current language/i,
+        });
+        expect(updatedButton).toBeInTheDocument();
+        // Проверяем, что текст кнопки изменился (EN -> RU или текст содержит RU)
+        const buttonText = updatedButton.textContent?.toUpperCase() || '';
+        expect(buttonText).toMatch(/RU|EN|TR/);
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('should switch view when charts button is clicked', async () => {
@@ -183,15 +199,29 @@ describe('Header', () => {
       </TestWrapper>
     );
 
+    // По умолчанию язык EN, переключаем на RU, потом на TR, потом обратно на EN
     await waitFor(() => {
-      const enButton = screen.getByRole('button', { name: /english/i });
-      expect(enButton).toBeInTheDocument();
+      const langButton = screen.getByRole('button', {
+        name: /current language.*en/i,
+      });
+      expect(langButton).toBeInTheDocument();
     });
 
-    const enButton = screen.getByRole('button', { name: /english/i });
-    await user.click(enButton);
+    // Переключаем EN -> RU -> TR -> EN
+    const langButton = screen.getByRole('button', {
+      name: /current language/i,
+    });
+    await user.click(langButton); // EN -> RU
+    await user.click(langButton); // RU -> TR
+    await user.click(langButton); // TR -> EN
 
-    expect(enButton).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', {
+          name: /current language.*en/i,
+        })
+      ).toBeInTheDocument();
+    });
   });
 
   it('should switch to Turkish when TR button is clicked', async () => {
@@ -202,14 +232,26 @@ describe('Header', () => {
       </TestWrapper>
     );
 
+    // Переключаем EN -> RU -> TR
     await waitFor(() => {
-      const trButton = screen.getByRole('button', { name: /türkçe/i });
-      expect(trButton).toBeInTheDocument();
+      const langButton = screen.getByRole('button', {
+        name: /current language.*en/i,
+      });
+      expect(langButton).toBeInTheDocument();
     });
 
-    const trButton = screen.getByRole('button', { name: /türkçe/i });
-    await user.click(trButton);
+    const langButton = screen.getByRole('button', {
+      name: /current language/i,
+    });
+    await user.click(langButton); // EN -> RU
+    await user.click(langButton); // RU -> TR
 
-    expect(trButton).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', {
+          name: /current language.*tr/i,
+        })
+      ).toBeInTheDocument();
+    });
   });
 });

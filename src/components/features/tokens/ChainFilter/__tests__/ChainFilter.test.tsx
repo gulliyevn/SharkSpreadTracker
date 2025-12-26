@@ -18,9 +18,12 @@ describe('ChainFilter', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/^All/)).toBeInTheDocument();
-    expect(screen.getByText(/^BSC/)).toBeInTheDocument();
-    expect(screen.getByText(/^SOL/)).toBeInTheDocument();
+    // ChainFilter теперь одна кнопка, которая показывает текущее значение
+    // Проверяем, что кнопка рендерится с текстом "All" (или переводом)
+    const button = screen.getByRole('button', {
+      name: /show all tokens/i,
+    });
+    expect(button).toBeInTheDocument();
   });
 
   it('should call onChange when All button is clicked', async () => {
@@ -32,8 +35,11 @@ describe('ChainFilter', () => {
       </TestWrapper>
     );
 
-    const allButton = screen.getByText(/^All/);
-    await user.click(allButton);
+    // Когда value="bsc", клик переключает на 'all'
+    const button = screen.getByRole('button', {
+      name: /show bsc tokens/i,
+    });
+    await user.click(button);
 
     expect(onChange).toHaveBeenCalledWith('all');
   });
@@ -43,12 +49,15 @@ describe('ChainFilter', () => {
     const onChange = vi.fn();
     render(
       <TestWrapper>
-        <ChainFilter value="all" onChange={onChange} />
+        <ChainFilter value="solana" onChange={onChange} />
       </TestWrapper>
     );
 
-    const bscButton = screen.getByText(/^BSC/);
-    await user.click(bscButton);
+    // Когда value="solana", клик переключает на 'bsc'
+    const button = screen.getByRole('button', {
+      name: /show solana tokens/i,
+    });
+    await user.click(button);
 
     expect(onChange).toHaveBeenCalledWith('bsc');
   });
@@ -62,8 +71,11 @@ describe('ChainFilter', () => {
       </TestWrapper>
     );
 
-    const solButton = screen.getByText(/^SOL/);
-    await user.click(solButton);
+    // Когда value="all", клик переключает на 'solana'
+    const button = screen.getByRole('button', {
+      name: /show all tokens/i,
+    });
+    await user.click(button);
 
     expect(onChange).toHaveBeenCalledWith('solana');
   });
