@@ -12,7 +12,8 @@ describe('TokenCardSkeleton', () => {
     const { container } = render(<TokenCardSkeleton />);
     const skeleton = container.firstChild as HTMLElement;
     // Проверяем, что компонент рендерится и имеет правильные классы
-    expect(skeleton).toHaveClass('bg-light-50');
+    expect(skeleton).toHaveClass('bg-white');
+    expect(skeleton).toHaveClass('rounded-lg');
     // Проверяем, что внутри есть Skeleton компоненты (они имеют animate-pulse)
     const skeletonElements = container.querySelectorAll(
       '[class*="animate-pulse"]'
