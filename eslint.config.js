@@ -66,5 +66,12 @@ export default [
       'no-constant-binary-expression': 'off', // Разрешаем для тестов
     },
   },
+  {
+    // Разрешаем console.log для отладки в адаптерах
+    files: ['src/api/adapters/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ];
 
