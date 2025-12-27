@@ -4,9 +4,11 @@
  * (Vercel не подхватывает новые catch-all routes в поддиректориях)
  */
 
-export const config = { runtime: "nodejs" };
+// ВАЖНО: Node.js runtime по умолчанию на Vercel
+// Убираем config, чтобы использовать Node.js runtime (по умолчанию)
+// Node.js runtime позволяет делать запросы к IP-адресам
 
-// ВАЖНО: Edge Functions используют runtime env (не VITE_ префикс)
+// ВАЖНО: Node.js Functions используют runtime env (не VITE_ префикс)
 const BACKEND_URL =
   process.env.BACKEND_URL || 'http://158.220.122.153:8080';
 
