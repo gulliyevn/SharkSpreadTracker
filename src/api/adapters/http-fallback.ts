@@ -1,11 +1,11 @@
 /**
  * HTTP fallback для случая, когда WebSocket не обновился
- * 
+ *
  * Согласно документации API (API_DOCUMENTATION.md):
  * - Если WebSocket handshake не удался, сервер возвращает HTTP 200 с JSON payload
  * - Формат ответа: массив объектов StraightData
  * - Endpoint: /socket/sharkStraight
- * 
+ *
  * ВАЖНО: Если бэкенд возвращает HTML вместо JSON, это означает проблему с конфигурацией:
  * - Неправильный endpoint
  * - Бэкенд не настроен правильно
@@ -125,12 +125,20 @@ export async function fetchStraightSpreadsHttpFallback(
     // Проверяем content-type перед парсингом
     const contentType = response.headers.get('content-type') || '';
     const responseText = await response.text();
-    
+
     // Если сервер вернул HTML вместо JSON
-    if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
+    if (
+      contentType.includes('text/html') ||
+      responseText.trim().startsWith('<!')
+    ) {
       console.error('[HTTP Fallback] ❌ Backend returned HTML instead of JSON');
-      console.error('[HTTP Fallback] Response preview:', responseText.substring(0, 500));
-      logger.error('[HTTP Fallback] Backend returned HTML instead of JSON. Check backend URL and endpoint.');
+      console.error(
+        '[HTTP Fallback] Response preview:',
+        responseText.substring(0, 500)
+      );
+      logger.error(
+        '[HTTP Fallback] Backend returned HTML instead of JSON. Check backend URL and endpoint.'
+      );
       return [];
     }
 
@@ -139,9 +147,17 @@ export async function fetchStraightSpreadsHttpFallback(
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('[HTTP Fallback] ❌ Failed to parse response as JSON:', parseError);
-      console.error('[HTTP Fallback] Response preview:', responseText.substring(0, 500));
-      logger.error('[HTTP Fallback] Failed to parse response as JSON. Response might be HTML or invalid JSON.');
+      console.error(
+        '[HTTP Fallback] ❌ Failed to parse response as JSON:',
+        parseError
+      );
+      console.error(
+        '[HTTP Fallback] Response preview:',
+        responseText.substring(0, 500)
+      );
+      logger.error(
+        '[HTTP Fallback] Failed to parse response as JSON. Response might be HTML or invalid JSON.'
+      );
       return [];
     }
     console.log('[HTTP Fallback] ✅ Received data:', {
@@ -174,7 +190,12 @@ export async function fetchStraightSpreadsHttpFallback(
           'network' in item &&
           'limit' in item
       );
-    } else if (data && typeof data === 'object' && data !== null && !Array.isArray(data)) {
+    } else if (
+      data &&
+      typeof data === 'object' &&
+      data !== null &&
+      !Array.isArray(data)
+    ) {
       // Если это один объект, проверяем наличие нужных свойств
       const obj = data as Record<string, unknown>;
       if ('token' in obj && 'aExchange' in obj && 'bExchange' in obj) {
