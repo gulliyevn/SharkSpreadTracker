@@ -94,7 +94,10 @@ export async function fetchStraightSpreadsHttpFallback(
     clearTimeout(timeoutId);
     console.log('[HTTP Fallback] 📥 Response status:', response.status);
     console.log('[HTTP Fallback] 📥 Response ok:', response.ok);
-    console.log('[HTTP Fallback] 📥 Response headers:', Object.fromEntries(response.headers.entries()));
+    console.log(
+      '[HTTP Fallback] 📥 Response headers:',
+      Object.fromEntries(response.headers.entries())
+    );
 
     if (!response.ok) {
       // HTTP 426 (Upgrade Required) означает, что сервер требует WebSocket
@@ -138,7 +141,10 @@ export async function fetchStraightSpreadsHttpFallback(
       console.log('[HTTP Fallback] ⏱️ Request was aborted (timeout)');
     } else {
       logger.error('[HTTP Fallback] HTTP request failed:', err);
-      console.error('[HTTP Fallback] ❌ Request failed:', err instanceof Error ? err.message : String(err));
+      console.error(
+        '[HTTP Fallback] ❌ Request failed:',
+        err instanceof Error ? err.message : String(err)
+      );
     }
     return [];
   }

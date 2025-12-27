@@ -62,11 +62,12 @@ export async function fetchStraightSpreadsInternal(
     isHttps;
 
   if (useHttpDirectly) {
-    const mode = isDev && isLocalhost
-      ? '[WebSocket] Using HTTP fallback on localhost (dev mode)'
-      : isProduction || isHttps
-        ? '[WebSocket] Using HTTP fallback on production/HTTPS (Mixed Content Policy)'
-        : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)';
+    const mode =
+      isDev && isLocalhost
+        ? '[WebSocket] Using HTTP fallback on localhost (dev mode)'
+        : isProduction || isHttps
+          ? '[WebSocket] Using HTTP fallback on production/HTTPS (Mixed Content Policy)'
+          : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)';
     logger.info(mode);
     console.log('🚀 [WebSocket]', mode);
     console.log('🚀 [WebSocket] WEBSOCKET_URL:', WEBSOCKET_URL);

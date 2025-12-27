@@ -45,7 +45,7 @@ class Analytics {
     // Логирование через logger (только в dev)
     if (import.meta.env.DEV) {
       // Используем logger для консистентности
-      // eslint-disable-next-line no-console
+
       console.log('[Analytics]', eventName, properties);
     }
 

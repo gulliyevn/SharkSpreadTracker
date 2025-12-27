@@ -17,15 +17,28 @@ export default async function handler(req: Request) {
   const path = url.pathname.replace(/^\/api\/backend/, '');
   const backendUrl = `${BACKEND_URL}${path}${url.search}`;
 
+  console.log('[Backend Proxy] Request:', {
+    path: url.pathname,
+    extractedPath: path,
+    backendUrl,
+    method: req.method,
+  });
+
   try {
     // Делаем HTTP запрос к бэкенду
     const response = await fetch(backendUrl, {
       method: req.method,
       headers: {
-        ...Object.fromEntries(req.headers.entries()),
-        'Host': new URL(BACKEND_URL).host,
+        'Accept': 'application/json',
+        'User-Agent': 'SharkSpreadTracker/1.0',
       },
       body: req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined,
+    });
+
+    console.log('[Backend Proxy] Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get('content-type'),
     });
 
     // Если сервер требует WebSocket upgrade (426), это означает что endpoint требует WebSocket
@@ -42,11 +55,28 @@ export default async function handler(req: Request) {
     }
 
     // Возвращаем ответ от бэкенда
+    const contentType = response.headers.get('content-type') || '';
     const data = await response.text();
+    
+    // Если бэкенд вернул HTML вместо JSON, это ошибка
+    if (contentType.includes('text/html')) {
+      console.error('[Backend Proxy] Backend returned HTML instead of JSON:', data.substring(0, 200));
+      return new Response(
+        JSON.stringify({ error: 'Backend returned HTML instead of JSON. Check backend URL and endpoint.' }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
+    
     return new Response(data, {
       status: response.status,
       headers: {
-        ...Object.fromEntries(response.headers.entries()),
+        'Content-Type': contentType || 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
     });

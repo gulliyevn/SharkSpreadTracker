@@ -33,14 +33,12 @@ class Logger {
 
   debug(...args: unknown[]): void {
     if (this.shouldLog('debug')) {
-      // eslint-disable-next-line no-console
       console.debug('[DEBUG]', ...args);
     }
   }
 
   info(...args: unknown[]): void {
     if (this.shouldLog('info')) {
-      // eslint-disable-next-line no-console
       console.log('[INFO]', ...args);
     }
   }
@@ -62,7 +60,6 @@ class Logger {
    */
   dev(...args: unknown[]): void {
     if (this.isDevelopment) {
-      // eslint-disable-next-line no-console
       console.log('[DEV]', ...args);
     }
   }
