@@ -105,9 +105,10 @@ describe('errors', () => {
       expect(getApiErrorTranslationKey(error)).toBe('api.errors.timeout');
     });
 
-    it('should return message for other Error instances', () => {
+    it('should return unknown key for other Error instances', () => {
       const error = new Error('Custom error');
-      expect(getApiErrorTranslationKey(error)).toBe('Custom error');
+      // После исправления функция возвращает ключ перевода, а не raw message
+      expect(getApiErrorTranslationKey(error)).toBe('api.errors.unknown');
     });
 
     it('should return unknown for non-Error values', () => {

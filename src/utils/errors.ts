@@ -65,7 +65,8 @@ export function getApiErrorTranslationKey(error: unknown): string {
     if (error.message.includes('timeout')) {
       return 'api.errors.timeout';
     }
-    return error.message;
+    // Возвращаем ключ перевода вместо raw error.message
+    return 'api.errors.unknown';
   }
 
   return 'api.errors.unknown';

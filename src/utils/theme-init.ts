@@ -3,6 +3,8 @@
  * Используется вместо inline script для соответствия CSP
  */
 
+import { logger } from './logger';
+
 /**
  * Применяет тему из localStorage синхронно
  * Вызывается до рендера React для избежания мигания
@@ -28,6 +30,6 @@ export function initTheme(): void {
   } catch (error) {
     // Если localStorage недоступен (например, в приватном режиме), игнорируем ошибку
     // По умолчанию будет использоваться системная тема
-    console.warn('[theme-init] Failed to apply theme:', error);
+    logger.warn('[theme-init] Failed to apply theme:', error);
   }
 }

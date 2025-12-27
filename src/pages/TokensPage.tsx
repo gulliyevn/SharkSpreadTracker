@@ -124,7 +124,7 @@ export function TokensPage() {
       });
     }
     if (showReverseOnly) {
-      // reverseSpread всегда null, поэтому этот фильтр не сработает
+      // reverseSpread всегда null до реализации /socket/sharkReverse на бэкенде, поэтому этот фильтр не сработает
       filtered = filtered.filter(() => false);
     }
 

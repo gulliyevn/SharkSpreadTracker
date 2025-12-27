@@ -74,10 +74,31 @@ class RequestDeduplicator {
 export const requestDeduplicator = new RequestDeduplicator();
 
 // Периодическая очистка старых запросов
+// Сохраняем ID интервала для возможности очистки
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
 if (typeof window !== 'undefined') {
-  setInterval(() => {
+  cleanupIntervalId = setInterval(() => {
     requestDeduplicator.cleanup();
   }, 10000); // Каждые 10 секунд
+}
+
+/**
+ * Очистить интервал периодической очистки дедупликатора
+ * Вызывается при unmount приложения или hot reload
+ */
+export function cleanupDeduplicationInterval(): void {
+  if (cleanupIntervalId !== null) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
+
+// Очищаем интервал при hot reload в development
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cleanupDeduplicationInterval();
+  });
 }
 
 /**

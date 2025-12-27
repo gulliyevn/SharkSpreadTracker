@@ -66,7 +66,10 @@
   "tokens": {
     "title": "Токены",
     "selectToken": "Выбрать токен",
+    "selectedToken": "Выбранный токен",
     "noTokens": "Нет доступных токенов",
+    "noTokensWithSearch": "Нет токенов, соответствующих вашему запросу",
+    "noTokensDescription": "Попробуйте изменить фильтры или поисковый запрос",
     "searchPlaceholder": "Поиск токена (BTC, SOL)...",
     "searchDescription": "Поиск токенов по символу или названию",
     "loadMore": "Загрузить еще",

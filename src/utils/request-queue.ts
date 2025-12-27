@@ -55,6 +55,7 @@ class RequestQueue {
   private queue: QueuedRequest<unknown>[] = [];
   private processing: Set<string> = new Set();
   private config: RequestQueueConfig;
+  private pendingTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(config: Partial<RequestQueueConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -95,11 +96,13 @@ class RequestQueue {
       // Проверка rate limit перед добавлением в очередь
       if (rateLimitKey && !rateLimiter.isAllowed(rateLimitKey)) {
         // Если rate limit превышен, добавляем с задержкой
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
+          this.pendingTimeouts.delete(id);
           this.queue.push(request as QueuedRequest<unknown>);
           this.sortQueue();
           this.process();
         }, this.config.baseBackoffMs);
+        this.pendingTimeouts.set(id, timeoutId);
         return;
       }
 
@@ -157,9 +160,11 @@ class RequestQueue {
         this.processing.delete(request.id);
 
         // Планируем повторную попытку (используем setTimeout для избежания рекурсии)
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
+          this.pendingTimeouts.delete(request.id);
           this.process();
         }, newBackoffMs);
+        this.pendingTimeouts.set(request.id, timeoutId);
         return;
       }
 
@@ -178,11 +183,13 @@ class RequestQueue {
           request.backoffMs = newBackoffMs;
 
           // Возвращаем в очередь с задержкой (используем setTimeout для избежания рекурсии)
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
+            this.pendingTimeouts.delete(request.id);
             this.queue.push(request);
             this.sortQueue();
             this.process();
           }, newBackoffMs);
+          this.pendingTimeouts.set(request.id, timeoutId);
         } else {
           request.reject(error);
         }
@@ -193,9 +200,11 @@ class RequestQueue {
     } finally {
       this.processing.delete(request.id);
       // Обрабатываем следующий запрос (используем setTimeout для избежания рекурсии)
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
+        this.pendingTimeouts.delete(request.id);
         this.process();
       }, 0);
+      this.pendingTimeouts.set(request.id, timeoutId);
     }
   }
 
@@ -229,6 +238,22 @@ class RequestQueue {
     });
     this.queue = [];
     this.processing.clear();
+    // Очищаем все pending таймеры
+    this.pendingTimeouts.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    this.pendingTimeouts.clear();
+  }
+
+  /**
+   * Очистить все pending таймеры
+   * Вызывается при unmount приложения или hot reload
+   */
+  cleanup(): void {
+    this.pendingTimeouts.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    this.pendingTimeouts.clear();
   }
 
   /**
@@ -253,6 +278,13 @@ export const requestQueue = new RequestQueue({
   baseBackoffMs: 1000,
   maxBackoffMs: 30000,
 });
+
+// Очищаем pending таймеры при hot reload в development
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    requestQueue.cleanup();
+  });
+}
 
 /**
  * Обертка для выполнения запроса через очередь

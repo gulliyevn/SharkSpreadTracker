@@ -98,7 +98,7 @@ export interface IApiAdapter {
 }
 
 // Константы
-const WS_TIMEOUT = 30000; // 30 секунд - таймаут для WebSocket (большие сообщения ~97 МБ)
+const WS_TIMEOUT = 10000; // 10 секунд - таймаут для WebSocket (согласно API, соединение закрывается сразу после отправки данных)
 const CACHE_TTL = 5000; // 5 секунд - время жизни кэша
 const DATA_RECEIVED_DELAY = 500; // 500мс задержка для обработки всех сообщений
 const HTTP_FALLBACK_TIMEOUT = 10000; // 10 секунд - таймаут для HTTP fallback запроса
@@ -255,7 +255,7 @@ async function _fetchStraightSpreadsInternal(
         if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
           ws.close();
         }
-      } catch (err) {
+      } catch {
         // Игнорируем ошибки закрытия
       }
     };
@@ -423,6 +423,12 @@ async function _fetchStraightSpreadsInternal(
       } catch (err) {
         logger.error('[WebSocket] ❌ Failed to parse message:', err);
         logger.error('[WebSocket] Raw message preview:', textData.slice(0, 1000));
+        // При ошибке парсинга завершаем Promise с пустым массивом
+        // Это позволяет пользователю увидеть, что данные не получены
+        if (!settled) {
+          logger.warn('[WebSocket] Finishing with empty array due to parse error');
+          finish([]);
+        }
       }
     };
 
@@ -467,7 +473,10 @@ async function _fetchStraightSpreadsInternal(
 }
 
 /**
- * Публичная функция для получения данных с дедупликацией и кэшированием
+ * Публичная функция для получения данных straight spread с дедупликацией и кэшированием
+ * 
+ * Примечание: Когда бэкенд реализует /socket/sharkReverse, будет создана аналогичная функция
+ * fetchReverseSpreads с той же логикой (дедупликация, кэширование, WebSocket/HTTP fallback)
  */
 async function fetchStraightSpreads(
   params: WebSocketParams
@@ -677,7 +686,7 @@ class BackendApiAdapter implements IApiAdapter {
       byKey.set(key, {
         token,
         directSpread: bestSpread,
-        reverseSpread: null, // будет заполняться из reverse‑эндпоинта позже
+        reverseSpread: null, // Будет заполняться из /socket/sharkReverse когда endpoint будет реализован на бэкенде
         price,
       });
     }

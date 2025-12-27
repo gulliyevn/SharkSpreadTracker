@@ -88,7 +88,9 @@ describe('ChartsPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/error|ошибка/i)).toBeInTheDocument();
+      // Используем getAllByText, так как может быть несколько элементов с текстом "error"
+      const errorElements = screen.getAllByText(/error|ошибка/i);
+      expect(errorElements.length).toBeGreaterThan(0);
     });
   });
 

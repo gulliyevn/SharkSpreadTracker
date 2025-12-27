@@ -24,7 +24,7 @@ interface TokenCardProps {
  */
 export const TokenCard = memo(function TokenCard({
   token,
-  reverseSpread = null, // Обратный спред из отдельной ручки сервера
+  reverseSpread = null, // Обратный спред будет приходить из /socket/sharkReverse когда endpoint будет реализован на бэкенде
   isFavorite = false,
   onFavoriteToggle,
   onEdit,

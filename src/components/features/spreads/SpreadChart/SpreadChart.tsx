@@ -47,7 +47,7 @@ function calculateSpreadForPoint(
         ? point.jupiter_price
         : point.pancakeswap_price;
 
-  if (price1 === null || price2 === null || price1 === 0) {
+  if (price1 === null || price2 === null || price1 === 0 || price2 === 0) {
     return { directSpread: null, reverseSpread: null };
   }
 

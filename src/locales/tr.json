@@ -66,7 +66,10 @@
   "tokens": {
     "title": "Tokenler",
     "selectToken": "Token Seç",
+    "selectedToken": "Seçilen Token",
     "noTokens": "Kullanılabilir token yok",
+    "noTokensWithSearch": "Aramanızla eşleşen token yok",
+    "noTokensDescription": "Filtreleri veya arama sorgunuzu ayarlamayı deneyin",
     "searchPlaceholder": "Token ara (BTC, SOL)...",
     "searchDescription": "Sembol veya isme göre token ara",
     "loadMore": "Daha fazla yükle",

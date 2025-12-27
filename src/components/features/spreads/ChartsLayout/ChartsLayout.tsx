@@ -8,6 +8,7 @@ import { AutoRefreshToggle } from '../AutoRefreshToggle';
 import { CurrentPricesPanel } from '../CurrentPricesPanel';
 import { SpreadAnalysisPanel } from '../SpreadAnalysisPanel';
 import { useSpreadData } from '@/api/hooks/useSpreadData';
+import { logger } from '@/utils/logger';
 import type { Token, StraightData } from '@/types';
 import type { SourceType } from '@/types';
 import type { TimeframeOption } from '@/types';
@@ -48,8 +49,14 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
         if (token && token.symbol && token.chain) {
           setSelectedToken(token);
         }
-      } catch {
-        // Игнорируем ошибки парсинга
+      } catch (error) {
+        // Логируем ошибку парсинга для отладки
+        logger.warn(
+          '[ChartsLayout] Failed to parse saved token from localStorage:',
+          error
+        );
+        // Удаляем поврежденные данные
+        localStorage.removeItem('charts-selected-token');
       }
     }
 

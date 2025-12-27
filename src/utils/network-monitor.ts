@@ -3,6 +3,8 @@
  * Используется для адаптации поведения приложения на медленных сетях
  */
 
+import { logger } from './logger';
+
 export type NetworkConnectionType = 'slow-2g' | '2g' | '3g' | '4g' | 'unknown';
 
 export interface NetworkInfo {
@@ -15,6 +17,15 @@ export interface NetworkInfo {
 class NetworkMonitor {
   private networkInfo: NetworkInfo | null = null;
   private listeners: Set<(info: NetworkInfo) => void> = new Set();
+  private connectionChangeHandler: (() => void) | null = null;
+  private connection: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+    saveData?: boolean;
+    addEventListener?: (event: string, handler: () => void) => void;
+    removeEventListener?: (event: string, handler: () => void) => void;
+  } | null = null;
 
   constructor() {
     if (typeof navigator !== 'undefined' && 'connection' in navigator) {
@@ -25,6 +36,7 @@ class NetworkMonitor {
         rtt?: number;
         saveData?: boolean;
         addEventListener?: (event: string, handler: () => void) => void;
+        removeEventListener?: (event: string, handler: () => void) => void;
       }
 
       const connection = ((
@@ -36,16 +48,38 @@ class NetworkMonitor {
           .webkitConnection) as NetworkConnection | undefined;
 
       if (connection) {
+        this.connection = connection;
         this.updateNetworkInfo(connection);
 
         // Слушаем изменения состояния сети
         if (connection.addEventListener) {
-          connection.addEventListener('change', () => {
+          this.connectionChangeHandler = () => {
             this.updateNetworkInfo(connection);
-          });
+          };
+          connection.addEventListener('change', this.connectionChangeHandler);
         }
       }
     }
+  }
+
+  /**
+   * Очистить все listeners и ресурсы
+   * Вызывается при unmount приложения или hot reload
+   */
+  cleanup(): void {
+    if (
+      this.connection &&
+      this.connectionChangeHandler &&
+      this.connection.removeEventListener
+    ) {
+      this.connection.removeEventListener(
+        'change',
+        this.connectionChangeHandler
+      );
+      this.connectionChangeHandler = null;
+      this.connection = null;
+    }
+    this.listeners.clear();
   }
 
   private updateNetworkInfo(connection: {
@@ -127,7 +161,7 @@ class NetworkMonitor {
       try {
         callback(this.networkInfo!);
       } catch (error) {
-        console.error('[NetworkMonitor] Error in listener callback:', error);
+        logger.error('[NetworkMonitor] Error in listener callback:', error);
       }
     });
   }
@@ -135,3 +169,10 @@ class NetworkMonitor {
 
 // Singleton экземпляр
 export const networkMonitor = new NetworkMonitor();
+
+// Очищаем listeners при hot reload в development
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    networkMonitor.cleanup();
+  });
+}

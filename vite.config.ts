@@ -52,26 +52,35 @@ export default defineConfig({
           // Убираем /api/backend из пути, оставляя остальное
           // /api/backend/socket/sharkStraight -> /socket/sharkStraight
           const rewritten = path.replace(/^\/api\/backend/, '');
+          // eslint-disable-next-line no-console
           console.log('[Proxy] HTTP rewrite:', path, '->', rewritten);
+          // eslint-disable-next-line no-console
           console.log('[Proxy] Full rewritten path:', rewritten);
           return rewritten;
         },
         secure: false,
         configure: (proxy, _options) => {
           const target = process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
+          // eslint-disable-next-line no-console
           console.log('[Proxy] HTTP proxy configured for /api/backend');
+          // eslint-disable-next-line no-console
           console.log('[Proxy] Target backend:', target);
           
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             const requestUrl = req.url || '';
             const rewrittenUrl = requestUrl.replace(/^\/api\/backend/, '');
+            // eslint-disable-next-line no-console
             console.log('[Proxy] HTTP request:', req.method, requestUrl);
+            // eslint-disable-next-line no-console
             console.log('[Proxy] Proxying to:', `${target}${rewrittenUrl}`);
           });
           
           proxy.on('proxyRes', (proxyRes, req, _res) => {
+            // eslint-disable-next-line no-console
             console.log('[Proxy] HTTP response:', proxyRes.statusCode, 'for', req.url);
+            // eslint-disable-next-line no-console
             console.log('[Proxy] Content-Type:', proxyRes.headers['content-type']);
+            // eslint-disable-next-line no-console
             console.log('[Proxy] Content-Length:', proxyRes.headers['content-length']);
           });
           

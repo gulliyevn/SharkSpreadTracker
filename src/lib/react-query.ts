@@ -47,8 +47,11 @@ export const queryClient = new QueryClient({
 });
 
 // Периодическая очистка старого кэша (каждые 5 минут)
+// Сохраняем ID интервала для возможности очистки
+let cacheCleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
 if (typeof window !== 'undefined') {
-  setInterval(
+  cacheCleanupIntervalId = setInterval(
     () => {
       const cache = queryClient.getQueryCache();
       const queries = cache.getAll();
@@ -69,4 +72,22 @@ if (typeof window !== 'undefined') {
     },
     5 * 60 * 1000
   ); // Каждые 5 минут
+}
+
+/**
+ * Очистить интервал периодической очистки кэша
+ * Вызывается при unmount приложения или hot reload
+ */
+export function cleanupCacheInterval(): void {
+  if (cacheCleanupIntervalId !== null) {
+    clearInterval(cacheCleanupIntervalId);
+    cacheCleanupIntervalId = null;
+  }
+}
+
+// Очищаем интервал при hot reload в development
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cleanupCacheInterval();
+  });
 }

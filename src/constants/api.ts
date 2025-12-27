@@ -16,6 +16,9 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  * 
  * Простая логика: используем VITE_WEBSOCKET_URL если установлен,
  * иначе формируем из BACKEND_URL
+ * 
+ * Примечание: Когда бэкенд реализует /socket/sharkReverse, будет создана аналогичная
+ * константа REVERSE_WEBSOCKET_URL для обратного спреда
  */
 export const WEBSOCKET_URL =
   import.meta.env.VITE_WEBSOCKET_URL ||

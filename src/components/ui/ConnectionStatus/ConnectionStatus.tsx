@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -26,6 +26,11 @@ export function ConnectionStatus({
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Refs для хранения WebSocket и таймеров для cleanup
+  const wsRef = useRef<WebSocket | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const checkConnection = useCallback(async () => {
     const wsUrl = import.meta.env.VITE_WEBSOCKET_URL;
 
@@ -34,30 +39,78 @@ export function ConnectionStatus({
       return;
     }
 
+    // Закрываем предыдущее соединение, если оно есть
+    if (wsRef.current) {
+      try {
+        wsRef.current.close();
+      } catch {
+        // Игнорируем ошибки закрытия
+      }
+      wsRef.current = null;
+    }
+
+    // Очищаем предыдущие таймеры
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+
     setState('connecting');
 
     try {
       const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-      const timeout = setTimeout(() => {
-        ws.close();
-        setState('disconnected');
-        setRetryCount((prev) => prev + 1);
+      timeoutRef.current = setTimeout(() => {
+        if (wsRef.current === ws) {
+          try {
+            ws.close();
+          } catch {
+            // Игнорируем ошибки закрытия
+          }
+          wsRef.current = null;
+          setState('disconnected');
+          setRetryCount((prev) => prev + 1);
+        }
+        timeoutRef.current = null;
       }, 10000); // 10 секунд таймаут
 
       ws.onopen = () => {
-        clearTimeout(timeout);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
         setState('connected');
         setLastUpdate(new Date());
         setRetryCount(0);
         // Закрываем тестовое соединение
-        setTimeout(() => ws.close(), 1000);
+        closeTimeoutRef.current = setTimeout(() => {
+          if (wsRef.current === ws) {
+            try {
+              ws.close();
+            } catch {
+              // Игнорируем ошибки закрытия
+            }
+            wsRef.current = null;
+          }
+          closeTimeoutRef.current = null;
+        }, 1000);
       };
 
       ws.onerror = () => {
-        clearTimeout(timeout);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
         setState('error');
         setRetryCount((prev) => prev + 1);
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+        }
       };
 
       ws.onmessage = () => {
@@ -66,6 +119,7 @@ export function ConnectionStatus({
     } catch {
       setState('error');
       setRetryCount((prev) => prev + 1);
+      wsRef.current = null;
     }
   }, []);
 
@@ -75,7 +129,27 @@ export function ConnectionStatus({
     // Проверяем соединение каждые 30 секунд
     const interval = setInterval(checkConnection, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      // Очищаем WebSocket при unmount
+      if (wsRef.current) {
+        try {
+          wsRef.current.close();
+        } catch {
+          // Игнорируем ошибки закрытия
+        }
+        wsRef.current = null;
+      }
+      // Очищаем все таймеры
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    };
   }, [checkConnection]);
 
   const getStatusConfig = () => {

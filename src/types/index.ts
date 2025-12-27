@@ -74,8 +74,13 @@ export interface StraightData {
 /**
  * Данные обратного спреда из WebSocket API (sharkReverse)
  *
- * TODO: Будет реализовано позже, структура будет аналогична StraightData
- * Endpoint: /socket/sharkReverse
+ * Примечание: Endpoint /socket/sharkReverse еще не реализован на бэкенде.
+ * Структура идентична StraightData - когда endpoint будет готов, будет использована та же логика.
+ * 
+ * План реализации:
+ * 1. Бэкенд реализует /socket/sharkReverse (аналогично /socket/sharkStraight)
+ * 2. Создать функцию fetchReverseSpreads (аналогично fetchStraightSpreads)
+ * 3. Подключить к getSpreadsForTokens и другим местам где нужен reverseSpread
  */
 export interface ReverseData {
   token: string;

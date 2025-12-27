@@ -420,7 +420,9 @@ describe('TokensPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/error|ошибка/i)).toBeInTheDocument();
+      // Используем getAllByText, так как может быть несколько элементов с текстом "error"
+      const errorElements = screen.getAllByText(/error|ошибка/i);
+      expect(errorElements.length).toBeGreaterThan(0);
     });
 
     // Находим кнопку reset в ErrorDisplay
