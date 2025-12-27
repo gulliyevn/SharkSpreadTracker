@@ -1,29 +1,45 @@
 /**
- * Backend proxy endpoint для /api/backend/*
- * Обрабатывает все запросы к /api/backend/* в одном файле
- * (Vercel не подхватывает новые catch-all routes в поддиректориях)
+ * Catch-all route для обработки /api/backend/* и других динамических маршрутов
+ * Работает в корне api/, так как новые поддиректории не подхватываются Vercel
  */
 
 export const config = { runtime: "edge" };
 
-// ВАЖНО: Edge Functions используют runtime env (не VITE_ префикс)
-const BACKEND_URL =
-  process.env.BACKEND_URL || 'http://158.220.122.153:8080';
+// Известные endpoints, которые обрабатываются другими файлами
+const SKIP_PATHS = [
+  '/api/ping',
+  '/api/edge-ping',
+  '/api/jupiter',
+  '/api/mexc',
+  '/api/pancake',
+];
 
 export default async function handler(req: Request) {
   const url = new URL(req.url);
+  const pathname = url.pathname;
   
-  // Обрабатываем только /api/backend/*
-  if (!url.pathname.startsWith('/api/backend')) {
+  // Пропускаем известные endpoints - возвращаем 404, чтобы Vercel попробовал другие handlers
+  if (SKIP_PATHS.some(path => pathname === path || pathname.startsWith(path + '/'))) {
     return new Response('Not Found', { status: 404 });
   }
   
+  // Обрабатываем только /api/backend/*
+  if (!pathname.startsWith('/api/backend')) {
+    return new Response('Not Found', { status: 404 });
+  }
+  
+  // Проксируем на backend.ts
   // Извлекаем путь после /api/backend
-  const path = url.pathname.replace(/^\/api\/backend/, '') || '/';
+  const path = pathname.replace(/^\/api\/backend/, '') || '/';
+  
+  // ВАЖНО: Edge Functions используют runtime env (не VITE_ префикс)
+  const BACKEND_URL =
+    process.env.BACKEND_URL || 'http://158.220.122.153:8080';
+  
   const backendUrl = `${BACKEND_URL}${path}${url.search}`;
 
   console.log('[Backend Proxy] Request:', {
-    path: url.pathname,
+    path: pathname,
     extractedPath: path,
     backendUrl,
     method: req.method,
