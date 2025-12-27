@@ -42,22 +42,26 @@ export async function fetchStraightSpreadsHttpFallback(
     return [];
   }
 
+  // На production или HTTPS страницах используем прокси через Vercel Edge Function
   // На localhost в dev режиме используем прокси через Vite
   const isDev = import.meta.env.DEV;
+  const isProduction = import.meta.env.PROD;
+  const isHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
   const isLocalhost =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1');
 
   let httpUrl: URL;
-  if (isDev && isLocalhost) {
-    // Используем прокси через Vite на localhost
+  if (isProduction || isHttps || (isDev && isLocalhost)) {
+    // Используем прокси через Vercel Edge Function (production) или Vite (localhost)
     httpUrl = new URL(
       '/api/backend/socket/sharkStraight',
       window.location.origin
     );
   } else {
-    // На production используем прямой URL
+    // Fallback: используем прямой URL (не должно использоваться на production)
     httpUrl = new URL(`${BACKEND_URL}/socket/sharkStraight`);
   }
 

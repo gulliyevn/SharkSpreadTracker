@@ -27,91 +27,33 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  * Примечание: Когда бэкенд реализует /socket/sharkReverse, будет создана аналогичная
  * константа REVERSE_WEBSOCKET_URL для обратного спреда
  */
+/**
+ * ВАЖНО: На HTTPS страницах браузер блокирует ws:// соединения (Mixed Content Policy).
+ * Решение: использовать HTTP fallback через Vercel Edge Function (/api/backend).
+ * На production всегда используем HTTP fallback через прокси.
+ */
 export const WEBSOCKET_URL = (() => {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'api.ts:30',
-      message: 'WEBSOCKET_URL formation start',
-      data: {
-        hasViteWebsocketUrl: !!import.meta.env.VITE_WEBSOCKET_URL,
-        viteWebsocketUrl: import.meta.env.VITE_WEBSOCKET_URL,
-        hasBackendUrl: !!BACKEND_URL,
-        backendUrl: BACKEND_URL,
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'A',
-    }),
-  }).catch(() => {});
-  // #endregion
-  // Если явно указан VITE_WEBSOCKET_URL, используем его
-  // ВАЖНО: Принудительно заменяем wss:// на ws://, так как сервер не поддерживает SSL
-  if (import.meta.env.VITE_WEBSOCKET_URL) {
-    const url = import.meta.env.VITE_WEBSOCKET_URL;
-    // Принудительно заменяем wss:// на ws:// для серверов без SSL
-    const finalUrl = url.replace(/^wss:\/\//, 'ws://');
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'api.ts:36',
-        message: 'WEBSOCKET_URL from VITE_WEBSOCKET_URL',
-        data: { originalUrl: url, finalUrl },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'A',
-      }),
-    }).catch(() => {});
-    // #endregion
-    return finalUrl;
+  const isProduction = import.meta.env.PROD;
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  
+  // На production или HTTPS страницах используем HTTP fallback через прокси
+  if (isProduction || isHttps) {
+    // Используем относительный URL для прокси через Vercel
+    return '/api/backend/socket/sharkStraight';
   }
 
-  // Если BACKEND_URL не установлен, возвращаем пустую строку
+  // На localhost в dev режиме используем прямой WebSocket URL
+  if (import.meta.env.VITE_WEBSOCKET_URL) {
+    const url = import.meta.env.VITE_WEBSOCKET_URL;
+    return url.replace(/^wss:\/\//, 'ws://');
+  }
+
   if (!BACKEND_URL) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'api.ts:42',
-        message: 'WEBSOCKET_URL empty - BACKEND_URL not set',
-        data: {},
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'A',
-      }),
-    }).catch(() => {});
-    // #endregion
     return '';
   }
 
-  // Формируем WebSocket URL из BACKEND_URL
-  // Заменяем http:// или https:// на ws:// (явно указываем ws:// для серверов без SSL)
   const wsUrl = BACKEND_URL.replace(/^https?:\/\//, 'ws://');
-  const finalUrl = `${wsUrl}/socket/sharkStraight`;
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'api.ts:49',
-      message: 'WEBSOCKET_URL from BACKEND_URL',
-      data: { backendUrl: BACKEND_URL, wsUrl, finalUrl },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'A',
-    }),
-  }).catch(() => {});
-  // #endregion
-  return finalUrl;
+  return `${wsUrl}/socket/sharkStraight`;
 })();
 
 /**

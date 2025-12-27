@@ -45,16 +45,21 @@ export async function fetchStraightSpreadsInternal(
     return await fetchStraightSpreadsHttpFallback(url, params);
   }
 
-  // На localhost в dev режиме используем HTTP fallback сразу
-  // WebSocket прокси через Vite не работает стабильно (EPIPE ошибки)
-  // HTTP fallback проще и надежнее для разработки
+  // На production или HTTPS страницах всегда используем HTTP fallback
+  // Браузер блокирует ws:// соединения с HTTPS страниц (Mixed Content Policy)
   const isDev = import.meta.env.DEV;
+  const isProduction = import.meta.env.PROD;
+  const isHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
   const isLocalhost =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1');
   const useHttpDirectly =
-    import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' || (isDev && isLocalhost);
+    import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' ||
+    (isDev && isLocalhost) ||
+    isProduction ||
+    isHttps;
 
   if (useHttpDirectly) {
     logger.info(

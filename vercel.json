@@ -18,6 +18,10 @@
       "destination": "/api/pancake/:path*"
     },
     {
+      "source": "/api/backend/:path*",
+      "destination": "/api/backend/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
