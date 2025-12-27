@@ -4,7 +4,7 @@
  * (Vercel не подхватывает новые catch-all routes в поддиректориях)
  */
 
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
 // ВАЖНО: Edge Functions используют runtime env (не VITE_ префикс)
 const BACKEND_URL =
