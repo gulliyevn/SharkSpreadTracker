@@ -51,6 +51,7 @@
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.50.1",
     "@typescript-eslint/parser": "^8.50.1",
+    "@vercel/node": "^5.5.16",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-istanbul": "^4.0.16",
     "@vitest/coverage-v8": "^4.0.16",

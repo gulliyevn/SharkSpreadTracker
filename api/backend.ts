@@ -5,18 +5,21 @@
  */
 
 // ВАЖНО: Node.js runtime по умолчанию на Vercel
-// Убираем config, чтобы использовать Node.js runtime (по умолчанию)
+// Используем стандартный формат Vercel для Node.js (req, res)
 // Node.js runtime позволяет делать запросы к IP-адресам
 
 // ВАЖНО: Node.js Functions используют runtime env (не VITE_ префикс)
 const BACKEND_URL =
   process.env.BACKEND_URL || 'http://158.220.122.153:8080';
 
-export default async function handler(req: Request) {
-  const url = new URL(req.url);
-  
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
   // Пытаемся получить оригинальный путь из различных источников
-  let originalPath = url.pathname;
+  let originalPath = req.url || '';
   
   // Проверяем различные заголовки, которые Vercel может передавать при rewrites
   const possibleHeaders = [
@@ -28,8 +31,8 @@ export default async function handler(req: Request) {
   ];
   
   for (const headerName of possibleHeaders) {
-    const headerValue = req.headers.get(headerName);
-    if (headerValue) {
+    const headerValue = req.headers[headerName];
+    if (headerValue && typeof headerValue === 'string') {
       originalPath = headerValue;
       break;
     }
@@ -44,84 +47,50 @@ export default async function handler(req: Request) {
     path = '/';
   } else {
     // Если путь не начинается с /api/backend, возвращаем 404
-    return new Response('Not Found', { status: 404 });
+    return res.status(404).json({ error: 'Not Found' });
   }
   
-  const backendUrl = `${BACKEND_URL}${path}${url.search}`;
+  const backendUrl = `${BACKEND_URL}${path}${req.url?.includes('?') ? req.url.split('?')[1] : ''}`;
 
   // WebSocket endpoints не поддерживают HTTP fallback
   if (path.startsWith('/socket')) {
-    return new Response(
-      JSON.stringify({
-        error: 'WebSocket endpoint does not support HTTP fallback',
-        message: 'This endpoint requires a WebSocket connection',
-        endpoint: path,
-      }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    return res.status(400).json({
+      error: 'WebSocket endpoint does not support HTTP fallback',
+      message: 'This endpoint requires a WebSocket connection',
+      endpoint: path,
+    });
   }
 
   try {
-    const requestBody =
-      req.method !== 'GET' && req.method !== 'HEAD'
-        ? await req.text()
-        : undefined;
-
     const response = await fetch(backendUrl, {
       method: req.method,
       headers: {
         Accept: 'application/json',
         'User-Agent': 'SharkSpreadTracker/1.0',
       },
-      body: requestBody,
+      body: req.method !== 'GET' && req.method !== 'HEAD' 
+        ? JSON.stringify(req.body) 
+        : undefined,
     });
 
     const responseText = await response.text();
     const contentType = response.headers.get('content-type') || '';
 
     if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
-      return new Response(
-        JSON.stringify({
-          error: 'Backend returned HTML instead of JSON',
-          requestedPath: path,
-          backendUrl,
-          responseStatus: response.status,
-        }),
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      );
+      return res.status(500).json({
+        error: 'Backend returned HTML instead of JSON',
+        requestedPath: path,
+        backendUrl,
+        responseStatus: response.status,
+      });
     }
 
-    return new Response(responseText, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    res.setHeader('Content-Type', contentType || 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.status(response.status).send(responseText);
   } catch (error) {
     console.error('[Backend Proxy] Error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to proxy request to backend' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    return res.status(500).json({ error: 'Failed to proxy request to backend' });
   }
 }
 
