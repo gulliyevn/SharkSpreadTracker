@@ -59,10 +59,17 @@ export default async function handler(req: Request) {
     const data = await response.text();
     
     // Если бэкенд вернул HTML вместо JSON, это ошибка
-    if (contentType.includes('text/html')) {
-      console.error('[Backend Proxy] Backend returned HTML instead of JSON:', data.substring(0, 200));
+    // Проверяем и content-type, и начало содержимого (может быть HTML без правильного content-type)
+    if (contentType.includes('text/html') || data.trim().startsWith('<!')) {
+      console.error('[Backend Proxy] Backend returned HTML instead of JSON');
+      console.error('[Backend Proxy] Backend URL:', backendUrl);
+      console.error('[Backend Proxy] Response preview:', data.substring(0, 500));
       return new Response(
-        JSON.stringify({ error: 'Backend returned HTML instead of JSON. Check backend URL and endpoint.' }),
+        JSON.stringify({ 
+          error: 'Backend returned HTML instead of JSON. Check backend URL and endpoint.',
+          backendUrl,
+          responsePreview: data.substring(0, 200)
+        }),
         {
           status: 500,
           headers: {
