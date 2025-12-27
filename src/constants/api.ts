@@ -33,6 +33,21 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  * На production всегда используем HTTP fallback через прокси.
  */
 export const WEBSOCKET_URL = (() => {
+  // ВАЖНО: Если установлен VITE_WEBSOCKET_URL, используем его напрямую
+  // Это позволяет использовать прямой WebSocket URL даже на production
+  if (import.meta.env.VITE_WEBSOCKET_URL) {
+    return import.meta.env.VITE_WEBSOCKET_URL;
+  }
+
+  // Если BACKEND_URL установлен, формируем WebSocket URL из него
+  if (BACKEND_URL) {
+    // Преобразуем http:// или https:// в ws:// или wss://
+    const wsUrl = BACKEND_URL.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://');
+    return `${wsUrl}/socket/sharkStraight`;
+  }
+
+  // Fallback: используем относительный путь через прокси (HTTP fallback)
+  // Это используется только если VITE_WEBSOCKET_URL и BACKEND_URL не установлены
   const isProduction = import.meta.env.PROD;
   const isHttps =
     typeof window !== 'undefined' && window.location.protocol === 'https:';
@@ -42,25 +57,12 @@ export const WEBSOCKET_URL = (() => {
       window.location.hostname === '127.0.0.1');
   const isDev = import.meta.env.DEV;
 
-  // На production, HTTPS страницах или localhost в dev режиме используем HTTP fallback через прокси
-  // Это решает проблему Mixed Content Policy и упрощает разработку
   if (isProduction || isHttps || (isDev && isLocalhost)) {
-    // Используем относительный URL для прокси через Vercel (production) или Vite (localhost)
+    // Используем относительный URL для HTTP fallback через прокси
     return '/api/backend/socket/sharkStraight';
   }
 
-  // Для других случаев (если не localhost и не production) используем прямой WebSocket URL
-  if (import.meta.env.VITE_WEBSOCKET_URL) {
-    const url = import.meta.env.VITE_WEBSOCKET_URL;
-    return url.replace(/^wss:\/\//, 'ws://');
-  }
-
-  if (!BACKEND_URL) {
-    return '';
-  }
-
-  const wsUrl = BACKEND_URL.replace(/^https?:\/\//, 'ws://');
-  return `${wsUrl}/socket/sharkStraight`;
+  return '';
 })();
 
 /**
