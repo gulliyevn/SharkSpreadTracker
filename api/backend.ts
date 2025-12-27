@@ -1,24 +1,107 @@
 /**
- * Backend proxy endpoint
- * Обрабатывает /api/backend/* запросы
- * Используем один файл вместо catch-all, так как новые catch-all routes не работают
+ * Backend proxy endpoint для /api/backend/*
+ * Обрабатывает все запросы к /api/backend/* в одном файле
+ * (Vercel не подхватывает новые catch-all routes в поддиректориях)
  */
 
 export const config = { runtime: "edge" };
 
+// ВАЖНО: Edge Functions используют runtime env (не VITE_ префикс)
+const BACKEND_URL =
+  process.env.BACKEND_URL || 'http://158.220.122.153:8080';
+
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   
-  // DEBUG: Минимальный handler
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      pathname: url.pathname,
-      search: url.search,
+  // Обрабатываем только /api/backend/*
+  if (!url.pathname.startsWith('/api/backend')) {
+    return new Response('Not Found', { status: 404 });
+  }
+  
+  // Извлекаем путь после /api/backend
+  const path = url.pathname.replace(/^\/api\/backend/, '');
+  const backendUrl = `${BACKEND_URL}${path}${url.search}`;
+
+  console.log('[Backend Proxy] Request:', {
+    path: url.pathname,
+    extractedPath: path,
+    backendUrl,
+    method: req.method,
+  });
+
+  // WebSocket endpoints не поддерживают HTTP fallback
+  if (path.startsWith('/socket')) {
+    return new Response(
+      JSON.stringify({
+        error: 'WebSocket endpoint does not support HTTP fallback',
+        message: 'This endpoint requires a WebSocket connection',
+        endpoint: path,
+      }),
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
+  }
+
+  try {
+    const requestBody =
+      req.method !== 'GET' && req.method !== 'HEAD'
+        ? await req.text()
+        : undefined;
+
+    const response = await fetch(backendUrl, {
       method: req.method,
-      message: "backend.ts endpoint works",
-    }),
-    { headers: { "content-type": "application/json" } }
-  );
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'SharkSpreadTracker/1.0',
+      },
+      body: requestBody,
+    });
+
+    const responseText = await response.text();
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
+      return new Response(
+        JSON.stringify({
+          error: 'Backend returned HTML instead of JSON',
+          requestedPath: path,
+          backendUrl,
+          responseStatus: response.status,
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
+
+    return new Response(responseText, {
+      status: response.status,
+      headers: {
+        'Content-Type': contentType || 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  } catch (error) {
+    console.error('[Backend Proxy] Error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to proxy request to backend' }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
+  }
 }
 
