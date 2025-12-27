@@ -7,7 +7,7 @@ export const API_CONFIG = {
 /**
  * URL бэкенда
  * В backend-only режиме фронт общается только с нашим бэкендом
- * 
+ *
  * ВАЖНО: Для production на Vercel необходимо установить переменную окружения VITE_BACKEND_URL
  * в настройках проекта Vercel (Settings -> Environment Variables)
  */
@@ -41,7 +41,7 @@ export const WEBSOCKET_URL = (() => {
   // Формируем WebSocket URL из BACKEND_URL
   // Заменяем http:// или https:// на ws:// (явно указываем ws:// для серверов без SSL)
   const wsUrl = BACKEND_URL.replace(/^https?:\/\//, 'ws://');
-  
+
   // Добавляем endpoint
   return `${wsUrl}/socket/sharkStraight`;
 })();

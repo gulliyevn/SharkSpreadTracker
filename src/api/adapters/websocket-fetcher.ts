@@ -65,8 +65,12 @@ export async function fetchStraightSpreadsInternal(
   }
 
   logger.info(`[WebSocket] Connecting to: ${WEBSOCKET_URL}`);
-  logger.info(`[WebSocket] Protocol: ${typeof window !== 'undefined' ? window.location.protocol : 'unknown'}`);
-  logger.info(`[WebSocket] Is HTTPS: ${typeof window !== 'undefined' ? window.location.protocol === 'https:' : 'unknown'}`);
+  logger.info(
+    `[WebSocket] Protocol: ${typeof window !== 'undefined' ? window.location.protocol : 'unknown'}`
+  );
+  logger.info(
+    `[WebSocket] Is HTTPS: ${typeof window !== 'undefined' ? window.location.protocol === 'https:' : 'unknown'}`
+  );
   setConnectionStatus('connecting');
 
   const url = createWebSocketUrl(WEBSOCKET_URL, params);
@@ -236,6 +240,16 @@ export async function fetchStraightSpreadsInternal(
     ws.onerror = (error) => {
       logger.error('[WebSocket] ❌ Error event triggered');
       logger.error('[WebSocket] Error details:', error);
+      // На localhost это может быть нормально из-за CORS/сетевых ограничений
+      // На production должно работать, если сервер доступен из интернета
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost'
+      ) {
+        logger.debug(
+          '[WebSocket] Note: WebSocket errors on localhost are common due to CORS/network restrictions. This should work on production.'
+        );
+      }
       setConnectionStatus('error');
     };
 
