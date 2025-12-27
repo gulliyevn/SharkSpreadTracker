@@ -4,6 +4,11 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "vite",
+  "functions": {
+    "api/backend/[...path].ts": {
+      "runtime": "edge"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",

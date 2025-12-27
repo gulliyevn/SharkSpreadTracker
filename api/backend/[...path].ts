@@ -12,6 +12,13 @@ const BACKEND_URL =
   process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
 
 export default async function handler(req: Request) {
+  // ВАЖНО: Логируем ВСЕ запросы для диагностики
+  // Если этот лог не появляется в Vercel, значит Edge Function не вызывается
+  console.log('[Backend Proxy] ===== EDGE FUNCTION CALLED =====');
+  console.log('[Backend Proxy] Request URL:', req.url);
+  console.log('[Backend Proxy] Request Method:', req.method);
+  console.log('[Backend Proxy] Request Headers:', Object.fromEntries(req.headers.entries()));
+  
   const url = new URL(req.url);
 
   // Извлекаем путь после /api/backend
@@ -23,6 +30,7 @@ export default async function handler(req: Request) {
     extractedPath: path,
     backendUrl,
     method: req.method,
+    fullUrl: req.url,
   });
 
   try {
