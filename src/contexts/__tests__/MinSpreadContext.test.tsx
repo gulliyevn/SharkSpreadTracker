@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import {
-  MinSpreadProvider,
-  useMinSpread,
-} from '../MinSpreadContext';
+import { MinSpreadProvider, useMinSpread } from '../MinSpreadContext';
 
 describe('MinSpreadContext', () => {
   beforeEach(() => {
@@ -120,4 +117,3 @@ describe('MinSpreadContext', () => {
     });
   });
 });
-

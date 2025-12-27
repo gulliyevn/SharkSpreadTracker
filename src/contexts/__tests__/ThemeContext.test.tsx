@@ -223,7 +223,7 @@ describe('ThemeContext', () => {
 
       expect(setStoredTheme).toHaveBeenCalledWith('light');
       expect(trackThemeChangeSpy).toHaveBeenCalledWith('light');
-      
+
       trackThemeChangeSpy.mockRestore();
     });
 
@@ -248,7 +248,7 @@ describe('ThemeContext', () => {
 
       expect(setStoredTheme).toHaveBeenCalledWith('dark');
       expect(trackThemeChangeSpy).toHaveBeenCalledWith('dark');
-      
+
       trackThemeChangeSpy.mockRestore();
     });
   });

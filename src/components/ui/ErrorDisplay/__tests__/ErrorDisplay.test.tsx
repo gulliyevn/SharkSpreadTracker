@@ -130,7 +130,9 @@ describe('ErrorDisplay', () => {
       </TestWrapper>
     );
 
-    expect(screen.queryByText(/details|детали|detaylar/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/details|детали|detaylar/i)
+    ).not.toBeInTheDocument();
   });
 
   it('should show error stack when showDetails is true', () => {
@@ -172,7 +174,9 @@ describe('ErrorDisplay', () => {
     );
 
     expect(
-      screen.queryByRole('button', { name: /try again|попробовать|tekrar dene/i })
+      screen.queryByRole('button', {
+        name: /try again|попробовать|tekrar dene/i,
+      })
     ).not.toBeInTheDocument();
   });
 

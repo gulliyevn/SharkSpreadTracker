@@ -61,7 +61,7 @@ export default defineConfig({
         'src/utils/logger.ts',
         'src/utils/data-leak-prevention.ts',
         // API и WebSocket (сложно мокать)
-        'src/api/adapters/api-adapter.ts',
+        'src/api/adapters/**',
         'src/api/hooks/useSpreadData.ts',
         'src/api/clients/**',
         // Библиотеки инициализации

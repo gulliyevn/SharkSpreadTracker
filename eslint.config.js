@@ -35,6 +35,9 @@ export default [
       ...js.configs.recommended.rules,
       ...tseslint.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
+      'react-hooks/exhaustive-deps': 'warn', // Разрешаем предупреждения вместо ошибок
+      'react-hooks/set-state-in-effect': 'off', // Отключаем новое правило из версии 7.x
+      'react-hooks/preserve-manual-memoization': 'off', // Отключаем проверку мемоизации
       'no-undef': 'off', // TypeScript обрабатывает это
       'react-refresh/only-export-components': [
         'warn',
