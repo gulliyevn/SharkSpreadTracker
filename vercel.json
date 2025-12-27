@@ -3,6 +3,12 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "installCommand": "npm install --legacy-peer-deps",
+  "rewrites": [
+    {
+      "source": "/api/backend/:path*",
+      "destination": "/api/backend"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -12,6 +18,6 @@
         { "key": "X-XSS-Protection", "value": "1; mode=block" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
-        }
-      ]
+    }
+  ]
 }
