@@ -13,7 +13,9 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 /**
  * WebSocket URL для real-time обновлений
  * Endpoint: /socket/sharkStraight
- * Больше нет хардкода IP — URL обязателен через ENV
+ * 
+ * Простая логика: используем VITE_WEBSOCKET_URL если установлен,
+ * иначе формируем из BACKEND_URL
  */
 export const WEBSOCKET_URL =
   import.meta.env.VITE_WEBSOCKET_URL ||

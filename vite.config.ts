@@ -41,6 +41,46 @@ export default defineConfig({
     port: 3000,
     cors: true,
     proxy: {
+      // ВАЖНО: Порядок прокси важен! Более специфичные маршруты должны быть ПЕРВЫМИ
+      
+      // Прокси для HTTP запросов к бэкенду (fallback) - ДОЛЖЕН БЫТЬ ПЕРВЫМ
+      // Этот маршрут должен быть перед другими /api/* маршрутами
+      '/api/backend': {
+        target: process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080',
+        changeOrigin: true,
+        rewrite: (path) => {
+          // Убираем /api/backend из пути, оставляя остальное
+          // /api/backend/socket/sharkStraight -> /socket/sharkStraight
+          const rewritten = path.replace(/^\/api\/backend/, '');
+          console.log('[Proxy] HTTP rewrite:', path, '->', rewritten);
+          console.log('[Proxy] Full rewritten path:', rewritten);
+          return rewritten;
+        },
+        secure: false,
+        configure: (proxy, _options) => {
+          const target = process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
+          console.log('[Proxy] HTTP proxy configured for /api/backend');
+          console.log('[Proxy] Target backend:', target);
+          
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            const requestUrl = req.url || '';
+            const rewrittenUrl = requestUrl.replace(/^\/api\/backend/, '');
+            console.log('[Proxy] HTTP request:', req.method, requestUrl);
+            console.log('[Proxy] Proxying to:', `${target}${rewrittenUrl}`);
+          });
+          
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('[Proxy] HTTP response:', proxyRes.statusCode, 'for', req.url);
+            console.log('[Proxy] Content-Type:', proxyRes.headers['content-type']);
+            console.log('[Proxy] Content-Length:', proxyRes.headers['content-length']);
+          });
+          
+          proxy.on('error', (err, _req, _res) => {
+            console.error('[Proxy] HTTP proxy error:', err.message);
+            console.error('[Proxy] Error code:', (err as NodeJS.ErrnoException).code);
+          });
+        },
+      },
       // Прокси для обхода CORS в dev-режиме
       // Jupiter API использует lite-api.jup.ag/tokens/v2 (работает без ключа)
       // api.jup.ag/tokens/v2 требует Pro план

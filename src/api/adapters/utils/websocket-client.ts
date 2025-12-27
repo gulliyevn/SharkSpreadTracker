@@ -72,6 +72,15 @@ export function createWebSocketUrl(
  * Парсит сообщение WebSocket
  */
 export function parseWebSocketMessage(rawData: string): StraightData[] {
+  // Диагностическое логирование: логируем длину сырых данных и первые 200 символов
+  logger.debug('[WebSocket] Parsing message, raw data length:', rawData.length);
+  if (rawData.length > 0) {
+    logger.debug(
+      '[WebSocket] Raw data preview (first 200 chars):',
+      rawData.slice(0, 200)
+    );
+  }
+
   // Проверяем, что данные не пустые
   if (!rawData || rawData.trim().length === 0) {
     logger.debug('[WebSocket] Received empty message');
@@ -89,6 +98,14 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
     );
   }
 
+  // Логируем тип результата (массив/объект) и количество элементов
+  const isArray = Array.isArray(parsed);
+  const itemCount = isArray ? (parsed as unknown[]).length : 1;
+  logger.debug('[WebSocket] Parsed JSON:', {
+    type: isArray ? 'array' : 'object',
+    itemCount,
+  });
+
   // Нормализуем в массив
   const list = Array.isArray(parsed) ? parsed : [parsed];
 
@@ -98,46 +115,122 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
     return [];
   }
 
+  // Логируем структуру первого элемента для диагностики
+  if (list.length > 0 && list[0] && typeof list[0] === 'object') {
+    logger.debug('[WebSocket] First item structure:', {
+      keys: Object.keys(list[0] as Record<string, unknown>),
+      sample: list[0],
+    });
+  }
+
   const rows: StraightData[] = [];
   let itemsSkipped = 0;
+  const skippedServiceMessages: unknown[] = [];
+  const skippedInvalidItems: unknown[] = [];
+
+  // Обязательные поля согласно документации API
+  const requiredFields = [
+    'token',
+    'aExchange',
+    'bExchange',
+    'priceA',
+    'priceB',
+    'spread',
+    'network',
+    'limit',
+  ];
+
+  // Известные служебные типы сообщений
+  const serviceTypes = ['connected', 'ping', 'pong', 'heartbeat'];
 
   for (const item of list) {
-    // Игнорируем служебные сообщения типа {"type":"connected"}
+    // Фильтруем только известные служебные сообщения
+    // Валидные данные по документации НЕ содержат поле type
     if (
       item &&
       typeof item === 'object' &&
       'type' in item &&
-      item.type !== undefined
+      typeof (item as { type: unknown }).type === 'string' &&
+      serviceTypes.includes(
+        ((item as { type: string }).type as string).toLowerCase()
+      )
     ) {
-      logger.debug('[WebSocket] Ignoring service message:', item);
+      if (skippedServiceMessages.length < 3) {
+        skippedServiceMessages.push(item);
+      }
       itemsSkipped++;
       continue;
     }
 
-    // Проверяем, что элемент является объектом с обязательным полем 'token'
-    if (
-      item &&
-      typeof item === 'object' &&
-      'token' in item &&
-      item.token != null
-    ) {
-      rows.push(item as StraightData);
-    } else {
-      itemsSkipped++;
-      if (itemsSkipped <= 3) {
-        // Логируем только первые несколько для избежания спама
-        logger.debug('[WebSocket] Skipped invalid item:', item);
+    // Проверяем, что элемент является объектом
+    if (!item || typeof item !== 'object') {
+      if (skippedInvalidItems.length < 3) {
+        skippedInvalidItems.push(item);
       }
+      itemsSkipped++;
+      continue;
     }
+
+    // Валидация обязательных полей согласно документации API
+    const itemObj = item as Record<string, unknown>;
+    const hasAllFields = requiredFields.every(
+      (field) => field in itemObj && itemObj[field] != null
+    );
+
+    if (!hasAllFields) {
+      const missingFields = requiredFields.filter(
+        (field) => !(field in itemObj) || itemObj[field] == null
+      );
+      logger.warn(
+        '[WebSocket] Skipped item missing required fields:',
+        {
+          missingFields,
+          item,
+        }
+      );
+      if (skippedInvalidItems.length < 3) {
+        skippedInvalidItems.push(item);
+      }
+      itemsSkipped++;
+      continue;
+    }
+
+    // Проверяем, что token не пустой
+    if (!itemObj.token || String(itemObj.token).trim().length === 0) {
+      if (skippedInvalidItems.length < 3) {
+        skippedInvalidItems.push(item);
+      }
+      itemsSkipped++;
+      continue;
+    }
+
+    rows.push(item as StraightData);
   }
 
+  // Логируем примеры отфильтрованных элементов
+  if (skippedServiceMessages.length > 0) {
+    logger.debug(
+      '[WebSocket] Filtered service messages (examples):',
+      skippedServiceMessages
+    );
+  }
+  if (skippedInvalidItems.length > 0) {
+    logger.debug(
+      '[WebSocket] Filtered invalid items (examples):',
+      skippedInvalidItems
+    );
+  }
+
+  // Логируем итоговую статистику
   if (itemsSkipped > 0) {
     logger.debug(
       `[WebSocket] Skipped ${itemsSkipped} invalid items out of ${list.length} total`
     );
   }
 
-  logger.debug(`[WebSocket] Successfully parsed ${rows.length} valid items`);
+  logger.debug(
+    `[WebSocket] Successfully parsed ${rows.length} valid items out of ${list.length} total`
+  );
 
   return rows;
 }
