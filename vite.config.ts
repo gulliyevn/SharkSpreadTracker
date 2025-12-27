@@ -22,7 +22,11 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
           'query-vendor': ['@tanstack/react-query'],
           'chart-vendor': ['recharts'],
-          'i18n-vendor': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+          'i18n-vendor': [
+            'i18next',
+            'react-i18next',
+            'i18next-browser-languagedetector',
+          ],
           'ui-vendor': ['lucide-react', 'react-icons'],
           // axios используется только в backend.client.ts, который не используется в основном коде
           // Убираем из manualChunks, чтобы избежать пустого chunk
@@ -43,51 +47,66 @@ export default defineConfig({
     cors: true,
     proxy: {
       // ВАЖНО: Порядок прокси важен! Более специфичные маршруты должны быть ПЕРВЫМИ
-      
+
       // Прокси для HTTP запросов к бэкенду (fallback) - ДОЛЖЕН БЫТЬ ПЕРВЫМ
       // Этот маршрут должен быть перед другими /api/* маршрутами
       '/api/backend': {
         target: process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080',
         changeOrigin: true,
+        timeout: 30000, // 30 секунд таймаут для прокси (больше чем HTTP_FALLBACK_TIMEOUT)
         rewrite: (path) => {
           // Убираем /api/backend из пути, оставляя остальное
           // /api/backend/socket/sharkStraight -> /socket/sharkStraight
           const rewritten = path.replace(/^\/api\/backend/, '');
-           
+
           console.log('[Proxy] HTTP rewrite:', path, '->', rewritten);
-           
+
           console.log('[Proxy] Full rewritten path:', rewritten);
           return rewritten;
         },
         secure: false,
         configure: (proxy, _options) => {
-          const target = process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
-           
+          const target =
+            process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
+
           console.log('[Proxy] HTTP proxy configured for /api/backend');
-           
+
           console.log('[Proxy] Target backend:', target);
-          
+
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             const requestUrl = req.url || '';
             const rewrittenUrl = requestUrl.replace(/^\/api\/backend/, '');
-             
+
             console.log('[Proxy] HTTP request:', req.method, requestUrl);
-             
+
             console.log('[Proxy] Proxying to:', `${target}${rewrittenUrl}`);
           });
-          
+
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-             
-            console.log('[Proxy] HTTP response:', proxyRes.statusCode, 'for', req.url);
-             
-            console.log('[Proxy] Content-Type:', proxyRes.headers['content-type']);
-             
-            console.log('[Proxy] Content-Length:', proxyRes.headers['content-length']);
+            console.log(
+              '[Proxy] HTTP response:',
+              proxyRes.statusCode,
+              'for',
+              req.url
+            );
+
+            console.log(
+              '[Proxy] Content-Type:',
+              proxyRes.headers['content-type']
+            );
+
+            console.log(
+              '[Proxy] Content-Length:',
+              proxyRes.headers['content-length']
+            );
           });
-          
+
           proxy.on('error', (err, _req, _res) => {
             console.error('[Proxy] HTTP proxy error:', err.message);
-            console.error('[Proxy] Error code:', (err as NodeJS.ErrnoException).code);
+            console.error(
+              '[Proxy] Error code:',
+              (err as NodeJS.ErrnoException).code
+            );
           });
         },
       },
@@ -107,13 +126,12 @@ export default defineConfig({
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             // Логируем заголовки для диагностики (только в dev)
             if (process.env.NODE_ENV === 'development') {
-            const apiKey = req.headers['x-api-key'];
-            if (apiKey) {
-               
-              console.log('[Proxy] Jupiter API: x-api-key header found');
-            } else {
-              console.warn('[Proxy] Jupiter API: x-api-key header missing!');
-            }
+              const apiKey = req.headers['x-api-key'];
+              if (apiKey) {
+                console.log('[Proxy] Jupiter API: x-api-key header found');
+              } else {
+                console.warn('[Proxy] Jupiter API: x-api-key header missing!');
+              }
             }
           });
           proxy.on('error', (err, _req, _res) => {
@@ -137,4 +155,3 @@ export default defineConfig({
     },
   },
 });
-

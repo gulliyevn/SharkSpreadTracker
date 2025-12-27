@@ -85,12 +85,31 @@ export async function fetchStraightSpreadsHttpFallback(
     );
 
     if (params.signal) {
-      params.signal.addEventListener('abort', () => controller.abort(), {
-        once: true,
-      });
+      // Проверяем, не отменен ли уже сигнал
+      if (params.signal.aborted) {
+        console.warn(
+          '[HTTP Fallback] ⚠️ Signal already aborted before request'
+        );
+        logger.debug('[HTTP Fallback] Request signal was already aborted');
+        return [];
+      }
+      params.signal.addEventListener(
+        'abort',
+        () => {
+          console.log(
+            '[HTTP Fallback] ⚠️ External signal aborted, aborting request'
+          );
+          controller.abort();
+        },
+        {
+          once: true,
+        }
+      );
     }
 
     console.log('[HTTP Fallback] 📤 Sending fetch request...');
+    console.log('[HTTP Fallback] 📤 Timeout:', HTTP_FALLBACK_TIMEOUT, 'ms');
+    const startTime = Date.now();
     const response = await fetch(httpUrl.toString(), {
       method: 'GET',
       signal: controller.signal,
@@ -98,6 +117,8 @@ export async function fetchStraightSpreadsHttpFallback(
         Accept: 'application/json',
       },
     });
+    const requestTime = Date.now() - startTime;
+    console.log('[HTTP Fallback] ⏱️ Request completed in', requestTime, 'ms');
 
     clearTimeout(timeoutId);
     console.log('[HTTP Fallback] 📥 Response status:', response.status);
@@ -226,14 +247,42 @@ export async function fetchStraightSpreadsHttpFallback(
   } catch (err) {
     console.error('[HTTP Fallback] ❌ Error:', err);
     if (err instanceof Error && err.name === 'AbortError') {
-      logger.debug('[HTTP Fallback] Request aborted');
-      console.log('[HTTP Fallback] ⏱️ Request was aborted (timeout)');
+      // Проверяем, был ли это таймаут или внешняя отмена
+      const wasTimeout = !params.signal?.aborted;
+      if (wasTimeout) {
+        logger.warn(
+          '[HTTP Fallback] Request timed out after',
+          HTTP_FALLBACK_TIMEOUT,
+          'ms'
+        );
+        console.warn(
+          '[HTTP Fallback] ⏱️ Request timed out after',
+          HTTP_FALLBACK_TIMEOUT,
+          'ms'
+        );
+        console.warn('[HTTP Fallback] ⚠️ Backend might be slow or unreachable');
+        console.warn(
+          '[HTTP Fallback] ⚠️ Check if backend is running at:',
+          BACKEND_URL
+        );
+      } else {
+        logger.debug('[HTTP Fallback] Request aborted by external signal');
+        console.log(
+          '[HTTP Fallback] ⏱️ Request was aborted by external signal'
+        );
+      }
     } else {
       logger.error('[HTTP Fallback] HTTP request failed:', err);
       console.error(
         '[HTTP Fallback] ❌ Request failed:',
         err instanceof Error ? err.message : String(err)
       );
+      if (err instanceof Error && err.message.includes('fetch')) {
+        console.error(
+          '[HTTP Fallback] ⚠️ Network error - check if backend is accessible'
+        );
+        console.error('[HTTP Fallback] ⚠️ Backend URL:', BACKEND_URL);
+      }
     }
     return [];
   }
