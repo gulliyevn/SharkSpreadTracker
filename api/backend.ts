@@ -13,15 +13,10 @@ const BACKEND_URL =
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   
-  // Логируем все заголовки для отладки
-  console.log('[Backend Proxy] Headers:', Object.fromEntries(req.headers.entries()));
-  console.log('[Backend Proxy] URL:', req.url);
-  console.log('[Backend Proxy] Pathname:', url.pathname);
-  
   // Пытаемся получить оригинальный путь из различных источников
   let originalPath = url.pathname;
   
-  // Проверяем различные заголовки, которые Vercel может передавать
+  // Проверяем различные заголовки, которые Vercel может передавать при rewrites
   const possibleHeaders = [
     'x-vercel-rewrite',
     'x-invoke-path', 
@@ -33,7 +28,6 @@ export default async function handler(req: Request) {
   for (const headerName of possibleHeaders) {
     const headerValue = req.headers.get(headerName);
     if (headerValue) {
-      console.log(`[Backend Proxy] Found header ${headerName}:`, headerValue);
       originalPath = headerValue;
       break;
     }
@@ -52,13 +46,6 @@ export default async function handler(req: Request) {
   }
   
   const backendUrl = `${BACKEND_URL}${path}${url.search}`;
-
-  console.log('[Backend Proxy] Request:', {
-    path: url.pathname,
-    extractedPath: path,
-    backendUrl,
-    method: req.method,
-  });
 
   // WebSocket endpoints не поддерживают HTTP fallback
   if (path.startsWith('/socket')) {
