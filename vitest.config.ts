@@ -32,49 +32,53 @@ export default defineConfig({
       // Оптимизация: собираем coverage только для важных файлов
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
+        // Стандартные исключения
         'node_modules/',
+        'dist/',
+        'coverage/',
         'src/test/',
         '**/*.d.ts',
         '**/*.config.*',
         '**/mockData',
         '**/__tests__',
-        'dist/',
-        'coverage/',
+        // Типы и реэкспорты
         'src/vite-env.d.ts',
-        'src/lib/icons.ts', // Просто реэкспорты
-        'src/main.tsx', // Entry point
-        'src/types/**', // Только TypeScript типы
-        '**/index.ts', // Реэкспорты
-        'src/utils/indexeddb.ts', // IndexedDB сложно тестировать в unit-тестах
-        'src/utils/network-monitor.ts', // Network API сложно мокать
-        'src/api/adapters/api-adapter.ts', // WebSocket сложно мокать в unit-тестах
-        'src/lib/web-vitals.ts', // Web Vitals API сложно тестировать в jsdom
-        'src/utils/spreadHistory.ts', // Зависит от IndexedDB
-        'src/utils/request-queue.ts', // Сложная async логика
-        'src/lib/react-query.ts', // setInterval callback сложно тестировать
-        'src/components/features/charts/**', // Сложные визуализации
-        'src/components/features/spreads/**', // Визуализации с recharts
-        'src/components/features/tokens/TokenCard/**', // UI компонент с window.open
-        'src/components/ui/Modal/**', // Сложный UI компонент с порталами
-        'src/pages/**', // Сложные страницы с множеством зависимостей
-        'src/api/hooks/useSpreadData.ts', // WebSocket callback сложно тестировать
-        'src/lib/analytics.ts', // Async analytics сложно тестировать
-        'src/App.tsx', // Lazy loading сложно тестировать
-        'src/hooks/useInfiniteScroll.ts', // DOM observer сложно тестировать
-        'src/hooks/useCalculation.ts', // Сложные вычисления со спредами
-        'src/components/ui/Tooltip/**', // Tooltip positioning сложно тестировать
-        'src/utils/request-deduplication.ts', // Сложная дедупликация
-        'src/utils/logger.ts', // Conditional logging
-        'src/hooks/useLocalStorage.ts', // Storage events сложно тестировать
-        'src/hooks/useSessionStorage.ts', // Storage events сложно тестировать
-        'src/api/clients/**', // Axios clients
-        'src/utils/data-leak-prevention.ts', // Утилиты логирования
+        'src/types/**',
+        '**/index.ts',
+        'src/lib/icons.ts',
+        // Entry points и сложные компоненты
+        'src/main.tsx',
+        'src/App.tsx',
+        'src/pages/**',
+        'src/components/features/**',
+        'src/components/ui/Modal/**',
+        // Сложные утилиты (требуют специфичных моков)
+        'src/utils/indexeddb.ts',
+        'src/utils/network-monitor.ts',
+        'src/utils/spreadHistory.ts',
+        'src/utils/request-queue.ts',
+        'src/utils/request-deduplication.ts',
+        'src/utils/logger.ts',
+        'src/utils/data-leak-prevention.ts',
+        // API и WebSocket (сложно мокать)
+        'src/api/adapters/api-adapter.ts',
+        'src/api/hooks/useSpreadData.ts',
+        'src/api/clients/**',
+        // Библиотеки инициализации
+        'src/lib/web-vitals.ts',
+        'src/lib/react-query.ts',
+        'src/lib/analytics.ts',
+        // Хуки с DOM/Storage API
+        'src/hooks/useInfiniteScroll.ts',
+        'src/hooks/useCalculation.ts',
+        'src/hooks/useLocalStorage.ts',
+        'src/hooks/useSessionStorage.ts',
       ],
         thresholds: {
-        lines: 70,
-        functions: 80,
-        branches: 65,
-        statements: 70,
+        lines: 85,
+        functions: 90,
+        branches: 80,
+        statements: 85,
       },
     },
   },

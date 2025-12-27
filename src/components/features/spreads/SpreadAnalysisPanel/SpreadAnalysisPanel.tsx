@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SOURCES } from '@/constants/sources';
 import { cn } from '@/utils/cn';
+import { calculateSpread } from '@/utils/calculations';
 import type { SourceType } from '@/types';
 import type { SpreadResponse } from '@/types';
 
@@ -16,15 +17,13 @@ export interface SpreadAnalysisPanelProps {
 
 /**
  * Рассчитывает спред между двумя источниками
+ * Использует общую утилиту calculateSpread для устранения дублирования
  */
 function calculateSpreadBetweenSources(
   price1: number | null,
   price2: number | null
 ): number | null {
-  if (price1 === null || price2 === null || price1 === 0) {
-    return null;
-  }
-  return ((price2 - price1) / price1) * 100;
+  return calculateSpread(price1, price2);
 }
 
 /**

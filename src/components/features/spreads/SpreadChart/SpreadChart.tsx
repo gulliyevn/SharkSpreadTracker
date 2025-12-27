@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatDateTime } from '@/utils/format';
 import { cn } from '@/utils/cn';
+import { calculateSpread } from '@/utils/calculations';
 import type { SpreadResponse, SourceType } from '@/types';
 
 export interface SpreadChartProps {
@@ -27,6 +28,7 @@ export interface SpreadChartProps {
 
 /**
  * Рассчитывает спред между двумя источниками для точки данных
+ * Использует общую утилиту calculateSpread для устранения дублирования
  */
 function calculateSpreadForPoint(
   point: SpreadResponse['history'][0],
@@ -47,12 +49,9 @@ function calculateSpreadForPoint(
         ? point.jupiter_price
         : point.pancakeswap_price;
 
-  if (price1 === null || price2 === null || price1 === 0 || price2 === 0) {
-    return { directSpread: null, reverseSpread: null };
-  }
-
-  const directSpread = ((price2 - price1) / price1) * 100;
-  const reverseSpread = ((price1 - price2) / price2) * 100;
+  // Используем общую утилиту для расчета спреда
+  const directSpread = calculateSpread(price1, price2);
+  const reverseSpread = calculateSpread(price2, price1);
 
   return { directSpread, reverseSpread };
 }

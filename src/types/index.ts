@@ -76,7 +76,7 @@ export interface StraightData {
  *
  * Примечание: Endpoint /socket/sharkReverse еще не реализован на бэкенде.
  * Структура идентична StraightData - когда endpoint будет готов, будет использована та же логика.
- * 
+ *
  * План реализации:
  * 1. Бэкенд реализует /socket/sharkReverse (аналогично /socket/sharkStraight)
  * 2. Создать функцию fetchReverseSpreads (аналогично fetchStraightSpreads)

@@ -1,20 +1,20 @@
 import { lazy, Suspense } from 'react';
-import { Header } from './components/layout/Header';
-import { Footer } from './components/layout/Footer';
-import { ViewProvider, useView } from './contexts/ViewContext';
-import { SearchProvider } from './contexts/SearchContext';
-import { MinSpreadProvider } from './contexts/MinSpreadContext';
-import { LoadingSpinner } from './components/ui/LoadingSpinner';
-import { ToastContainer } from './components/ui/Toast';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { ViewProvider, useView } from '@/contexts/ViewContext';
+import { SearchProvider } from '@/contexts/SearchContext';
+import { MinSpreadProvider } from '@/contexts/MinSpreadContext';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ToastContainer } from '@/components/ui/Toast';
 
 // Ленивая загрузка страниц для уменьшения bundle size
 const TokensPage = lazy(() =>
-  import('./pages/TokensPage').then((module) => ({
+  import('@/pages/TokensPage').then((module) => ({
     default: module.TokensPage,
   }))
 );
 const ChartsPage = lazy(() =>
-  import('./pages/ChartsPage').then((module) => ({
+  import('@/pages/ChartsPage').then((module) => ({
     default: module.ChartsPage,
   }))
 );

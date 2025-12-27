@@ -93,39 +93,31 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
     }
   }, []);
 
-  // Сохраняем настройки в localStorage
+  // Сохраняем настройки в localStorage с обработкой ошибок (объединено в один useEffect)
   useEffect(() => {
-    if (selectedToken) {
-      localStorage.setItem(
-        'charts-selected-token',
-        JSON.stringify(selectedToken)
+    try {
+      if (selectedToken) {
+        localStorage.setItem(
+          'charts-selected-token',
+          JSON.stringify(selectedToken)
+        );
+      }
+      localStorage.setItem('charts-timeframe', timeframe);
+      if (source1) {
+        localStorage.setItem('charts-source1', source1);
+      }
+      if (source2) {
+        localStorage.setItem('charts-source2', source2);
+      }
+      localStorage.setItem('charts-chart-type', chartType);
+      localStorage.setItem('charts-auto-refresh', String(isAutoRefresh));
+    } catch (error) {
+      logger.warn(
+        '[ChartsLayout] Failed to save settings to localStorage:',
+        error
       );
     }
-  }, [selectedToken]);
-
-  useEffect(() => {
-    localStorage.setItem('charts-timeframe', timeframe);
-  }, [timeframe]);
-
-  useEffect(() => {
-    if (source1) {
-      localStorage.setItem('charts-source1', source1);
-    }
-  }, [source1]);
-
-  useEffect(() => {
-    if (source2) {
-      localStorage.setItem('charts-source2', source2);
-    }
-  }, [source2]);
-
-  useEffect(() => {
-    localStorage.setItem('charts-chart-type', chartType);
-  }, [chartType]);
-
-  useEffect(() => {
-    localStorage.setItem('charts-auto-refresh', String(isAutoRefresh));
-  }, [isAutoRefresh]);
+  }, [selectedToken, timeframe, source1, source2, chartType, isAutoRefresh]);
 
   // Получаем данные спреда
   const {

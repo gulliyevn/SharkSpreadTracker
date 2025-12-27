@@ -24,8 +24,9 @@ export default defineConfig({
           'chart-vendor': ['recharts'],
           'i18n-vendor': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           'ui-vendor': ['lucide-react', 'react-icons'],
-          // Выделяем axios отдельно, так как он используется везде
-          'axios-vendor': ['axios'],
+          // axios используется только в backend.client.ts, который не используется в основном коде
+          // Убираем из manualChunks, чтобы избежать пустого chunk
+          // 'axios-vendor': ['axios'],
         },
         // Оптимизация имен файлов для лучшего кэширования
         chunkFileNames: 'assets/[name]-[hash].js',

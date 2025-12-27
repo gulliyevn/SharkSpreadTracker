@@ -7,6 +7,12 @@ import type { Token, SpreadResponse, TimeframeOption } from '@/types';
 
 /**
  * React Query hook для получения данных спреда
+ *
+ * Автоматическое переподключение WebSocket:
+ * - Использует refetchInterval для периодического обновления данных
+ * - При каждом обновлении создается новое WebSocket соединение (request-response паттерн)
+ * - Интервал адаптируется в зависимости от состояния сети
+ *
  * @param token - Токен (symbol и chain)
  * @param timeframe - Таймфрейм для исторических данных
  * @param enabled - Включить/выключить запрос
@@ -44,10 +50,14 @@ export function useSpreadData(
       if (!token) {
         throw new Error('Token is required');
       }
+      // При каждом вызове queryFn создается новое WebSocket соединение
+      // Это реализует автоматическое переподключение для обновления данных
       return getSpreadData(token, timeframe, signal);
     },
     enabled: enabled && token !== null,
     staleTime: refreshInterval,
+    // Автоматическое переподключение через периодический refetch
+    // При каждом refetch создается новое WebSocket соединение
     refetchInterval: enabled ? refreshInterval : false,
     retry: 3,
     retryDelay: 1000,

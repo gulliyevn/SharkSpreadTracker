@@ -1,6 +1,10 @@
 /**
  * Очередь запросов с приоритизацией и exponential backoff
  * Решает проблемы с rate limits и оптимизирует параллельные запросы
+ *
+ * ⚠️ ВНИМАНИЕ: В данный момент не используется в основном коде приложения.
+ * Оставлен для возможного будущего использования при необходимости
+ * управления очередью запросов с приоритизацией и rate limiting.
  */
 
 import { rateLimiter } from './security';
@@ -55,7 +59,8 @@ class RequestQueue {
   private queue: QueuedRequest<unknown>[] = [];
   private processing: Set<string> = new Set();
   private config: RequestQueueConfig;
-  private pendingTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private pendingTimeouts: Map<string, ReturnType<typeof setTimeout>> =
+    new Map();
 
   constructor(config: Partial<RequestQueueConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };

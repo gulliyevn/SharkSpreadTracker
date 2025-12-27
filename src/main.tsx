@@ -1,25 +1,25 @@
 // Инициализация темы ДО импорта React для избежания мигания
-import { initTheme } from './utils/theme-init';
+import { initTheme } from '@/utils/theme-init';
 initTheme();
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './lib/react-query';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { ToastProvider } from './contexts/ToastContext';
-import { ErrorBoundary } from './components/ui/ErrorBoundary';
-import './lib/i18n'; // Инициализация i18n
-import { checkUrlForLeaks } from './utils/data-leak-prevention';
-import { initSentry } from './lib/sentry';
-import { initAnalytics } from './lib/analytics';
-import { initWebVitals } from './lib/web-vitals';
-import { logger } from './utils/logger';
+import { queryClient } from '@/lib/react-query';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import '@/lib/i18n'; // Инициализация i18n
+import { checkUrlForLeaks } from '@/utils/data-leak-prevention';
+import { initSentry } from '@/lib/sentry';
+import { initAnalytics } from '@/lib/analytics';
+import { initWebVitals } from '@/lib/web-vitals';
+import { logger } from '@/utils/logger';
 // Инициализируем IndexedDB при загрузке приложения
-import './utils/indexeddb';
-import App from './App';
-import './styles/tailwind.css';
+import '@/utils/indexeddb';
+import App from '@/App';
+import '@/styles/tailwind.css';
 
 // Инициализация Sentry (error tracking)
 initSentry();

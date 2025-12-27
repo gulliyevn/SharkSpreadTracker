@@ -13,10 +13,10 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 /**
  * WebSocket URL для real-time обновлений
  * Endpoint: /socket/sharkStraight
- * 
+ *
  * Простая логика: используем VITE_WEBSOCKET_URL если установлен,
  * иначе формируем из BACKEND_URL
- * 
+ *
  * Примечание: Когда бэкенд реализует /socket/sharkReverse, будет создана аналогичная
  * константа REVERSE_WEBSOCKET_URL для обратного спреда
  */

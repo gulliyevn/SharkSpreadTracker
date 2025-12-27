@@ -181,13 +181,10 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
       const missingFields = requiredFields.filter(
         (field) => !(field in itemObj) || itemObj[field] == null
       );
-      logger.warn(
-        '[WebSocket] Skipped item missing required fields:',
-        {
-          missingFields,
-          item,
-        }
-      );
+      logger.warn('[WebSocket] Skipped item missing required fields:', {
+        missingFields,
+        item,
+      });
       if (skippedInvalidItems.length < 3) {
         skippedInvalidItems.push(item);
       }
