@@ -34,8 +34,9 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  */
 export const WEBSOCKET_URL = (() => {
   const isProduction = import.meta.env.PROD;
-  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-  
+  const isHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
+
   // На production или HTTPS страницах используем HTTP fallback через прокси
   if (isProduction || isHttps) {
     // Используем относительный URL для прокси через Vercel

@@ -65,9 +65,22 @@ export async function fetchStraightSpreadsInternal(
     logger.info(
       isDev && isLocalhost
         ? '[WebSocket] Using HTTP fallback on localhost (dev mode)'
-        : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)'
+        : isProduction || isHttps
+          ? '[WebSocket] Using HTTP fallback on production/HTTPS (Mixed Content Policy)'
+          : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)'
     );
-    const url = createWebSocketUrl(WEBSOCKET_URL, params);
+    // На production/HTTPS WEBSOCKET_URL уже относительный (/api/backend/...)
+    // Создаем URL напрямую, без createWebSocketUrl (который для WebSocket)
+    const httpUrl = new URL(WEBSOCKET_URL, window.location.origin);
+    // Добавляем query параметры
+    if (params.token) {
+      httpUrl.searchParams.set('token', params.token);
+    }
+    if (params.network) {
+      httpUrl.searchParams.set('network', params.network);
+    }
+    // Создаем фиктивный URL объект для совместимости с fetchStraightSpreadsHttpFallback
+    const url = new URL(httpUrl.toString());
     setConnectionStatus('connecting');
     const result = await fetchStraightSpreadsHttpFallback(url, params);
     if (result.length > 0) {

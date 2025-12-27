@@ -54,21 +54,33 @@ export async function fetchStraightSpreadsHttpFallback(
       window.location.hostname === '127.0.0.1');
 
   let httpUrl: URL;
-  if (isProduction || isHttps || (isDev && isLocalhost)) {
+  // Если url уже относительный (начинается с /), используем его напрямую
+  // Это означает, что мы на production/HTTPS и используем прокси
+  if (url.pathname.startsWith('/api/backend')) {
+    // URL уже правильный (относительный путь к прокси)
+    httpUrl = new URL(url.pathname, window.location.origin);
+    // Копируем query параметры
+    url.searchParams.forEach((value, key) => {
+      httpUrl.searchParams.set(key, value);
+    });
+  } else if (isProduction || isHttps || (isDev && isLocalhost)) {
     // Используем прокси через Vercel Edge Function (production) или Vite (localhost)
     httpUrl = new URL(
       '/api/backend/socket/sharkStraight',
       window.location.origin
     );
+    // Добавляем query параметры из WebSocket URL
+    url.searchParams.forEach((value, key) => {
+      httpUrl.searchParams.set(key, value);
+    });
   } else {
     // Fallback: используем прямой URL (не должно использоваться на production)
     httpUrl = new URL(`${BACKEND_URL}/socket/sharkStraight`);
+    // Добавляем query параметры из WebSocket URL
+    url.searchParams.forEach((value, key) => {
+      httpUrl.searchParams.set(key, value);
+    });
   }
-
-  // Добавляем query параметры из WebSocket URL
-  url.searchParams.forEach((value, key) => {
-    httpUrl.searchParams.set(key, value);
-  });
 
   logger.info(
     `[HTTP Fallback] Trying HTTP GET request to: ${httpUrl.toString()}`
