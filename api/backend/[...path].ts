@@ -48,7 +48,11 @@ export default async function handler(req: Request) {
         ? await req.text()
         : undefined;
 
-    // Сначала пробуем обычный HTTP запрос
+    // ВАЖНО: Бэкенд может требовать WebSocket upgrade для /socket/sharkStraight
+    // Пробуем разные варианты запросов, чтобы получить данные
+    
+    // Вариант 1: Обычный HTTP запрос
+    console.log('[Backend Proxy] 🔄 Trying standard HTTP request...');
     let response = await fetch(backendUrl, {
       method: req.method,
       headers: {
@@ -57,14 +61,19 @@ export default async function handler(req: Request) {
       },
       body: requestBody,
     });
+    
+    console.log('[Backend Proxy] 📥 First attempt status:', response.status);
 
     // Если получили ошибку, пробуем с WebSocket заголовками
     // Это может помочь бэкенду понять, что мы пытаемся сделать WebSocket handshake
     // и вернуть JSON fallback (если он реализован)
-    if (response.status === 426 || response.status >= 400) {
+    if (response.status === 426 || (response.status >= 400 && response.status !== 200)) {
       console.log(
-        '[Backend Proxy] Received error status, trying with WebSocket headers...'
+        '[Backend Proxy] ⚠️ Received error status, trying with WebSocket headers...'
       );
+      console.log('[Backend Proxy] 🔄 Second attempt with WebSocket headers...');
+      
+      // Пробуем с WebSocket заголовками
       response = await fetch(backendUrl, {
         method: req.method,
         headers: {
@@ -77,6 +86,28 @@ export default async function handler(req: Request) {
         },
         body: requestBody,
       });
+      
+      console.log('[Backend Proxy] 📥 Second attempt status:', response.status);
+      
+      // Если и это не помогло, пробуем POST запрос (иногда бэкенды требуют POST для WebSocket handshake)
+      if (response.status === 426 || (response.status >= 400 && response.status !== 200)) {
+        console.log('[Backend Proxy] 🔄 Third attempt with POST method...');
+        response = await fetch(backendUrl, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'User-Agent': 'SharkSpreadTracker/1.0',
+            'Content-Type': 'application/json',
+            Upgrade: 'websocket',
+            Connection: 'Upgrade',
+            'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
+            'Sec-WebSocket-Version': '13',
+          },
+          body: JSON.stringify({}),
+        });
+        
+        console.log('[Backend Proxy] 📥 Third attempt status:', response.status);
+      }
     }
 
     console.log('[Backend Proxy] Response:', {
