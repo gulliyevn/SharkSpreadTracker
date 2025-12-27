@@ -5,7 +5,6 @@
 
 import { logger } from '@/utils/logger';
 import { BACKEND_URL } from '@/constants/api';
-import { parseWebSocketMessage } from './utils/websocket-client';
 import type { WebSocketParams } from './utils/websocket-client';
 import type { StraightData } from '@/types';
 
@@ -125,9 +124,42 @@ export async function fetchStraightSpreadsHttpFallback(
       length: Array.isArray(data) ? data.length : 1,
     });
 
-    // Парсим данные так же, как WebSocket сообщения
-    // parseWebSocketMessage ожидает строку, поэтому преобразуем JSON обратно в строку
-    const rows = parseWebSocketMessage(JSON.stringify(data));
+    // Для HTTP ответов используем данные напрямую, без двойного парсинга
+    // parseWebSocketMessage используется только для WebSocket сообщений (строки)
+    // HTTP ответ уже парсится как JSON, поэтому используем его напрямую
+    let rows: StraightData[];
+    if (Array.isArray(data)) {
+      // Если это массив, используем его напрямую
+      rows = data.filter(
+        (item): item is StraightData =>
+          item &&
+          typeof item === 'object' &&
+          'token' in item &&
+          'aExchange' in item &&
+          'bExchange' in item &&
+          'priceA' in item &&
+          'priceB' in item &&
+          'spread' in item &&
+          'network' in item &&
+          'limit' in item
+      );
+    } else if (data && typeof data === 'object') {
+      // Если это один объект, оборачиваем в массив
+      rows = [
+        {
+          token: String(data.token || ''),
+          aExchange: String(data.aExchange || ''),
+          bExchange: String(data.bExchange || ''),
+          priceA: String(data.priceA || ''),
+          priceB: String(data.priceB || ''),
+          spread: String(data.spread || ''),
+          network: String(data.network || ''),
+          limit: String(data.limit || ''),
+        } as StraightData,
+      ];
+    } else {
+      rows = [];
+    }
     console.log('[HTTP Fallback] ✅ Parsed rows:', rows.length);
 
     logger.info(
