@@ -26,11 +26,15 @@ export default async function handler(req: Request) {
 
   try {
     // Делаем HTTP запрос к бэкенду
+    // Согласно документации API, если WebSocket handshake не удался,
+    // сервер должен вернуть HTTP 200 с JSON payload
     const response = await fetch(backendUrl, {
       method: req.method,
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'SharkSpreadTracker/1.0',
+        // НЕ добавляем 'Upgrade: websocket', так как мы делаем HTTP fallback
+        // Бэкенд должен вернуть JSON, если WebSocket недоступен
       },
       body: req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined,
     });
@@ -60,14 +64,28 @@ export default async function handler(req: Request) {
     
     // Если бэкенд вернул HTML вместо JSON, это ошибка
     // Проверяем и content-type, и начало содержимого (может быть HTML без правильного content-type)
+    // Согласно документации API, бэкенд должен вернуть JSON при HTTP fallback
     if (contentType.includes('text/html') || data.trim().startsWith('<!')) {
-      console.error('[Backend Proxy] Backend returned HTML instead of JSON');
-      console.error('[Backend Proxy] Backend URL:', backendUrl);
-      console.error('[Backend Proxy] Response preview:', data.substring(0, 500));
+      console.error('[Backend Proxy] ❌ Backend returned HTML instead of JSON');
+      console.error('[Backend Proxy] Requested path:', path);
+      console.error('[Backend Proxy] Full backend URL:', backendUrl);
+      console.error('[Backend Proxy] Response status:', response.status);
+      console.error('[Backend Proxy] Response headers:', Object.fromEntries(response.headers.entries()));
+      console.error('[Backend Proxy] Response preview (first 500 chars):', data.substring(0, 500));
+      
+      // Возвращаем ошибку с деталями для диагностики
       return new Response(
         JSON.stringify({ 
-          error: 'Backend returned HTML instead of JSON. Check backend URL and endpoint.',
+          error: 'Backend returned HTML instead of JSON. This usually means:',
+          possibleCauses: [
+            '1. Backend endpoint is incorrect or not configured',
+            '2. Backend is returning a default HTML page (404 or error page)',
+            '3. Backend requires WebSocket upgrade but HTTP fallback is not properly implemented',
+            '4. Backend URL is incorrect'
+          ],
+          requestedPath: path,
           backendUrl,
+          responseStatus: response.status,
           responsePreview: data.substring(0, 200)
         }),
         {

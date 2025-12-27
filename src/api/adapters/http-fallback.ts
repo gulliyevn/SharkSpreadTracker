@@ -1,6 +1,15 @@
 /**
  * HTTP fallback для случая, когда WebSocket не обновился
- * Согласно документации API, если WebSocket не обновился, бэкенд возвращает HTTP 200 с JSON
+ * 
+ * Согласно документации API (API_DOCUMENTATION.md):
+ * - Если WebSocket handshake не удался, сервер возвращает HTTP 200 с JSON payload
+ * - Формат ответа: массив объектов StraightData
+ * - Endpoint: /socket/sharkStraight
+ * 
+ * ВАЖНО: Если бэкенд возвращает HTML вместо JSON, это означает проблему с конфигурацией:
+ * - Неправильный endpoint
+ * - Бэкенд не настроен правильно
+ * - Бэкенд возвращает дефолтную HTML страницу (404 или error page)
  */
 
 import { logger } from '@/utils/logger';
