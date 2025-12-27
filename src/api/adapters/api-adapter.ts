@@ -125,6 +125,7 @@ async function fetchStraightSpreads(
 class BackendApiAdapter implements IApiAdapter {
   async getAllTokens(signal?: AbortSignal): Promise<StraightData[]> {
     logger.debug('[API] getAllTokens called');
+    console.log('📞 [API] getAllTokens called');
     // Используем fetchStraightSpreads который уже имеет кэширование и дедупликацию
     const rows = await fetchStraightSpreads({ signal });
 

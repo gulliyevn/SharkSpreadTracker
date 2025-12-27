@@ -62,16 +62,24 @@ export async function fetchStraightSpreadsInternal(
     isHttps;
 
   if (useHttpDirectly) {
-    logger.info(
-      isDev && isLocalhost
-        ? '[WebSocket] Using HTTP fallback on localhost (dev mode)'
-        : isProduction || isHttps
-          ? '[WebSocket] Using HTTP fallback on production/HTTPS (Mixed Content Policy)'
-          : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)'
-    );
-    // На production/HTTPS WEBSOCKET_URL уже относительный (/api/backend/...)
+    const mode = isDev && isLocalhost
+      ? '[WebSocket] Using HTTP fallback on localhost (dev mode)'
+      : isProduction || isHttps
+        ? '[WebSocket] Using HTTP fallback on production/HTTPS (Mixed Content Policy)'
+        : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)';
+    logger.info(mode);
+    console.log('🚀 [WebSocket]', mode);
+    console.log('🚀 [WebSocket] WEBSOCKET_URL:', WEBSOCKET_URL);
+    // На production/HTTPS/localhost WEBSOCKET_URL уже относительный (/api/backend/...)
     // Создаем URL напрямую, без createWebSocketUrl (который для WebSocket)
-    const httpUrl = new URL(WEBSOCKET_URL, window.location.origin);
+    let httpUrl: URL;
+    if (WEBSOCKET_URL.startsWith('/')) {
+      // Относительный путь - используем текущий origin
+      httpUrl = new URL(WEBSOCKET_URL, window.location.origin);
+    } else {
+      // Абсолютный URL (не должно быть на production/localhost, но на всякий случай)
+      httpUrl = new URL(WEBSOCKET_URL);
+    }
     // Добавляем query параметры
     if (params.token) {
       httpUrl.searchParams.set('token', params.token);
@@ -79,10 +87,13 @@ export async function fetchStraightSpreadsInternal(
     if (params.network) {
       httpUrl.searchParams.set('network', params.network);
     }
+    console.log('🚀 [WebSocket] Final HTTP URL:', httpUrl.toString());
     // Создаем фиктивный URL объект для совместимости с fetchStraightSpreadsHttpFallback
     const url = new URL(httpUrl.toString());
     setConnectionStatus('connecting');
+    console.log('🚀 [WebSocket] Calling fetchStraightSpreadsHttpFallback...');
     const result = await fetchStraightSpreadsHttpFallback(url, params);
+    console.log('🚀 [WebSocket] Result:', result.length, 'rows');
     if (result.length > 0) {
       setConnectionStatus('connected');
     } else {
@@ -102,28 +113,6 @@ export async function fetchStraightSpreadsInternal(
 
   const url = createWebSocketUrl(WEBSOCKET_URL, params);
   const wsUrlString = url.toString();
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'websocket-fetcher.ts:85',
-      message: 'Before WebSocket creation',
-      data: {
-        websocketUrl: WEBSOCKET_URL,
-        finalUrl: wsUrlString,
-        protocol: url.protocol,
-        hostname: url.hostname,
-        port: url.port,
-        pathname: url.pathname,
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'C',
-    }),
-  }).catch(() => {});
-  // #endregion
   logger.info(`[WebSocket] Final URL: ${wsUrlString}`);
   logger.info(`[WebSocket] URL protocol: ${url.protocol}`);
 
@@ -136,21 +125,6 @@ export async function fetchStraightSpreadsInternal(
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let httpFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'websocket-fetcher.ts:98',
-        message: 'Creating WebSocket instance',
-        data: { wsUrl: wsUrlString },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'C',
-      }),
-    }).catch(() => {});
-    // #endregion
     const ws = new WebSocket(wsUrlString);
 
     // Настраиваем WebSocket для больших сообщений
@@ -191,24 +165,6 @@ export async function fetchStraightSpreadsInternal(
 
     // Таймаут для автоматического переключения на HTTP fallback
     httpFallbackTimeout = setTimeout(async () => {
-      // #region agent log
-      fetch(
-        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'websocket-fetcher.ts:137',
-            message: 'HTTP fallback timeout triggered',
-            data: { settled, rowsCount: rows.length, messageCount },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'D',
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       if (settled || rows.length > 0) {
         logger.debug(
           '[WebSocket] HTTP fallback timeout skipped - already settled or has data'
@@ -221,46 +177,8 @@ export async function fetchStraightSpreadsInternal(
       cleanup();
       try {
         const httpResult = await fetchStraightSpreadsHttpFallback(url, params);
-        // #region agent log
-        fetch(
-          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'websocket-fetcher.ts:149',
-              message: 'HTTP fallback result',
-              data: { httpResultCount: httpResult.length },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'F',
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         finish(httpResult);
       } catch (err) {
-        // #region agent log
-        fetch(
-          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'websocket-fetcher.ts:152',
-              message: 'HTTP fallback error',
-              data: {
-                errorMessage: err instanceof Error ? err.message : String(err),
-              },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'F',
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         logger.error('[WebSocket] HTTP fallback failed:', err);
         finish([]);
       }
@@ -305,54 +223,12 @@ export async function fetchStraightSpreadsInternal(
     };
 
     ws.onopen = () => {
-      // #region agent log
-      fetch(
-        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'websocket-fetcher.ts:195',
-            message: 'WebSocket onopen',
-            data: { readyState: ws.readyState, url: wsUrlString },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'C',
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       logger.info('[WebSocket] ✅ Connected successfully!');
       setConnectionStatus('connected');
     };
 
     ws.onmessage = async (event) => {
       messageCount++;
-      // #region agent log
-      fetch(
-        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'websocket-fetcher.ts:200',
-            message: 'WebSocket onmessage start',
-            data: {
-              messageNumber: messageCount,
-              dataType: typeof event.data,
-              isString: typeof event.data === 'string',
-              isBlob: event.data instanceof Blob,
-              isArrayBuffer: event.data instanceof ArrayBuffer,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'E',
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       logger.info(`[WebSocket] 📩 Message received (message #${messageCount})`);
 
       let textData: string;
@@ -384,71 +260,12 @@ export async function fetchStraightSpreadsInternal(
 
       // Парсим данные
       try {
-        // #region agent log
-        fetch(
-          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'websocket-fetcher.ts:232',
-              message: 'Before parseWebSocketMessage',
-              data: {
-                textDataLength: textData.length,
-                textDataPreview: textData.slice(0, 200),
-              },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'E',
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         const parsedRows = parseWebSocketMessage(textData);
-        // #region agent log
-        fetch(
-          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'websocket-fetcher.ts:235',
-              message: 'After parseWebSocketMessage',
-              data: { parsedRowsCount: parsedRows.length },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'E',
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         logger.info(
           `[WebSocket] ✅ Parsed ${parsedRows.length} rows from message`
         );
         handleMessage(parsedRows);
       } catch (err) {
-        // #region agent log
-        fetch(
-          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'websocket-fetcher.ts:239',
-              message: 'parseWebSocketMessage error',
-              data: {
-                errorMessage: err instanceof Error ? err.message : String(err),
-              },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'E',
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         logger.error('[WebSocket] ❌ Failed to parse message:', err);
         if (!settled) {
           logger.warn(
@@ -460,32 +277,6 @@ export async function fetchStraightSpreadsInternal(
     };
 
     ws.onerror = (error) => {
-      // #region agent log
-      fetch(
-        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'websocket-fetcher.ts:249',
-            message: 'WebSocket onerror',
-            data: {
-              readyState: ws.readyState,
-              url: wsUrlString,
-              errorType: error.type,
-              isLocalhost:
-                typeof window !== 'undefined' &&
-                (window.location.hostname === 'localhost' ||
-                  window.location.hostname === '127.0.0.1'),
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'C',
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       logger.error('[WebSocket] ❌ Error event triggered');
       logger.error('[WebSocket] Error details:', error);
       // На localhost это может быть нормально из-за CORS/сетевых ограничений
@@ -502,31 +293,6 @@ export async function fetchStraightSpreadsInternal(
     };
 
     ws.onclose = (event) => {
-      // #region agent log
-      fetch(
-        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'websocket-fetcher.ts:265',
-            message: 'WebSocket onclose',
-            data: {
-              code: event.code,
-              reason: event.reason,
-              wasClean: event.wasClean,
-              messageCount,
-              rowsCount: rows.length,
-              settled,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'D',
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       logger.info(
         `[WebSocket] 🔌 Closed: code=${event.code}, received ${messageCount} messages, ${rows.length} rows`
       );

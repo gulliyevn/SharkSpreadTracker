@@ -38,43 +38,9 @@ export function createWebSocketUrl(
     throw new Error('WebSocket baseUrl cannot be empty');
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'websocket-client.ts:41',
-      message: 'createWebSocketUrl entry',
-      data: { baseUrl, hasToken: !!params.token, hasNetwork: !!params.network },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B',
-    }),
-  }).catch(() => {});
-  // #endregion
   // ВАЖНО: Принудительно заменяем wss:// на ws://, так как сервер не поддерживает SSL
   // Это критично для production, где страница загружена по HTTPS, но сервер использует ws://
   const normalizedBaseUrl = baseUrl.replace(/^wss:\/\//, 'ws://');
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'websocket-client.ts:44',
-      message: 'normalizedBaseUrl after wss replacement',
-      data: {
-        baseUrl,
-        normalizedBaseUrl,
-        wasWss: baseUrl.startsWith('wss://'),
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B',
-    }),
-  }).catch(() => {});
-  // #endregion
 
   // Если baseUrl уже полный URL (начинается с ws://), используем его напрямую
   // Иначе создаем новый URL относительно текущего location
@@ -88,27 +54,6 @@ export function createWebSocketUrl(
       typeof window !== 'undefined' ? window.location.href : 'http://localhost'
     );
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'websocket-client.ts:52',
-      message: 'URL created',
-      data: {
-        urlProtocol: url.protocol,
-        urlHost: url.host,
-        urlPathname: url.pathname,
-        urlSearch: url.search,
-        fullUrl: url.toString(),
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B',
-    }),
-  }).catch(() => {});
-  // #endregion
 
   // Добавляем query параметры если они указаны
   if (params.token) {
@@ -119,21 +64,6 @@ export function createWebSocketUrl(
   }
 
   const finalUrl = url.toString();
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'websocket-client.ts:73',
-      message: 'createWebSocketUrl exit',
-      data: { finalUrl, protocol: url.protocol },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B',
-    }),
-  }).catch(() => {});
-  // #endregion
   logger.debug('[WebSocket] Created URL:', {
     baseUrl,
     finalUrl,

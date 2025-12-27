@@ -15,27 +15,6 @@ export async function fetchStraightSpreadsHttpFallback(
   url: URL,
   params: WebSocketParams
 ): Promise<StraightData[]> {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'http-fallback.ts:14',
-      message: 'HTTP fallback start',
-      data: {
-        url: url.toString(),
-        protocol: url.protocol,
-        hostname: url.hostname,
-        hasBackendUrl: !!BACKEND_URL,
-        backendUrl: BACKEND_URL,
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'F',
-    }),
-  }).catch(() => {});
-  // #endregion
   // Простая логика: используем BACKEND_URL напрямую
   if (!BACKEND_URL) {
     logger.error('[HTTP Fallback] BACKEND_URL not configured');
@@ -85,6 +64,10 @@ export async function fetchStraightSpreadsHttpFallback(
   logger.info(
     `[HTTP Fallback] Trying HTTP GET request to: ${httpUrl.toString()}`
   );
+  console.log('[HTTP Fallback] 🔍 Request URL:', httpUrl.toString());
+  console.log('[HTTP Fallback] 🔍 Is Production:', isProduction);
+  console.log('[HTTP Fallback] 🔍 Is HTTPS:', isHttps);
+  console.log('[HTTP Fallback] 🔍 BACKEND_URL:', BACKEND_URL);
 
   try {
     const controller = new AbortController();
@@ -99,6 +82,7 @@ export async function fetchStraightSpreadsHttpFallback(
       });
     }
 
+    console.log('[HTTP Fallback] 📤 Sending fetch request...');
     const response = await fetch(httpUrl.toString(), {
       method: 'GET',
       signal: controller.signal,
@@ -108,30 +92,11 @@ export async function fetchStraightSpreadsHttpFallback(
     });
 
     clearTimeout(timeoutId);
+    console.log('[HTTP Fallback] 📥 Response status:', response.status);
+    console.log('[HTTP Fallback] 📥 Response ok:', response.ok);
+    console.log('[HTTP Fallback] 📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
-      // #region agent log
-      fetch(
-        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'http-fallback.ts:75',
-            message: 'HTTP fallback response not ok',
-            data: {
-              status: response.status,
-              statusText: response.statusText,
-              is426: response.status === 426,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'F',
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       // HTTP 426 (Upgrade Required) означает, что сервер требует WebSocket
       // Это нормально для endpoint /socket/sharkStraight
       if (response.status === 426) {
@@ -147,24 +112,11 @@ export async function fetchStraightSpreadsHttpFallback(
     }
 
     const data = await response.json();
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'http-fallback.ts:93',
-        message: 'HTTP fallback data received',
-        data: {
-          dataType: Array.isArray(data) ? 'array' : typeof data,
-          dataLength: Array.isArray(data) ? data.length : 1,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'F',
-      }),
-    }).catch(() => {});
-    // #endregion
+    console.log('[HTTP Fallback] ✅ Received data:', {
+      type: Array.isArray(data) ? 'array' : typeof data,
+      length: Array.isArray(data) ? data.length : 'N/A',
+      preview: Array.isArray(data) && data.length > 0 ? data[0] : data,
+    });
     logger.info('[HTTP Fallback] Received data via HTTP:', {
       type: Array.isArray(data) ? 'array' : typeof data,
       length: Array.isArray(data) ? data.length : 1,
@@ -173,16 +125,20 @@ export async function fetchStraightSpreadsHttpFallback(
     // Парсим данные так же, как WebSocket сообщения
     // parseWebSocketMessage ожидает строку, поэтому преобразуем JSON обратно в строку
     const rows = parseWebSocketMessage(JSON.stringify(data));
+    console.log('[HTTP Fallback] ✅ Parsed rows:', rows.length);
 
     logger.info(
       `[HTTP Fallback] Successfully parsed ${rows.length} rows from HTTP response`
     );
     return rows;
   } catch (err) {
+    console.error('[HTTP Fallback] ❌ Error:', err);
     if (err instanceof Error && err.name === 'AbortError') {
       logger.debug('[HTTP Fallback] Request aborted');
+      console.log('[HTTP Fallback] ⏱️ Request was aborted (timeout)');
     } else {
       logger.error('[HTTP Fallback] HTTP request failed:', err);
+      console.error('[HTTP Fallback] ❌ Request failed:', err instanceof Error ? err.message : String(err));
     }
     return [];
   }

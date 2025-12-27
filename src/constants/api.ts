@@ -36,14 +36,20 @@ export const WEBSOCKET_URL = (() => {
   const isProduction = import.meta.env.PROD;
   const isHttps =
     typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1');
+  const isDev = import.meta.env.DEV;
 
-  // На production или HTTPS страницах используем HTTP fallback через прокси
-  if (isProduction || isHttps) {
-    // Используем относительный URL для прокси через Vercel
+  // На production, HTTPS страницах или localhost в dev режиме используем HTTP fallback через прокси
+  // Это решает проблему Mixed Content Policy и упрощает разработку
+  if (isProduction || isHttps || (isDev && isLocalhost)) {
+    // Используем относительный URL для прокси через Vercel (production) или Vite (localhost)
     return '/api/backend/socket/sharkStraight';
   }
 
-  // На localhost в dev режиме используем прямой WebSocket URL
+  // Для других случаев (если не localhost и не production) используем прямой WebSocket URL
   if (import.meta.env.VITE_WEBSOCKET_URL) {
     const url = import.meta.env.VITE_WEBSOCKET_URL;
     return url.replace(/^wss:\/\//, 'ws://');
