@@ -13,13 +13,25 @@ const BACKEND_URL =
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   
-  // Обрабатываем только /api/backend/*
-  if (!url.pathname.startsWith('/api/backend')) {
-    return new Response('Not Found', { status: 404 });
+  // Обрабатываем /api/backend (rewrites перенаправляют /api/backend/* сюда)
+  // Извлекаем оригинальный путь из заголовка x-vercel-rewrite или из URL
+  let path = '';
+  
+  // Vercel rewrites передают оригинальный путь через заголовок
+  const originalPath = req.headers.get('x-vercel-rewrite') || 
+                       req.headers.get('x-invoke-path') ||
+                       url.pathname;
+  
+  // Если это /api/backend/*, извлекаем путь
+  if (originalPath.startsWith('/api/backend/')) {
+    path = originalPath.replace('/api/backend', '');
+  } else if (originalPath === '/api/backend') {
+    // Если это просто /api/backend, проверяем query параметр
+    path = url.searchParams.get('path') || '/';
+  } else {
+    path = '/';
   }
   
-  // Извлекаем путь после /api/backend
-  const path = url.pathname.replace(/^\/api\/backend/, '') || '/';
   const backendUrl = `${BACKEND_URL}${path}${url.search}`;
 
   console.log('[Backend Proxy] Request:', {
