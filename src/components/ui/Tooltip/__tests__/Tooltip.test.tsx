@@ -96,10 +96,67 @@ describe('Tooltip', () => {
     expect(screen.getByText('Hover me')).toBeInTheDocument();
   });
 
-  it('should support different positions', async () => {
+  it('should support top position', async () => {
     const user = userEvent.setup({ delay: null });
     render(
       <Tooltip content="Tooltip text" position="top" delay={0}>
+        <button>Hover me</button>
+      </Tooltip>
+    );
+
+    const button = screen.getByText('Hover me');
+    await user.hover(button);
+
+    await waitFor(
+      () => {
+        expect(screen.getByRole('tooltip')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+  });
+
+  it('should support bottom position', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <Tooltip content="Tooltip text" position="bottom" delay={0}>
+        <button>Hover me</button>
+      </Tooltip>
+    );
+
+    const button = screen.getByText('Hover me');
+    await user.hover(button);
+
+    await waitFor(
+      () => {
+        expect(screen.getByRole('tooltip')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+  });
+
+  it('should support left position', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <Tooltip content="Tooltip text" position="left" delay={0}>
+        <button>Hover me</button>
+      </Tooltip>
+    );
+
+    const button = screen.getByText('Hover me');
+    await user.hover(button);
+
+    await waitFor(
+      () => {
+        expect(screen.getByRole('tooltip')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+  });
+
+  it('should support right position', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <Tooltip content="Tooltip text" position="right" delay={0}>
         <button>Hover me</button>
       </Tooltip>
     );

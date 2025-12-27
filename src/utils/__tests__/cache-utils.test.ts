@@ -123,6 +123,16 @@ describe('cache-utils', () => {
       // Should not throw
       await expect(prefetchTokens()).resolves.toBeUndefined();
     });
+
+    it('should handle queryFn error in prefetchTokens', async () => {
+      // Мокаем prefetchQuery, чтобы он выбрасывал ошибку
+      vi.mocked(queryClient.prefetchQuery).mockRejectedValueOnce(
+        new Error('Query failed')
+      );
+
+      // Should not throw
+      await expect(prefetchTokens()).resolves.toBeUndefined();
+    });
   });
 
   describe('getCacheSize', () => {

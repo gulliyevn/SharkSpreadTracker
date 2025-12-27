@@ -75,10 +75,10 @@ export default defineConfig({
         'src/hooks/useSessionStorage.ts',
       ],
         thresholds: {
-        lines: 85,
+        lines: 90,
         functions: 90,
-        branches: 80,
-        statements: 85,
+        branches: 90,
+        statements: 90,
       },
     },
   },

@@ -119,4 +119,74 @@ describe('ErrorDisplay', () => {
     );
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
+
+  it('should not show details when showDetails is false', () => {
+    const error = new Error('Test error');
+    error.stack = 'Error stack trace';
+
+    render(
+      <TestWrapper>
+        <ErrorDisplay error={error} showDetails={false} />
+      </TestWrapper>
+    );
+
+    expect(screen.queryByText(/details|детали|detaylar/i)).not.toBeInTheDocument();
+  });
+
+  it('should show error stack when showDetails is true', () => {
+    const error = new Error('Test error');
+    error.stack = 'Error stack trace';
+
+    render(
+      <TestWrapper>
+        <ErrorDisplay error={error} showDetails={true} />
+      </TestWrapper>
+    );
+
+    expect(screen.getByText('Error stack trace')).toBeInTheDocument();
+  });
+
+  it('should show error message when stack is not available', async () => {
+    const error = new Error('Test error');
+    // Удаляем stack, чтобы проверить ветку без stack
+    delete (error as any).stack;
+
+    render(
+      <TestWrapper>
+        <ErrorDisplay error={error} showDetails={true} />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test error')).toBeInTheDocument();
+    });
+  });
+
+  it('should not show retry button when onReset is not provided', () => {
+    const error = new Error('Test error');
+
+    render(
+      <TestWrapper>
+        <ErrorDisplay error={error} />
+      </TestWrapper>
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /try again|попробовать|tekrar dene/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('should not show home button when onGoHome is not provided', () => {
+    const error = new Error('Test error');
+
+    render(
+      <TestWrapper>
+        <ErrorDisplay error={error} />
+      </TestWrapper>
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /go home|на главную|ana sayfaya/i })
+    ).not.toBeInTheDocument();
+  });
 });

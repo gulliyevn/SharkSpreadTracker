@@ -180,5 +180,76 @@ describe('ThemeContext', () => {
       // Когда theme не 'system', listener не должен быть добавлен
       expect(mockMediaQuery.addEventListener).not.toHaveBeenCalled();
     });
+
+    it('should handle setTheme with system theme', () => {
+      const setStoredTheme = vi.fn();
+      vi.mocked(useLocalStorage).mockReturnValue(['system', setStoredTheme]);
+      mockMatchMedia.mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      act(() => {
+        result.current.setTheme('system');
+      });
+
+      expect(setStoredTheme).toHaveBeenCalledWith('system');
+    });
+
+    it('should track theme change when setting light theme', async () => {
+      const analytics = await import('@/lib/analytics');
+      const trackThemeChangeSpy = vi.spyOn(analytics, 'trackThemeChange');
+      const setStoredTheme = vi.fn();
+
+      vi.mocked(useLocalStorage).mockReturnValue(['dark', setStoredTheme]);
+      mockMatchMedia.mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      act(() => {
+        result.current.setTheme('light');
+      });
+
+      expect(setStoredTheme).toHaveBeenCalledWith('light');
+      expect(trackThemeChangeSpy).toHaveBeenCalledWith('light');
+      
+      trackThemeChangeSpy.mockRestore();
+    });
+
+    it('should track theme change when setting dark theme', async () => {
+      const analytics = await import('@/lib/analytics');
+      const trackThemeChangeSpy = vi.spyOn(analytics, 'trackThemeChange');
+      const setStoredTheme = vi.fn();
+      vi.mocked(useLocalStorage).mockReturnValue(['light', setStoredTheme]);
+      mockMatchMedia.mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      act(() => {
+        result.current.setTheme('dark');
+      });
+
+      expect(setStoredTheme).toHaveBeenCalledWith('dark');
+      expect(trackThemeChangeSpy).toHaveBeenCalledWith('dark');
+      
+      trackThemeChangeSpy.mockRestore();
+    });
   });
 });

@@ -9,6 +9,7 @@ import {
   isAxiosError,
   getErrorStatusCode,
   getErrorCode,
+  isCanceledError,
   ok,
   err,
   type Result,
@@ -316,6 +317,64 @@ describe('errors', () => {
     it('should return null for non-Axios error', () => {
       expect(getErrorCode(new Error('Error'))).toBe(null);
       expect(getErrorCode(null)).toBe(null);
+    });
+  });
+
+  describe('isCanceledError', () => {
+    it('should return true for CanceledError by name', () => {
+      const error = new Error('Request canceled');
+      error.name = 'CanceledError';
+      expect(isCanceledError(error)).toBe(true);
+    });
+
+    it('should return true for error with "canceled" in message', () => {
+      const error = new Error('Request canceled');
+      expect(isCanceledError(error)).toBe(true);
+    });
+
+    it('should return true for error with "aborted" in message', () => {
+      const error = new Error('Request aborted');
+      expect(isCanceledError(error)).toBe(true);
+    });
+
+    it('should return true for error with "Abort" in message', () => {
+      const error = new Error('Abort signal');
+      expect(isCanceledError(error)).toBe(true);
+    });
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Regular error');
+      expect(isCanceledError(error)).toBe(false);
+    });
+
+    it('should return true for Axios error with ERR_CANCELED code', () => {
+      const error = {
+        code: 'ERR_CANCELED',
+        response: { status: 0 },
+      };
+      expect(isCanceledError(error)).toBe(true);
+    });
+
+    it('should return true for Axios error with ECONNABORTED code', () => {
+      const error = {
+        code: 'ECONNABORTED',
+        response: { status: 0 },
+      };
+      expect(isCanceledError(error)).toBe(true);
+    });
+
+    it('should return false for Axios error with other code', () => {
+      const error = {
+        code: 'ECONNREFUSED',
+        response: { status: 0 },
+      };
+      expect(isCanceledError(error)).toBe(false);
+    });
+
+    it('should return false for non-Error values', () => {
+      expect(isCanceledError(null)).toBe(false);
+      expect(isCanceledError(undefined)).toBe(false);
+      expect(isCanceledError('string')).toBe(false);
     });
   });
 
