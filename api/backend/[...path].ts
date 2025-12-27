@@ -8,11 +8,12 @@ export const config = {
   runtime: 'edge',
 };
 
-const BACKEND_URL = process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
+const BACKEND_URL =
+  process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
 
 export default async function handler(req: Request) {
   const url = new URL(req.url);
-  
+
   // Извлекаем путь после /api/backend
   const path = url.pathname.replace(/^\/api\/backend/, '');
   const backendUrl = `${BACKEND_URL}${path}${url.search}`;
@@ -28,16 +29,47 @@ export default async function handler(req: Request) {
     // Делаем HTTP запрос к бэкенду
     // Согласно документации API, если WebSocket handshake не удался,
     // сервер должен вернуть HTTP 200 с JSON payload
-    const response = await fetch(backendUrl, {
+    //
+    // ПРОБЛЕМА: Бэкенд требует WebSocket upgrade заголовки, но не реализует HTTP fallback
+    // Решение: пробуем сначала обычный HTTP запрос, если не работает - пробуем с WebSocket заголовками
+    // но без реального WebSocket соединения (Edge Function не поддерживает WebSocket)
+
+    // Сохраняем body один раз, если нужно
+    const requestBody =
+      req.method !== 'GET' && req.method !== 'HEAD'
+        ? await req.text()
+        : undefined;
+
+    // Сначала пробуем обычный HTTP запрос
+    let response = await fetch(backendUrl, {
       method: req.method,
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'User-Agent': 'SharkSpreadTracker/1.0',
-        // НЕ добавляем 'Upgrade: websocket', так как мы делаем HTTP fallback
-        // Бэкенд должен вернуть JSON, если WebSocket недоступен
       },
-      body: req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined,
+      body: requestBody,
     });
+
+    // Если получили ошибку, пробуем с WebSocket заголовками
+    // Это может помочь бэкенду понять, что мы пытаемся сделать WebSocket handshake
+    // и вернуть JSON fallback (если он реализован)
+    if (response.status === 426 || response.status >= 400) {
+      console.log(
+        '[Backend Proxy] Received error status, trying with WebSocket headers...'
+      );
+      response = await fetch(backendUrl, {
+        method: req.method,
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'SharkSpreadTracker/1.0',
+          Upgrade: 'websocket',
+          Connection: 'Upgrade',
+          'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==', // Базовый ключ для handshake
+          'Sec-WebSocket-Version': '13',
+        },
+        body: requestBody,
+      });
+    }
 
     console.log('[Backend Proxy] Response:', {
       status: response.status,
@@ -45,10 +77,21 @@ export default async function handler(req: Request) {
       contentType: response.headers.get('content-type'),
     });
 
-    // Если сервер требует WebSocket upgrade (426), это означает что endpoint требует WebSocket
-    // В этом случае возвращаем пустой массив, так как мы не можем использовать WebSocket через Edge Function
+    // Получаем текст ответа один раз
+    const responseText = await response.text();
+    const contentType = response.headers.get('content-type') || '';
+
+    // Если сервер требует WebSocket upgrade (426) или возвращает ошибку WebSocket protocol violation
+    // Это означает, что бэкенд не реализует HTTP fallback, как указано в документации
     if (response.status === 426) {
-      console.warn('[Backend Proxy] Server requires WebSocket upgrade (426) for:', path);
+      console.warn(
+        '[Backend Proxy] Server requires WebSocket upgrade (426) for:',
+        path
+      );
+      console.warn(
+        '[Backend Proxy] Backend does not implement HTTP fallback as documented'
+      );
+      // Возвращаем пустой массив, так как мы не можем использовать WebSocket через Edge Function
       return new Response(JSON.stringify([]), {
         status: 200,
         headers: {
@@ -58,10 +101,31 @@ export default async function handler(req: Request) {
       });
     }
 
-    // Возвращаем ответ от бэкенда
-    const contentType = response.headers.get('content-type') || '';
-    const data = await response.text();
-    
+    // Проверяем, не является ли ответ ошибкой WebSocket protocol violation
+    if (
+      responseText.includes('WebSocket protocol violation') ||
+      responseText.includes('failed to accept WebSocket')
+    ) {
+      console.error(
+        '[Backend Proxy] Backend returned WebSocket protocol violation error'
+      );
+      console.error(
+        '[Backend Proxy] This means backend does not support HTTP fallback'
+      );
+      console.error('[Backend Proxy] Backend URL:', backendUrl);
+      // Возвращаем пустой массив, так как бэкенд не поддерживает HTTP fallback
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    // Используем уже полученный текст ответа
+    const data = responseText;
+
     // Если бэкенд вернул HTML вместо JSON, это ошибка
     // Проверяем и content-type, и начало содержимого (может быть HTML без правильного content-type)
     // Согласно документации API, бэкенд должен вернуть JSON при HTTP fallback
@@ -70,23 +134,29 @@ export default async function handler(req: Request) {
       console.error('[Backend Proxy] Requested path:', path);
       console.error('[Backend Proxy] Full backend URL:', backendUrl);
       console.error('[Backend Proxy] Response status:', response.status);
-      console.error('[Backend Proxy] Response headers:', Object.fromEntries(response.headers.entries()));
-      console.error('[Backend Proxy] Response preview (first 500 chars):', data.substring(0, 500));
-      
+      console.error(
+        '[Backend Proxy] Response headers:',
+        Object.fromEntries(response.headers.entries())
+      );
+      console.error(
+        '[Backend Proxy] Response preview (first 500 chars):',
+        data.substring(0, 500)
+      );
+
       // Возвращаем ошибку с деталями для диагностики
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'Backend returned HTML instead of JSON. This usually means:',
           possibleCauses: [
             '1. Backend endpoint is incorrect or not configured',
             '2. Backend is returning a default HTML page (404 or error page)',
             '3. Backend requires WebSocket upgrade but HTTP fallback is not properly implemented',
-            '4. Backend URL is incorrect'
+            '4. Backend URL is incorrect',
           ],
           requestedPath: path,
           backendUrl,
           responseStatus: response.status,
-          responsePreview: data.substring(0, 200)
+          responsePreview: data.substring(0, 200),
         }),
         {
           status: 500,
@@ -97,7 +167,7 @@ export default async function handler(req: Request) {
         }
       );
     }
-    
+
     return new Response(data, {
       status: response.status,
       headers: {
@@ -119,4 +189,3 @@ export default async function handler(req: Request) {
     );
   }
 }
-
