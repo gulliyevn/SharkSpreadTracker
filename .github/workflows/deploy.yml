@@ -1,7 +1,9 @@
 name: Deploy to Vercel
 
 on:
-  workflow_dispatch: # Только ручной запуск, автоматический деплой через Vercel Git integration
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
