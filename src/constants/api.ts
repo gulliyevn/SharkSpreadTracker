@@ -42,7 +42,10 @@ export const WEBSOCKET_URL = (() => {
   // Если BACKEND_URL установлен, формируем WebSocket URL из него
   if (BACKEND_URL) {
     // Преобразуем http:// или https:// в ws:// или wss://
-    const wsUrl = BACKEND_URL.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://');
+    const wsUrl = BACKEND_URL.replace(/^https:\/\//, 'wss://').replace(
+      /^http:\/\//,
+      'ws://'
+    );
     return `${wsUrl}/socket/sharkStraight`;
   }
 

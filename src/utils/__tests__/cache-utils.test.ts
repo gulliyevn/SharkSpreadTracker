@@ -165,6 +165,20 @@ describe('cache-utils', () => {
       const size = getCacheSize();
       expect(size).toBe(0);
     });
+
+    it('should skip queries with null or undefined data', () => {
+      vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
+        getAll: () => [
+          { state: { data: null } },
+          { state: { data: undefined } },
+          { state: {} },
+        ],
+        remove: vi.fn(),
+      } as never);
+
+      const size = getCacheSize();
+      expect(size).toBe(0);
+    });
   });
 
   describe('cleanupOldCache', () => {
