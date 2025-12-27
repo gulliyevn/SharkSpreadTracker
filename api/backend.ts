@@ -13,23 +13,42 @@ const BACKEND_URL =
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   
-  // Обрабатываем /api/backend (rewrites перенаправляют /api/backend/* сюда)
-  // Извлекаем оригинальный путь из заголовка x-vercel-rewrite или из URL
+  // Логируем все заголовки для отладки
+  console.log('[Backend Proxy] Headers:', Object.fromEntries(req.headers.entries()));
+  console.log('[Backend Proxy] URL:', req.url);
+  console.log('[Backend Proxy] Pathname:', url.pathname);
+  
+  // Пытаемся получить оригинальный путь из различных источников
+  let originalPath = url.pathname;
+  
+  // Проверяем различные заголовки, которые Vercel может передавать
+  const possibleHeaders = [
+    'x-vercel-rewrite',
+    'x-invoke-path', 
+    'x-forwarded-path',
+    'x-original-path',
+    'x-rewrite-path'
+  ];
+  
+  for (const headerName of possibleHeaders) {
+    const headerValue = req.headers.get(headerName);
+    if (headerValue) {
+      console.log(`[Backend Proxy] Found header ${headerName}:`, headerValue);
+      originalPath = headerValue;
+      break;
+    }
+  }
+  
+  // Извлекаем путь после /api/backend
   let path = '';
-  
-  // Vercel rewrites передают оригинальный путь через заголовок
-  const originalPath = req.headers.get('x-vercel-rewrite') || 
-                       req.headers.get('x-invoke-path') ||
-                       url.pathname;
-  
-  // Если это /api/backend/*, извлекаем путь
   if (originalPath.startsWith('/api/backend/')) {
     path = originalPath.replace('/api/backend', '');
   } else if (originalPath === '/api/backend') {
-    // Если это просто /api/backend, проверяем query параметр
-    path = url.searchParams.get('path') || '/';
-  } else {
+    // Если это просто /api/backend, путь пустой
     path = '/';
+  } else {
+    // Если путь не начинается с /api/backend, возвращаем 404
+    return new Response('Not Found', { status: 404 });
   }
   
   const backendUrl = `${BACKEND_URL}${path}${url.search}`;
