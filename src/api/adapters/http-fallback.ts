@@ -15,6 +15,27 @@ export async function fetchStraightSpreadsHttpFallback(
   url: URL,
   params: WebSocketParams
 ): Promise<StraightData[]> {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'http-fallback.ts:14',
+      message: 'HTTP fallback start',
+      data: {
+        url: url.toString(),
+        protocol: url.protocol,
+        hostname: url.hostname,
+        hasBackendUrl: !!BACKEND_URL,
+        backendUrl: BACKEND_URL,
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'F',
+    }),
+  }).catch(() => {});
+  // #endregion
   // Простая логика: используем BACKEND_URL напрямую
   if (!BACKEND_URL) {
     logger.error('[HTTP Fallback] BACKEND_URL not configured');
@@ -73,6 +94,28 @@ export async function fetchStraightSpreadsHttpFallback(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // #region agent log
+      fetch(
+        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'http-fallback.ts:75',
+            message: 'HTTP fallback response not ok',
+            data: {
+              status: response.status,
+              statusText: response.statusText,
+              is426: response.status === 426,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'F',
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       // HTTP 426 (Upgrade Required) означает, что сервер требует WebSocket
       // Это нормально для endpoint /socket/sharkStraight
       if (response.status === 426) {
@@ -88,6 +131,24 @@ export async function fetchStraightSpreadsHttpFallback(
     }
 
     const data = await response.json();
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'http-fallback.ts:93',
+        message: 'HTTP fallback data received',
+        data: {
+          dataType: Array.isArray(data) ? 'array' : typeof data,
+          dataLength: Array.isArray(data) ? data.length : 1,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'F',
+      }),
+    }).catch(() => {});
+    // #endregion
     logger.info('[HTTP Fallback] Received data via HTTP:', {
       type: Array.isArray(data) ? 'array' : typeof data,
       length: Array.isArray(data) ? data.length : 1,

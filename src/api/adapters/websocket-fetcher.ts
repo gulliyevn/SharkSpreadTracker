@@ -83,7 +83,30 @@ export async function fetchStraightSpreadsInternal(
   setConnectionStatus('connecting');
 
   const url = createWebSocketUrl(WEBSOCKET_URL, params);
-  logger.info(`[WebSocket] Final URL: ${url.toString()}`);
+  const wsUrlString = url.toString();
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'websocket-fetcher.ts:85',
+      message: 'Before WebSocket creation',
+      data: {
+        websocketUrl: WEBSOCKET_URL,
+        finalUrl: wsUrlString,
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port,
+        pathname: url.pathname,
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'C',
+    }),
+  }).catch(() => {});
+  // #endregion
+  logger.info(`[WebSocket] Final URL: ${wsUrlString}`);
   logger.info(`[WebSocket] URL protocol: ${url.protocol}`);
 
   // Создаем новое WebSocket соединение для каждого запроса
@@ -95,7 +118,22 @@ export async function fetchStraightSpreadsInternal(
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let httpFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const ws = new WebSocket(url.toString());
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'websocket-fetcher.ts:98',
+        message: 'Creating WebSocket instance',
+        data: { wsUrl: wsUrlString },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'C',
+      }),
+    }).catch(() => {});
+    // #endregion
+    const ws = new WebSocket(wsUrlString);
 
     // Настраиваем WebSocket для больших сообщений
     ws.binaryType = 'blob';
@@ -135,6 +173,24 @@ export async function fetchStraightSpreadsInternal(
 
     // Таймаут для автоматического переключения на HTTP fallback
     httpFallbackTimeout = setTimeout(async () => {
+      // #region agent log
+      fetch(
+        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'websocket-fetcher.ts:137',
+            message: 'HTTP fallback timeout triggered',
+            data: { settled, rowsCount: rows.length, messageCount },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'D',
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       if (settled || rows.length > 0) {
         logger.debug(
           '[WebSocket] HTTP fallback timeout skipped - already settled or has data'
@@ -147,8 +203,46 @@ export async function fetchStraightSpreadsInternal(
       cleanup();
       try {
         const httpResult = await fetchStraightSpreadsHttpFallback(url, params);
+        // #region agent log
+        fetch(
+          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'websocket-fetcher.ts:149',
+              message: 'HTTP fallback result',
+              data: { httpResultCount: httpResult.length },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'run1',
+              hypothesisId: 'F',
+            }),
+          }
+        ).catch(() => {});
+        // #endregion
         finish(httpResult);
       } catch (err) {
+        // #region agent log
+        fetch(
+          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'websocket-fetcher.ts:152',
+              message: 'HTTP fallback error',
+              data: {
+                errorMessage: err instanceof Error ? err.message : String(err),
+              },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'run1',
+              hypothesisId: 'F',
+            }),
+          }
+        ).catch(() => {});
+        // #endregion
         logger.error('[WebSocket] HTTP fallback failed:', err);
         finish([]);
       }
@@ -193,12 +287,54 @@ export async function fetchStraightSpreadsInternal(
     };
 
     ws.onopen = () => {
+      // #region agent log
+      fetch(
+        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'websocket-fetcher.ts:195',
+            message: 'WebSocket onopen',
+            data: { readyState: ws.readyState, url: wsUrlString },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'C',
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       logger.info('[WebSocket] ✅ Connected successfully!');
       setConnectionStatus('connected');
     };
 
     ws.onmessage = async (event) => {
       messageCount++;
+      // #region agent log
+      fetch(
+        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'websocket-fetcher.ts:200',
+            message: 'WebSocket onmessage start',
+            data: {
+              messageNumber: messageCount,
+              dataType: typeof event.data,
+              isString: typeof event.data === 'string',
+              isBlob: event.data instanceof Blob,
+              isArrayBuffer: event.data instanceof ArrayBuffer,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'E',
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       logger.info(`[WebSocket] 📩 Message received (message #${messageCount})`);
 
       let textData: string;
@@ -230,12 +366,71 @@ export async function fetchStraightSpreadsInternal(
 
       // Парсим данные
       try {
+        // #region agent log
+        fetch(
+          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'websocket-fetcher.ts:232',
+              message: 'Before parseWebSocketMessage',
+              data: {
+                textDataLength: textData.length,
+                textDataPreview: textData.slice(0, 200),
+              },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'run1',
+              hypothesisId: 'E',
+            }),
+          }
+        ).catch(() => {});
+        // #endregion
         const parsedRows = parseWebSocketMessage(textData);
+        // #region agent log
+        fetch(
+          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'websocket-fetcher.ts:235',
+              message: 'After parseWebSocketMessage',
+              data: { parsedRowsCount: parsedRows.length },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'run1',
+              hypothesisId: 'E',
+            }),
+          }
+        ).catch(() => {});
+        // #endregion
         logger.info(
           `[WebSocket] ✅ Parsed ${parsedRows.length} rows from message`
         );
         handleMessage(parsedRows);
       } catch (err) {
+        // #region agent log
+        fetch(
+          'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'websocket-fetcher.ts:239',
+              message: 'parseWebSocketMessage error',
+              data: {
+                errorMessage: err instanceof Error ? err.message : String(err),
+              },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'run1',
+              hypothesisId: 'E',
+            }),
+          }
+        ).catch(() => {});
+        // #endregion
         logger.error('[WebSocket] ❌ Failed to parse message:', err);
         if (!settled) {
           logger.warn(
@@ -247,6 +442,32 @@ export async function fetchStraightSpreadsInternal(
     };
 
     ws.onerror = (error) => {
+      // #region agent log
+      fetch(
+        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'websocket-fetcher.ts:249',
+            message: 'WebSocket onerror',
+            data: {
+              readyState: ws.readyState,
+              url: wsUrlString,
+              errorType: error.type,
+              isLocalhost:
+                typeof window !== 'undefined' &&
+                (window.location.hostname === 'localhost' ||
+                  window.location.hostname === '127.0.0.1'),
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'C',
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       logger.error('[WebSocket] ❌ Error event triggered');
       logger.error('[WebSocket] Error details:', error);
       // На localhost это может быть нормально из-за CORS/сетевых ограничений
@@ -263,6 +484,31 @@ export async function fetchStraightSpreadsInternal(
     };
 
     ws.onclose = (event) => {
+      // #region agent log
+      fetch(
+        'http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'websocket-fetcher.ts:265',
+            message: 'WebSocket onclose',
+            data: {
+              code: event.code,
+              reason: event.reason,
+              wasClean: event.wasClean,
+              messageCount,
+              rowsCount: rows.length,
+              settled,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'D',
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       logger.info(
         `[WebSocket] 🔌 Closed: code=${event.code}, received ${messageCount} messages, ${rows.length} rows`
       );

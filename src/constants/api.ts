@@ -28,25 +28,90 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  * константа REVERSE_WEBSOCKET_URL для обратного спреда
  */
 export const WEBSOCKET_URL = (() => {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'api.ts:30',
+      message: 'WEBSOCKET_URL formation start',
+      data: {
+        hasViteWebsocketUrl: !!import.meta.env.VITE_WEBSOCKET_URL,
+        viteWebsocketUrl: import.meta.env.VITE_WEBSOCKET_URL,
+        hasBackendUrl: !!BACKEND_URL,
+        backendUrl: BACKEND_URL,
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'A',
+    }),
+  }).catch(() => {});
+  // #endregion
   // Если явно указан VITE_WEBSOCKET_URL, используем его
   // ВАЖНО: Принудительно заменяем wss:// на ws://, так как сервер не поддерживает SSL
   if (import.meta.env.VITE_WEBSOCKET_URL) {
     const url = import.meta.env.VITE_WEBSOCKET_URL;
     // Принудительно заменяем wss:// на ws:// для серверов без SSL
-    return url.replace(/^wss:\/\//, 'ws://');
+    const finalUrl = url.replace(/^wss:\/\//, 'ws://');
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'api.ts:36',
+        message: 'WEBSOCKET_URL from VITE_WEBSOCKET_URL',
+        data: { originalUrl: url, finalUrl },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'A',
+      }),
+    }).catch(() => {});
+    // #endregion
+    return finalUrl;
   }
 
   // Если BACKEND_URL не установлен, возвращаем пустую строку
   if (!BACKEND_URL) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'api.ts:42',
+        message: 'WEBSOCKET_URL empty - BACKEND_URL not set',
+        data: {},
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'A',
+      }),
+    }).catch(() => {});
+    // #endregion
     return '';
   }
 
   // Формируем WebSocket URL из BACKEND_URL
   // Заменяем http:// или https:// на ws:// (явно указываем ws:// для серверов без SSL)
   const wsUrl = BACKEND_URL.replace(/^https?:\/\//, 'ws://');
-
-  // Добавляем endpoint
-  return `${wsUrl}/socket/sharkStraight`;
+  const finalUrl = `${wsUrl}/socket/sharkStraight`;
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/98107816-f1a6-4cf2-9ef8-59354928d2ee', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'api.ts:49',
+      message: 'WEBSOCKET_URL from BACKEND_URL',
+      data: { backendUrl: BACKEND_URL, wsUrl, finalUrl },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'A',
+    }),
+  }).catch(() => {});
+  // #endregion
+  return finalUrl;
 })();
 
 /**
