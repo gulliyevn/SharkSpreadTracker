@@ -35,27 +35,43 @@ export default async function handler(req: Request) {
     fullUrl: req.url,
   });
 
+  // ВАЖНО: WebSocket endpoints не поддерживают HTTP fallback
+  // Vercel Edge Functions не могут проксировать WebSocket соединения
+  // Если путь начинается с "socket", возвращаем явную ошибку
+  if (path.startsWith('/socket')) {
+    console.warn('[Backend Proxy] ⚠️ WebSocket endpoint detected:', path);
+    console.warn('[Backend Proxy] WebSocket endpoints do not support HTTP fallback');
+    console.warn('[Backend Proxy] Vercel Edge Functions cannot proxy WebSocket connections');
+    
+    return new Response(
+      JSON.stringify({
+        error: 'WebSocket endpoint does not support HTTP fallback',
+        message: 'This endpoint requires a WebSocket connection, which cannot be proxied through Vercel Edge Functions',
+        endpoint: path,
+        suggestion: 'Use WebSocket directly from the client, or implement a proper HTTP API endpoint on the backend',
+      }),
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
+  }
+
   try {
     // Делаем HTTP запрос к бэкенду
-    // Согласно документации API, если WebSocket handshake не удался,
-    // сервер должен вернуть HTTP 200 с JSON payload
-    //
-    // ПРОБЛЕМА: Бэкенд требует WebSocket upgrade заголовки, но не реализует HTTP fallback
-    // Решение: пробуем сначала обычный HTTP запрос, если не работает - пробуем с WebSocket заголовками
-    // но без реального WebSocket соединения (Edge Function не поддерживает WebSocket)
-
+    // Только для НЕ-WebSocket endpoints (проверка выше уже отфильтровала /socket/*)
+    
     // Сохраняем body один раз, если нужно
     const requestBody =
       req.method !== 'GET' && req.method !== 'HEAD'
         ? await req.text()
         : undefined;
 
-    // ВАЖНО: Бэкенд может требовать WebSocket upgrade для /socket/sharkStraight
-    // Пробуем разные варианты запросов, чтобы получить данные
-    
-    // Вариант 1: Обычный HTTP запрос
-    console.log('[Backend Proxy] 🔄 Trying standard HTTP request...');
-    let response = await fetch(backendUrl, {
+    console.log('[Backend Proxy] 🔄 Making HTTP request to backend...');
+    const response = await fetch(backendUrl, {
       method: req.method,
       headers: {
         Accept: 'application/json',
@@ -64,53 +80,7 @@ export default async function handler(req: Request) {
       body: requestBody,
     });
     
-    console.log('[Backend Proxy] 📥 First attempt status:', response.status);
-
-    // Если получили ошибку, пробуем с WebSocket заголовками
-    // Это может помочь бэкенду понять, что мы пытаемся сделать WebSocket handshake
-    // и вернуть JSON fallback (если он реализован)
-    if (response.status === 426 || (response.status >= 400 && response.status !== 200)) {
-      console.log(
-        '[Backend Proxy] ⚠️ Received error status, trying with WebSocket headers...'
-      );
-      console.log('[Backend Proxy] 🔄 Second attempt with WebSocket headers...');
-      
-      // Пробуем с WebSocket заголовками
-      response = await fetch(backendUrl, {
-        method: req.method,
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'SharkSpreadTracker/1.0',
-          Upgrade: 'websocket',
-          Connection: 'Upgrade',
-          'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==', // Базовый ключ для handshake
-          'Sec-WebSocket-Version': '13',
-        },
-        body: requestBody,
-      });
-      
-      console.log('[Backend Proxy] 📥 Second attempt status:', response.status);
-      
-      // Если и это не помогло, пробуем POST запрос (иногда бэкенды требуют POST для WebSocket handshake)
-      if (response.status === 426 || (response.status >= 400 && response.status !== 200)) {
-        console.log('[Backend Proxy] 🔄 Third attempt with POST method...');
-        response = await fetch(backendUrl, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'User-Agent': 'SharkSpreadTracker/1.0',
-            'Content-Type': 'application/json',
-            Upgrade: 'websocket',
-            Connection: 'Upgrade',
-            'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
-            'Sec-WebSocket-Version': '13',
-          },
-          body: JSON.stringify({}),
-        });
-        
-        console.log('[Backend Proxy] 📥 Third attempt status:', response.status);
-      }
-    }
+    console.log('[Backend Proxy] 📥 Response status:', response.status);
 
     console.log('[Backend Proxy] Response:', {
       status: response.status,
@@ -121,48 +91,6 @@ export default async function handler(req: Request) {
     // Получаем текст ответа один раз
     const responseText = await response.text();
     const contentType = response.headers.get('content-type') || '';
-
-    // Если сервер требует WebSocket upgrade (426) или возвращает ошибку WebSocket protocol violation
-    // Это означает, что бэкенд не реализует HTTP fallback, как указано в документации
-    if (response.status === 426) {
-      console.warn(
-        '[Backend Proxy] Server requires WebSocket upgrade (426) for:',
-        path
-      );
-      console.warn(
-        '[Backend Proxy] Backend does not implement HTTP fallback as documented'
-      );
-      // Возвращаем пустой массив, так как мы не можем использовать WebSocket через Edge Function
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
-    }
-
-    // Проверяем, не является ли ответ ошибкой WebSocket protocol violation
-    if (
-      responseText.includes('WebSocket protocol violation') ||
-      responseText.includes('failed to accept WebSocket')
-    ) {
-      console.error(
-        '[Backend Proxy] Backend returned WebSocket protocol violation error'
-      );
-      console.error(
-        '[Backend Proxy] This means backend does not support HTTP fallback'
-      );
-      console.error('[Backend Proxy] Backend URL:', backendUrl);
-      // Возвращаем пустой массив, так как бэкенд не поддерживает HTTP fallback
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
-    }
 
     // Используем уже полученный текст ответа
     const data = responseText;
