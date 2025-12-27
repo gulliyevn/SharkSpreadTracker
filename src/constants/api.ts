@@ -29,8 +29,11 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  */
 export const WEBSOCKET_URL = (() => {
   // Если явно указан VITE_WEBSOCKET_URL, используем его
+  // ВАЖНО: Принудительно заменяем wss:// на ws://, так как сервер не поддерживает SSL
   if (import.meta.env.VITE_WEBSOCKET_URL) {
-    return import.meta.env.VITE_WEBSOCKET_URL;
+    const url = import.meta.env.VITE_WEBSOCKET_URL;
+    // Принудительно заменяем wss:// на ws:// для серверов без SSL
+    return url.replace(/^wss:\/\//, 'ws://');
   }
 
   // Если BACKEND_URL не установлен, возвращаем пустую строку
