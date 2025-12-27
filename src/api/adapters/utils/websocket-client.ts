@@ -38,17 +38,19 @@ export function createWebSocketUrl(
     throw new Error('WebSocket baseUrl cannot be empty');
   }
 
-  // Если baseUrl уже полный URL (начинается с ws:// или wss://), используем его напрямую
-  // ВАЖНО: Браузеры на HTTPS страницах могут пытаться автоматически преобразовать ws:// в wss://,
-  // но мы явно указываем протокол, чтобы избежать этой проблемы
+  // ВАЖНО: Принудительно заменяем wss:// на ws://, так как сервер не поддерживает SSL
+  // Это критично для production, где страница загружена по HTTPS, но сервер использует ws://
+  const normalizedBaseUrl = baseUrl.replace(/^wss:\/\//, 'ws://');
+
+  // Если baseUrl уже полный URL (начинается с ws://), используем его напрямую
   // Иначе создаем новый URL относительно текущего location
   let url: URL;
-  if (baseUrl.startsWith('ws://') || baseUrl.startsWith('wss://')) {
-    // Явно создаем URL с указанным протоколом
-    url = new URL(baseUrl);
+  if (normalizedBaseUrl.startsWith('ws://')) {
+    // Явно создаем URL с ws:// протоколом
+    url = new URL(normalizedBaseUrl);
   } else {
     url = new URL(
-      baseUrl,
+      normalizedBaseUrl,
       typeof window !== 'undefined' ? window.location.href : 'http://localhost'
     );
   }

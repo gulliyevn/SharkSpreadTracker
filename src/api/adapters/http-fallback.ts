@@ -73,9 +73,17 @@ export async function fetchStraightSpreadsHttpFallback(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      logger.warn(
-        `[HTTP Fallback] HTTP request failed with status ${response.status}`
-      );
+      // HTTP 426 (Upgrade Required) означает, что сервер требует WebSocket
+      // Это нормально для endpoint /socket/sharkStraight
+      if (response.status === 426) {
+        logger.debug(
+          '[HTTP Fallback] Server requires WebSocket (426 Upgrade Required). This is expected for /socket/sharkStraight endpoint.'
+        );
+      } else {
+        logger.warn(
+          `[HTTP Fallback] HTTP request failed with status ${response.status}`
+        );
+      }
       return [];
     }
 

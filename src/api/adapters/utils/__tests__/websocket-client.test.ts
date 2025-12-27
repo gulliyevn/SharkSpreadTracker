@@ -19,9 +19,10 @@ describe('websocket-client', () => {
       expect(url.host).toBe('localhost:8080');
     });
 
-    it('should create URL with wss:// protocol', () => {
+    it('should replace wss:// with ws:// protocol', () => {
+      // ВАЖНО: wss:// принудительно заменяется на ws://, так как сервер не поддерживает SSL
       const url = createWebSocketUrl('wss://example.com', {});
-      expect(url.protocol).toBe('wss:');
+      expect(url.protocol).toBe('ws:');
       expect(url.host).toBe('example.com');
     });
 
