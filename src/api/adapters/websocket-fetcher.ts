@@ -65,9 +65,13 @@ export async function fetchStraightSpreadsInternal(
   }
 
   logger.info(`[WebSocket] Connecting to: ${WEBSOCKET_URL}`);
+  logger.info(`[WebSocket] Protocol: ${typeof window !== 'undefined' ? window.location.protocol : 'unknown'}`);
+  logger.info(`[WebSocket] Is HTTPS: ${typeof window !== 'undefined' ? window.location.protocol === 'https:' : 'unknown'}`);
   setConnectionStatus('connecting');
 
   const url = createWebSocketUrl(WEBSOCKET_URL, params);
+  logger.info(`[WebSocket] Final URL: ${url.toString()}`);
+  logger.info(`[WebSocket] URL protocol: ${url.protocol}`);
 
   // Создаем новое WebSocket соединение для каждого запроса
   // Это правильно для request-response паттерна бэкенда

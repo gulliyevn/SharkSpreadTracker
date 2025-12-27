@@ -7,6 +7,9 @@ export const API_CONFIG = {
 /**
  * URL бэкенда
  * В backend-only режиме фронт общается только с нашим бэкендом
+ * 
+ * ВАЖНО: Для production на Vercel необходимо установить переменную окружения VITE_BACKEND_URL
+ * в настройках проекта Vercel (Settings -> Environment Variables)
  */
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
@@ -17,14 +20,31 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  * Простая логика: используем VITE_WEBSOCKET_URL если установлен,
  * иначе формируем из BACKEND_URL
  *
+ * ВАЖНО: Явно указываем ws:// протокол, даже если страница загружена по HTTPS.
+ * Браузер не может автоматически преобразовать ws:// в wss://, поэтому
+ * мы явно используем ws:// для серверов без SSL.
+ *
  * Примечание: Когда бэкенд реализует /socket/sharkReverse, будет создана аналогичная
  * константа REVERSE_WEBSOCKET_URL для обратного спреда
  */
-export const WEBSOCKET_URL =
-  import.meta.env.VITE_WEBSOCKET_URL ||
-  (BACKEND_URL
-    ? `${BACKEND_URL.replace(/^http/, 'ws')}/socket/sharkStraight`
-    : '');
+export const WEBSOCKET_URL = (() => {
+  // Если явно указан VITE_WEBSOCKET_URL, используем его
+  if (import.meta.env.VITE_WEBSOCKET_URL) {
+    return import.meta.env.VITE_WEBSOCKET_URL;
+  }
+
+  // Если BACKEND_URL не установлен, возвращаем пустую строку
+  if (!BACKEND_URL) {
+    return '';
+  }
+
+  // Формируем WebSocket URL из BACKEND_URL
+  // Заменяем http:// или https:// на ws:// (явно указываем ws:// для серверов без SSL)
+  const wsUrl = BACKEND_URL.replace(/^https?:\/\//, 'ws://');
+  
+  // Добавляем endpoint
+  return `${wsUrl}/socket/sharkStraight`;
+})();
 
 /**
  * Интервалы обновления данных (в миллисекундах)

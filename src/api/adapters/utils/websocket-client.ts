@@ -39,10 +39,18 @@ export function createWebSocketUrl(
   }
 
   // Если baseUrl уже полный URL (начинается с ws:// или wss://), используем его напрямую
+  // ВАЖНО: Браузеры на HTTPS страницах могут пытаться автоматически преобразовать ws:// в wss://,
+  // но мы явно указываем протокол, чтобы избежать этой проблемы
   // Иначе создаем новый URL относительно текущего location
   let url: URL;
   if (baseUrl.startsWith('ws://') || baseUrl.startsWith('wss://')) {
+    // Явно создаем URL с указанным протоколом
     url = new URL(baseUrl);
+    // Убеждаемся, что протокол не был изменен браузером
+    if (baseUrl.startsWith('ws://') && url.protocol !== 'ws:') {
+      // Если браузер изменил протокол, принудительно устанавливаем ws://
+      url = new URL(baseUrl.replace(/^wss:\/\//, 'ws://'));
+    }
   } else {
     url = new URL(
       baseUrl,
