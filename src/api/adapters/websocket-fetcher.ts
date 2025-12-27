@@ -45,13 +45,22 @@ export async function fetchStraightSpreadsInternal(
     return await fetchStraightSpreadsHttpFallback(url, params);
   }
 
-  // ВРЕМЕННО: для диагностики используем HTTP fallback сразу
-  // Если WebSocket не работает, используем HTTP напрямую
-  const useHttpDirectly = import.meta.env.VITE_USE_HTTP_FALLBACK === 'true';
+  // На localhost в dev режиме используем HTTP fallback сразу
+  // WebSocket прокси через Vite не работает стабильно (EPIPE ошибки)
+  // HTTP fallback проще и надежнее для разработки
+  const isDev = import.meta.env.DEV;
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1');
+  const useHttpDirectly =
+    import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' || (isDev && isLocalhost);
 
   if (useHttpDirectly) {
     logger.info(
-      '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)'
+      isDev && isLocalhost
+        ? '[WebSocket] Using HTTP fallback on localhost (dev mode)'
+        : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)'
     );
     const url = createWebSocketUrl(WEBSOCKET_URL, params);
     setConnectionStatus('connecting');

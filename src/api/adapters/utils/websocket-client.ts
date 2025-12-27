@@ -41,18 +41,11 @@ export function createWebSocketUrl(
   // Если baseUrl уже полный URL (начинается с ws:// или wss://), используем его напрямую
   // ВАЖНО: Браузеры на HTTPS страницах могут пытаться автоматически преобразовать ws:// в wss://,
   // но мы явно указываем протокол, чтобы избежать этой проблемы
-  // КРИТИЧНО: Принудительно заменяем wss:// на ws://, так как сервер не поддерживает SSL
   // Иначе создаем новый URL относительно текущего location
   let url: URL;
   if (baseUrl.startsWith('ws://') || baseUrl.startsWith('wss://')) {
-    // Принудительно заменяем wss:// на ws:// для серверов без SSL
-    const normalizedUrl = baseUrl.replace(/^wss:\/\//, 'ws://');
-    // Явно создаем URL с правильным протоколом
-    url = new URL(normalizedUrl);
-    // Дополнительная проверка: если протокол все еще wss:, принудительно меняем
-    if (url.protocol === 'wss:') {
-      url = new URL(normalizedUrl.replace(/^wss:\/\//, 'ws://'));
-    }
+    // Явно создаем URL с указанным протоколом
+    url = new URL(baseUrl);
   } else {
     url = new URL(
       baseUrl,

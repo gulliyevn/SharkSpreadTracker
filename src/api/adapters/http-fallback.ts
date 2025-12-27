@@ -21,8 +21,24 @@ export async function fetchStraightSpreadsHttpFallback(
     return [];
   }
 
-  // Формируем HTTP URL из BACKEND_URL
-  const httpUrl = new URL(`${BACKEND_URL}/socket/sharkStraight`);
+  // На localhost в dev режиме используем прокси через Vite
+  const isDev = import.meta.env.DEV;
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1');
+
+  let httpUrl: URL;
+  if (isDev && isLocalhost) {
+    // Используем прокси через Vite на localhost
+    httpUrl = new URL(
+      '/api/backend/socket/sharkStraight',
+      window.location.origin
+    );
+  } else {
+    // На production используем прямой URL
+    httpUrl = new URL(`${BACKEND_URL}/socket/sharkStraight`);
+  }
 
   // Добавляем query параметры из WebSocket URL
   url.searchParams.forEach((value, key) => {
