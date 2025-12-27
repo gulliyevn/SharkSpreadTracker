@@ -8,8 +8,10 @@ export const config = {
   runtime: 'edge',
 };
 
+// ВАЖНО: Edge Functions используют runtime env (не VITE_ префикс)
+// VITE_ переменные доступны только на этапе сборки фронтенда
 const BACKEND_URL =
-  process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
+  process.env.BACKEND_URL || 'http://158.220.122.153:8080';
 
 export default async function handler(req: Request) {
   // ВАЖНО: Логируем ВСЕ запросы для диагностики
