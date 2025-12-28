@@ -55,18 +55,21 @@ describe('Integration Tests', () => {
       // Ищем кнопку переключения views (может быть на разных языках)
       await waitFor(
         () => {
-          const viewButton =
-            screen.queryByRole('button', {
-              name: /charts|open charts|графики/i,
-            }) ||
-            screen
-              .queryAllByRole('button')
-              .find(
-                (btn) =>
-                  btn.textContent?.toLowerCase().includes('chart') ||
-                  btn.textContent?.toLowerCase().includes('график')
-              );
-          expect(viewButton).toBeInTheDocument();
+          const viewButtons = screen.getAllByRole('button', {
+            name: /charts|open charts|графики/i,
+          });
+          // Если не нашли по aria-label, ищем по тексту
+          if (viewButtons.length === 0) {
+            const allButtons = screen.getAllByRole('button');
+            const foundButton = allButtons.find(
+              (btn) =>
+                btn.textContent?.toLowerCase().includes('chart') ||
+                btn.textContent?.toLowerCase().includes('график')
+            );
+            expect(foundButton).toBeInTheDocument();
+          } else {
+            expect(viewButtons.length).toBeGreaterThan(0);
+          }
         },
         { timeout: 5000 }
       );
@@ -80,15 +83,23 @@ describe('Integration Tests', () => {
         </TestWrapper>
       );
 
-      // Ищем кнопку переключения темы по aria-label
+      // Ищем все кнопки переключения темы (мобильная и десктопная версии)
       // В Header кнопка имеет aria-label "Switch to light mode" или "Switch to dark mode"
-      const themeButton = await screen.findByRole(
-        'button',
-        {
-          name: /switch to (light|dark) mode/i,
+      await waitFor(
+        () => {
+          const themeButtons = screen.getAllByRole('button', {
+            name: /switch to (light|dark) mode/i,
+          });
+          expect(themeButtons.length).toBeGreaterThan(0);
         },
         { timeout: 5000 }
       );
+
+      const themeButtons = screen.getAllByRole('button', {
+        name: /switch to (light|dark) mode/i,
+      });
+      // Берем последнюю кнопку (обычно это десктопная версия)
+      const themeButton = themeButtons[themeButtons.length - 1];
 
       expect(themeButton).toBeInTheDocument();
 
@@ -105,14 +116,23 @@ describe('Integration Tests', () => {
         </TestWrapper>
       );
 
-      // Находим кнопку языка по aria-label (по умолчанию EN)
-      const langButton = await screen.findByRole(
-        'button',
-        {
-          name: /current language/i,
+      // Находим все кнопки языка (мобильная и десктопная версии)
+      // Используем getAllByRole, так как в Header может быть несколько кнопок с одинаковым aria-label
+      await waitFor(
+        () => {
+          const langButtons = screen.getAllByRole('button', {
+            name: /current language/i,
+          });
+          expect(langButtons.length).toBeGreaterThan(0);
         },
         { timeout: 5000 }
       );
+
+      const langButtons = screen.getAllByRole('button', {
+        name: /current language/i,
+      });
+      // Берем последнюю кнопку (обычно это десктопная версия)
+      const langButton = langButtons[langButtons.length - 1];
 
       expect(langButton).toBeInTheDocument();
 
@@ -122,10 +142,12 @@ describe('Integration Tests', () => {
       // Проверяем, что кнопка обновилась (может быть новый aria-label или текст изменился)
       await waitFor(
         () => {
-          const updatedButton = screen.getByRole('button', {
+          // Перезапрашиваем кнопки после клика
+          const updatedButtons = screen.getAllByRole('button', {
             name: /current language/i,
           });
-          expect(updatedButton).toBeInTheDocument();
+          expect(updatedButtons.length).toBeGreaterThan(0);
+          const updatedButton = updatedButtons[updatedButtons.length - 1];
           // Проверяем, что текст кнопки изменился (EN -> RU или текст содержит RU)
           const buttonText = updatedButton.textContent?.toUpperCase() || '';
           expect(buttonText).toMatch(/RU|EN|TR/);
