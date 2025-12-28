@@ -29,6 +29,8 @@ export default defineConfig({
       // Используем v8 provider для лучшей совместимости
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
+      // Директория для отчетов coverage
+      reportsDirectory: './coverage',
       // Оптимизация: собираем coverage только для важных файлов
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
