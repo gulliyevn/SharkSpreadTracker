@@ -145,8 +145,10 @@ describe('Header', () => {
     const langButtons = screen.getAllByRole('button', {
       name: /current language/i,
     });
+    expect(langButtons.length).toBeGreaterThan(0);
     const langButton = langButtons[langButtons.length - 1];
-    await user.click(langButton);
+    expect(langButton).toBeDefined();
+    await user.click(langButton!);
 
     // Проверяем, что кнопка все еще существует после клика
     await waitFor(
@@ -176,8 +178,10 @@ describe('Header', () => {
 
     // Используем последнюю кнопку (десктопную версию)
     const viewButtons = screen.getAllByRole('button', { name: /charts/i });
+    expect(viewButtons.length).toBeGreaterThan(0);
     const viewButton = viewButtons[viewButtons.length - 1];
-    await user.click(viewButton);
+    expect(viewButton).toBeDefined();
+    await user.click(viewButton!);
 
     // Вид должен переключиться
     expect(viewButton).toBeInTheDocument();
@@ -213,12 +217,13 @@ describe('Header', () => {
 
     // Используем последнюю кнопку (десктопную версию)
     const langButton = langButtons[langButtons.length - 1];
+    expect(langButton).toBeDefined();
 
     // Проверяем начальное состояние (EN)
-    expect(langButton.textContent).toMatch(/EN/i);
+    expect(langButton!.textContent).toMatch(/EN/i);
 
     // Кликаем на кнопку - проверяем что клик работает
-    await user.click(langButton);
+    await user.click(langButton!);
 
     // Проверяем что кнопка все еще существует после клика
     const updatedButtons = screen.getAllByRole('button', {
@@ -245,17 +250,19 @@ describe('Header', () => {
 
     // Используем последнюю кнопку (десктопную версию)
     let langButton = langButtons[langButtons.length - 1];
+    expect(langButton).toBeDefined();
 
     // Кликаем дважды: EN -> RU -> TR
     // Проверяем что клики работают (кнопка все еще существует)
-    await user.click(langButton); // EN -> RU
+    await user.click(langButton!); // EN -> RU
     const buttonsAfterFirstClick = screen.getAllByRole('button', {
       name: /current language/i,
     });
     expect(buttonsAfterFirstClick.length).toBeGreaterThan(0);
     langButton = buttonsAfterFirstClick[buttonsAfterFirstClick.length - 1];
+    expect(langButton).toBeDefined();
 
-    await user.click(langButton); // RU -> TR
+    await user.click(langButton!); // RU -> TR
     const buttonsAfterSecondClick = screen.getAllByRole('button', {
       name: /current language/i,
     });

@@ -100,10 +100,11 @@ describe('Integration Tests', () => {
       });
       // Берем последнюю кнопку (обычно это десктопная версия)
       const themeButton = themeButtons[themeButtons.length - 1];
+      expect(themeButton).toBeDefined();
 
       expect(themeButton).toBeInTheDocument();
 
-      await user.click(themeButton);
+      await user.click(themeButton!);
       // Проверяем, что кнопка все еще существует после клика
       expect(themeButton).toBeInTheDocument();
     });
@@ -133,11 +134,12 @@ describe('Integration Tests', () => {
       });
       // Берем последнюю кнопку (обычно это десктопная версия)
       const langButton = langButtons[langButtons.length - 1];
+      expect(langButton).toBeDefined();
 
       expect(langButton).toBeInTheDocument();
 
       // Кликаем, чтобы переключить EN -> RU
-      await user.click(langButton);
+      await user.click(langButton!);
 
       // Проверяем, что кнопка обновилась (может быть новый aria-label или текст изменился)
       await waitFor(
@@ -148,8 +150,9 @@ describe('Integration Tests', () => {
           });
           expect(updatedButtons.length).toBeGreaterThan(0);
           const updatedButton = updatedButtons[updatedButtons.length - 1];
+          expect(updatedButton).toBeDefined();
           // Проверяем, что текст кнопки изменился (EN -> RU или текст содержит RU)
-          const buttonText = updatedButton.textContent?.toUpperCase() || '';
+          const buttonText = updatedButton!.textContent?.toUpperCase() || '';
           expect(buttonText).toMatch(/RU|EN|TR/);
         },
         { timeout: 3000 }

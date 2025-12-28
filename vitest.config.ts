@@ -64,6 +64,8 @@ export default defineConfig({
         'src/api/adapters/**',
         'src/api/hooks/useSpreadData.ts',
         'src/api/clients/**',
+        // Моки для разработки UI
+        'src/api/mocks/**',
         // Библиотеки инициализации
         'src/lib/web-vitals.ts',
         'src/lib/react-query.ts',
