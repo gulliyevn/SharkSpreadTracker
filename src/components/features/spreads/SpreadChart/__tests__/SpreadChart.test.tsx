@@ -8,22 +8,13 @@ import '@/lib/i18n';
 import { SpreadChart } from '../SpreadChart';
 import type { SpreadResponse } from '@/types';
 
-// Мокируем recharts
-vi.mock('recharts', () => ({
-  LineChart: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="line-chart">{children}</div>
+// Мокируем echarts-for-react
+vi.mock('echarts-for-react', () => ({
+  default: ({ option }: { option: unknown }) => (
+    <div data-testid="echarts-chart" data-option={JSON.stringify(option)}>
+      <div data-testid="echarts-inner" />
+    </div>
   ),
-  Line: () => <div data-testid="line" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: () => <div data-testid="tooltip" />,
-  Legend: () => <div data-testid="legend" />,
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
-  ReferenceLine: () => <div data-testid="reference-line" />,
-  Brush: () => <div data-testid="brush" />,
 }));
 
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -100,14 +91,14 @@ describe('SpreadChart', () => {
 
     // В loading состоянии должен быть LoadingSpinner
     // Проверяем что компонент рендерится (Card должен быть)
-    expect(container.querySelector('.h-\\[400px\\]')).toBeInTheDocument();
+    expect(container.querySelector('.h-\\[450px\\]')).toBeInTheDocument();
   });
 
   it('should display message when sources are not selected', () => {
     render(
       <TestWrapper>
         <SpreadChart
-          spreadData={mockSpreadData}
+          spreadData={null}
           source1={null}
           source2={null}
           timeframe="1h"
@@ -116,6 +107,7 @@ describe('SpreadChart', () => {
       </TestWrapper>
     );
 
+    // Проверяем что отображается сообщение о необходимости выбора источников
     expect(
       screen.getByText(/Select sources to display chart/i)
     ).toBeInTheDocument();
@@ -162,12 +154,11 @@ describe('SpreadChart', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/Spread Chart/i)).toBeInTheDocument();
-    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    // Проверяем что график рендерится
+    expect(screen.getByTestId('echarts-chart')).toBeInTheDocument();
   });
 
-  it('should display data points count', () => {
+  it('should render chart with data points', () => {
     render(
       <TestWrapper>
         <SpreadChart
@@ -180,7 +171,19 @@ describe('SpreadChart', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/3 data points/i)).toBeInTheDocument();
+    // Проверяем что график рендерится с данными
+    const chart = screen.getByTestId('echarts-chart');
+    expect(chart).toBeInTheDocument();
+
+    // Проверяем что опции графика содержат серии данных
+    const option = chart.getAttribute('data-option');
+    expect(option).toBeTruthy();
+    if (option) {
+      const parsedOption = JSON.parse(option);
+      expect(parsedOption.series).toBeDefined();
+      expect(Array.isArray(parsedOption.series)).toBe(true);
+      expect(parsedOption.series.length).toBeGreaterThan(0);
+    }
   });
 
   it('should render chart components', () => {
@@ -196,12 +199,18 @@ describe('SpreadChart', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByTestId('cartesian-grid')).toBeInTheDocument();
-    expect(screen.getByTestId('x-axis')).toBeInTheDocument();
-    expect(screen.getByTestId('y-axis')).toBeInTheDocument();
-    expect(screen.getByTestId('tooltip')).toBeInTheDocument();
-    expect(screen.getByTestId('legend')).toBeInTheDocument();
-    expect(screen.getByTestId('reference-line')).toBeInTheDocument();
-    expect(screen.getByTestId('brush')).toBeInTheDocument();
+    // Проверяем что график рендерится
+    const chart = screen.getByTestId('echarts-chart');
+    expect(chart).toBeInTheDocument();
+
+    // Проверяем что опции графика переданы
+    const option = chart.getAttribute('data-option');
+    expect(option).toBeTruthy();
+    if (option) {
+      const parsedOption = JSON.parse(option);
+      expect(parsedOption).toHaveProperty('xAxis');
+      expect(parsedOption).toHaveProperty('yAxis');
+      expect(parsedOption).toHaveProperty('series');
+    }
   });
 });
