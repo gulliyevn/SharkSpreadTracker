@@ -30,7 +30,9 @@ export class MockApiAdapter {
   }
 
   async getAllPrices(token: Token, _signal?: AbortSignal): Promise<AllPrices> {
-    logger.info(`[Mock] getAllPrices called for ${token.symbol} (${token.chain})`);
+    logger.info(
+      `[Mock] getAllPrices called for ${token.symbol} (${token.chain})`
+    );
     await mockDelay(200);
     return getMockAllPrices(token);
   }
@@ -60,7 +62,9 @@ export class MockApiAdapter {
       }
     >
   > {
-    logger.info(`[Mock] getSpreadsForTokens called for ${tokens.length} tokens`);
+    logger.info(
+      `[Mock] getSpreadsForTokens called for ${tokens.length} tokens`
+    );
     await mockDelay(500);
 
     return tokens.map((token) => {
@@ -108,4 +112,3 @@ export class MockApiAdapter {
     };
   }
 }
-

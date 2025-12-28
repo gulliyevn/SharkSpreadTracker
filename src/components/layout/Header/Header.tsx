@@ -22,20 +22,20 @@ export function Header() {
         <div className="flex flex-col sm:flex-row h-auto sm:min-h-[68px] md:min-h-[72px] items-stretch sm:items-center justify-between gap-2 sm:gap-0 py-2 sm:py-2 md:py-3">
           {/* Logo and Title - на мобильной версии в первой строке с кнопками */}
           <div className="flex items-center justify-between sm:justify-start gap-2">
-          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-            <img
-              src="/assets/SharkLogo.png"
-              alt="Shark Spread Tracker Logo"
-              className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 object-contain flex-shrink-0"
-              loading="eager"
-              width="40"
-              height="40"
-              decoding="async"
-            />
-            <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
-              {t('app.title')}
-            </h1>
-          </div>
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+              <img
+                src="/assets/SharkLogo.png"
+                alt="Shark Spread Tracker Logo"
+                className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 object-contain flex-shrink-0"
+                loading="eager"
+                width="40"
+                height="40"
+                decoding="async"
+              />
+              <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
+                {t('app.title')}
+              </h1>
+            </div>
 
             {/* Right side controls - на мобильной версии справа от логотипа */}
             <div className="flex items-center gap-1 sm:gap-2 sm:hidden">

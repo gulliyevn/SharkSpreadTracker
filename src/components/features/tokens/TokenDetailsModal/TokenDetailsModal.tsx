@@ -49,11 +49,10 @@ export function TokenDetailsModal({
     reverseSpread: number | null;
   } | null>(null);
 
-
   // Извлекаем данные из tokenData для отображения в TokenCard
   const tokenCardData = useMemo(() => {
     if (!tokenData || !token) return null;
-    
+
     const tokenSymbol = (tokenData.token || '').toUpperCase().trim();
     const network = (tokenData.network || '').toLowerCase();
     const chain: 'solana' | 'bsc' =
@@ -62,17 +61,21 @@ export function TokenDetailsModal({
     const limit = tokenData.limit || 'all';
     const formattedLimit =
       limit === 'all' ? 'all' : limit.includes('$') ? limit : `${limit}$`;
-    
+
     // Определяем биржи
     const aExchange = (tokenData.aExchange || '').toLowerCase();
     const bExchange = (tokenData.bExchange || '').toLowerCase();
     const isMexcA = aExchange === 'mexc';
     const isMexcB = bExchange === 'mexc';
-    const networkExchange = isMexcB ? aExchange : isMexcA ? bExchange : aExchange;
+    const networkExchange = isMexcB
+      ? aExchange
+      : isMexcA
+        ? bExchange
+        : aExchange;
 
     // Иконка для сети
     const networkIcon = chain === 'solana' ? SOLANA_LOGO : BSC_LOGO;
-    
+
     return {
       tokenSymbol,
       chain,
@@ -98,7 +101,9 @@ export function TokenDetailsModal({
       urls.network = 'https://pancakeswap.finance';
     } else {
       urls.network =
-        tokenCardData.chain === 'solana' ? 'https://jup.ag' : 'https://pancakeswap.finance';
+        tokenCardData.chain === 'solana'
+          ? 'https://jup.ag'
+          : 'https://pancakeswap.finance';
     }
 
     return urls;
@@ -140,9 +145,9 @@ export function TokenDetailsModal({
 
   const handleMexcClick = useCallback(() => {
     const url = exchangeUrls.mexc;
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }, [exchangeUrls]);
 
   const handleMinSpreadInputChange = useCallback(
@@ -203,7 +208,7 @@ export function TokenDetailsModal({
               {/* Звезда - выровнена по центру вертикально */}
               <div className="flex-shrink-0 p-0 self-center w-7 h-7 flex items-center justify-center">
                 <Star className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-            </div>
+              </div>
 
               {/* Левая часть: название, лимит */}
               <div className="flex flex-col gap-1 flex-1 min-w-0 basis-0">
@@ -220,7 +225,9 @@ export function TokenDetailsModal({
                         ? 'text-green-500 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400'
                     )}
-                    aria-label={t('modal.copyTokenSymbol') || 'Copy token symbol'}
+                    aria-label={
+                      t('modal.copyTokenSymbol') || 'Copy token symbol'
+                    }
                     title={t('modal.copyTokenSymbol') || 'Copy token symbol'}
                   >
                     {isCopied ? (
@@ -233,16 +240,21 @@ export function TokenDetailsModal({
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-gray-600 dark:text-gray-400">
                     {tokenCardData.formattedLimit}
-                </span>
-              </div>
+                  </span>
+                </div>
               </div>
 
               {/* Средняя часть: Network иконка, стрелка, MEXC иконка */}
               <div className="flex items-center gap-1.5 flex-shrink-0 basis-auto">
                 {(() => {
-                  const exchangeName = t(`sources.${tokenCardData.networkExchange}`) || tokenCardData.networkExchange;
-                  const chainName = t(`chains.${tokenCardData.chain}`) || tokenCardData.chain;
-                  const exchangeTitle = t('modal.openExchange').replace('{{exchange}}', exchangeName).replace('{{chain}}', chainName);
+                  const exchangeName =
+                    t(`sources.${tokenCardData.networkExchange}`) ||
+                    tokenCardData.networkExchange;
+                  const chainName =
+                    t(`chains.${tokenCardData.chain}`) || tokenCardData.chain;
+                  const exchangeTitle = t('modal.openExchange')
+                    .replace('{{exchange}}', exchangeName)
+                    .replace('{{chain}}', chainName);
                   return (
                     <button
                       onClick={handleNetworkExchangeClick}
@@ -251,8 +263,14 @@ export function TokenDetailsModal({
                         'w-6 h-6 flex items-center justify-center',
                         'hover:scale-110 active:scale-95'
                       )}
-                      title={exchangeTitle || `Open ${tokenCardData.networkExchange} on ${tokenCardData.chain}`}
-                      aria-label={exchangeTitle || `Open ${tokenCardData.networkExchange} on ${tokenCardData.chain}`}
+                      title={
+                        exchangeTitle ||
+                        `Open ${tokenCardData.networkExchange} on ${tokenCardData.chain}`
+                      }
+                      aria-label={
+                        exchangeTitle ||
+                        `Open ${tokenCardData.networkExchange} on ${tokenCardData.chain}`
+                      }
                     >
                       <img
                         src={tokenCardData.networkIcon}
@@ -263,13 +281,13 @@ export function TokenDetailsModal({
                   );
                 })()}
                 <ArrowLeftRight className="h-4 w-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
-              <button
+                <button
                   onClick={handleMexcClick}
-                className={cn(
+                  className={cn(
                     'p-0.5 rounded hover:bg-light-200 dark:hover:bg-dark-700 transition-colors touch-manipulation',
                     'w-6 h-6 flex items-center justify-center',
                     'hover:scale-110 active:scale-95'
-                )}
+                  )}
                   title={t('modal.openMexcFutures') || 'Open MEXC Futures'}
                   aria-label={t('modal.openMexcFutures') || 'Open MEXC Futures'}
                 >
@@ -278,7 +296,7 @@ export function TokenDetailsModal({
                     alt="MEXC"
                     className="h-5 w-5 object-contain"
                   />
-              </button>
+                </button>
               </div>
 
               {/* Правая часть: два спреда (зеленый и красный) */}
@@ -290,13 +308,13 @@ export function TokenDetailsModal({
                     <div className="bg-green-500 dark:bg-green-600 px-2.5 min-w-[50px] h-full flex items-center justify-center text-center">
                       <span className="text-white text-xs font-medium">
                         {tokenCardData.directSpread.toFixed(2)}%
-                    </span>
-                  </div>
+                      </span>
+                    </div>
                   ) : (
                     <div className="bg-gray-400 dark:bg-gray-600 px-2.5 min-w-[50px] h-full flex items-center justify-center text-center">
                       <span className="text-white text-xs font-medium">—</span>
-                  </div>
-                )}
+                    </div>
+                  )}
                   {/* Обратный спред (обратный: MEXC → BNB/Sol, из отдельной ручки сервера) - справа */}
                   <div
                     className={cn(
@@ -312,7 +330,7 @@ export function TokenDetailsModal({
                         : '—'}
                     </span>
                   </div>
-                  </div>
+                </div>
               </div>
             </div>
           </article>
@@ -321,11 +339,11 @@ export function TokenDetailsModal({
           <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border bg-white dark:bg-dark-800 border-light-300 dark:border-dark-700">
             <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 whitespace-nowrap">
               {t('filters.minSpread')}
-              </label>
+            </label>
             <input
-                type="number"
+              type="number"
               min="0"
-                step="0.1"
+              step="0.1"
               value={minSpread === 0 ? '' : minSpread}
               onChange={handleMinSpreadInputChange}
               placeholder=""
@@ -334,7 +352,7 @@ export function TokenDetailsModal({
             <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-400">
               %
             </span>
-            </div>
+          </div>
 
           {/* Auto Refresh и Refresh */}
           <AutoRefreshToggle
@@ -353,7 +371,10 @@ export function TokenDetailsModal({
                     {(() => {
                       const date = new Date(tooltipData.timestamp);
                       const hours = String(date.getHours()).padStart(2, '0');
-                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                      const minutes = String(date.getMinutes()).padStart(
+                        2,
+                        '0'
+                      );
                       return `${hours}:${minutes}`;
                     })()}
                   </span>
@@ -374,13 +395,16 @@ export function TokenDetailsModal({
                 <div
                   className={cn(
                     'px-2.5 pr-3 min-w-[50px] h-full flex items-center justify-center text-center rounded-r',
-                    tooltipData.reverseSpread !== null && !isNaN(tooltipData.reverseSpread) && tooltipData.reverseSpread < 0
+                    tooltipData.reverseSpread !== null &&
+                      !isNaN(tooltipData.reverseSpread) &&
+                      tooltipData.reverseSpread < 0
                       ? 'bg-red-500 dark:bg-red-600'
                       : 'bg-gray-400 dark:bg-gray-600'
                   )}
                 >
                   <span className="text-white text-xs font-medium">
-                    {tooltipData.reverseSpread !== null && !isNaN(tooltipData.reverseSpread)
+                    {tooltipData.reverseSpread !== null &&
+                    !isNaN(tooltipData.reverseSpread)
                       ? `${tooltipData.reverseSpread.toFixed(2)}%`
                       : '—'}
                   </span>
@@ -396,7 +420,9 @@ export function TokenDetailsModal({
               className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors border bg-primary-600 border-primary-600 text-white hover:bg-primary-700 flex items-center justify-center"
             >
               <Save className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">{t('common.save') || 'Save'}</span>
+              <span className="hidden sm:inline">
+                {t('common.save') || 'Save'}
+              </span>
             </button>
           </div>
         </div>
@@ -413,4 +439,3 @@ export function TokenDetailsModal({
     </Modal>
   );
 }
-

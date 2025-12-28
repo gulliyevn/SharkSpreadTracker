@@ -92,6 +92,7 @@ describe('SpreadChart', () => {
           spreadData={null}
           source1={null}
           source2={null}
+          timeframe="1h"
           isLoading={true}
         />
       </TestWrapper>
@@ -109,6 +110,7 @@ describe('SpreadChart', () => {
           spreadData={mockSpreadData}
           source1={null}
           source2={null}
+          timeframe="1h"
           isLoading={false}
         />
       </TestWrapper>
@@ -138,6 +140,7 @@ describe('SpreadChart', () => {
           spreadData={emptySpreadData}
           source1="jupiter"
           source2="mexc"
+          timeframe="1h"
           isLoading={false}
         />
       </TestWrapper>
@@ -153,6 +156,7 @@ describe('SpreadChart', () => {
           spreadData={mockSpreadData}
           source1="jupiter"
           source2="mexc"
+          timeframe="1h"
           isLoading={false}
         />
       </TestWrapper>
@@ -170,6 +174,7 @@ describe('SpreadChart', () => {
           spreadData={mockSpreadData}
           source1="jupiter"
           source2="mexc"
+          timeframe="1h"
           isLoading={false}
         />
       </TestWrapper>
@@ -185,6 +190,7 @@ describe('SpreadChart', () => {
           spreadData={mockSpreadData}
           source1="jupiter"
           source2="mexc"
+          timeframe="1h"
           isLoading={false}
         />
       </TestWrapper>

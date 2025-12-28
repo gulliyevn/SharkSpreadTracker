@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { SpreadChart, type ChartTooltipData } from '@/components/features/spreads/SpreadChart';
+import {
+  SpreadChart,
+  type ChartTooltipData,
+} from '@/components/features/spreads/SpreadChart';
 import { useSpreadData } from '@/api/hooks/useSpreadData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTimeframeLabel } from '@/utils/i18n-helpers';
@@ -43,10 +46,11 @@ export function SpreadChartPanel({
   }, [token]);
 
   // Получаем данные спреда для графика с выбранным timeframe
-  const {
-    data: spreadData,
-    isLoading: isLoadingSpread,
-  } = useSpreadData(token, timeframe, isOpen && token !== null);
+  const { data: spreadData, isLoading: isLoadingSpread } = useSpreadData(
+    token,
+    timeframe,
+    isOpen && token !== null
+  );
 
   if (!token) {
     return null;
@@ -55,13 +59,16 @@ export function SpreadChartPanel({
   return (
     <div className={cn('relative', className)}>
       {/* TimeframeSelector справа сверху - встроенные кнопки */}
-      <div className="absolute top-4 z-10" style={{ right: 'calc(1rem + 36px)' }}>
+      <div
+        className="absolute top-4 z-10"
+        style={{ right: 'calc(1rem + 36px)' }}
+      >
         <div className="bg-white dark:bg-dark-800 border border-light-300 dark:border-dark-700 rounded-lg p-2">
           <div className="flex flex-wrap gap-1.5">
             {TIMEFRAME_OPTIONS.map((tf) => {
               const isSelected = timeframe === tf;
               const timeframeLabel = getTimeframeLabel(tf, t);
-              
+
               return (
                 <button
                   key={tf}

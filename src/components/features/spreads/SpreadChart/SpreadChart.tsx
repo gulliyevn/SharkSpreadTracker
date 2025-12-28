@@ -31,20 +31,22 @@ export interface SpreadChartProps {
 function roundToTimeframe(timestamp: number, intervalMinutes: number): number {
   const date = new Date(timestamp);
   const rounded = new Date(date);
-  
+
   // Всегда обнуляем секунды и миллисекунды
   rounded.setSeconds(0);
   rounded.setMilliseconds(0);
-  
+
   if (intervalMinutes < 60) {
     // Для интервалов меньше часа (1m, 5m, 15m): округляем минуты ВНИЗ
     const minutes = date.getMinutes();
-    const roundedMinutes = Math.floor(minutes / intervalMinutes) * intervalMinutes;
+    const roundedMinutes =
+      Math.floor(minutes / intervalMinutes) * intervalMinutes;
     rounded.setMinutes(roundedMinutes);
   } else if (intervalMinutes < 1440) {
     // Для интервалов меньше дня (1h, 4h): округляем общее количество минут ВНИЗ
     const totalMinutes = date.getHours() * 60 + date.getMinutes();
-    const roundedTotalMinutes = Math.floor(totalMinutes / intervalMinutes) * intervalMinutes;
+    const roundedTotalMinutes =
+      Math.floor(totalMinutes / intervalMinutes) * intervalMinutes;
     const roundedHours = Math.floor(roundedTotalMinutes / 60);
     const roundedMins = roundedTotalMinutes % 60;
     rounded.setHours(roundedHours);
@@ -54,7 +56,7 @@ function roundToTimeframe(timestamp: number, intervalMinutes: number): number {
     rounded.setHours(0);
     rounded.setMinutes(0);
   }
-  
+
   return rounded.getTime();
 }
 
@@ -74,7 +76,7 @@ export const SpreadChart = memo(function SpreadChart({
   const chartRef = useRef<ReactECharts>(null);
   const { resolvedTheme } = useTheme();
   const intervalMinutes = TIMEFRAMES[timeframe].minutes;
-  
+
   // Получаем цвета в зависимости от темы
   const themeColors = useMemo(() => {
     const isDark = resolvedTheme === 'dark';
@@ -84,40 +86,37 @@ export const SpreadChart = memo(function SpreadChart({
       textTertiary: isDark ? '#9ca3af' : '#6b7280',
       border: isDark ? '#374151' : '#e5e7eb',
       background: isDark ? '#111827' : '#ffffff',
-      gridLine: isDark ? 'rgba(229, 231, 235, 0.1)' : 'rgba(229, 231, 235, 0.2)',
+      gridLine: isDark
+        ? 'rgba(229, 231, 235, 0.1)'
+        : 'rgba(229, 231, 235, 0.2)',
     };
   }, [resolvedTheme]);
 
   // Преобразуем данные спреда в формат для графика с фильтрацией по таймфрейму
   const chartData = useMemo(() => {
-    if (
-      !spreadData ||
-      !source1 ||
-      !source2 ||
-      !spreadData.history.length
-    ) {
+    if (!spreadData || !source1 || !source2 || !spreadData.history.length) {
       return [];
     }
 
     // Преобразуем все точки
     const rawData = spreadData.history
       .map((point) => {
-  const price1 =
-    source1 === 'mexc'
-      ? point.mexc_price
-      : source1 === 'jupiter'
-        ? point.jupiter_price
-        : point.pancakeswap_price;
+        const price1 =
+          source1 === 'mexc'
+            ? point.mexc_price
+            : source1 === 'jupiter'
+              ? point.jupiter_price
+              : point.pancakeswap_price;
 
-  const price2 =
-    source2 === 'mexc'
-      ? point.mexc_price
-      : source2 === 'jupiter'
-        ? point.jupiter_price
-        : point.pancakeswap_price;
+        const price2 =
+          source2 === 'mexc'
+            ? point.mexc_price
+            : source2 === 'jupiter'
+              ? point.jupiter_price
+              : point.pancakeswap_price;
 
-  const directSpread = calculateSpread(price1, price2);
-  const reverseSpread = calculateSpread(price2, price1);
+        const directSpread = calculateSpread(price1, price2);
+        const reverseSpread = calculateSpread(price2, price1);
 
         return {
           timestamp: point.timestamp,
@@ -133,12 +132,15 @@ export const SpreadChart = memo(function SpreadChart({
     if (rawData.length === 0) return [];
 
     // Группируем данные по интервалам таймфрейма
-    const groupedMap = new Map<number, typeof rawData[0]>();
-    
+    const groupedMap = new Map<number, (typeof rawData)[0]>();
+
     for (const point of rawData) {
-      const roundedTimestamp = roundToTimeframe(point.timestamp, intervalMinutes);
+      const roundedTimestamp = roundToTimeframe(
+        point.timestamp,
+        intervalMinutes
+      );
       const existing = groupedMap.get(roundedTimestamp);
-      
+
       if (!existing || point.timestamp > existing.timestamp) {
         groupedMap.set(roundedTimestamp, point);
       }
@@ -156,10 +158,14 @@ export const SpreadChart = memo(function SpreadChart({
     // Добавляем пустое пространство в конце (3 часа после последней точки)
     if (filteredData.length > 0) {
       const lastPoint = filteredData[filteredData.length - 1];
-      if (lastPoint && Array.isArray(lastPoint) && typeof lastPoint[0] === 'number') {
+      if (
+        lastPoint &&
+        Array.isArray(lastPoint) &&
+        typeof lastPoint[0] === 'number'
+      ) {
         const lastTimestamp = lastPoint[0];
         const emptySpaceEnd = lastTimestamp + 3 * 60 * 60 * 1000; // +3 часа
-        
+
         // Добавляем одну пустую точку в конце для создания пустого пространства
         // ECharts будет растягивать график до этой точки
         filteredData.push([
@@ -205,7 +211,7 @@ export const SpreadChart = memo(function SpreadChart({
       return {};
     }
 
-        return {
+    return {
       grid: {
         left: '70px',
         right: '30px',
@@ -286,15 +292,15 @@ export const SpreadChart = memo(function SpreadChart({
         textStyle: {
           color: 'transparent',
         },
-        formatter: (params: any) => {
+        formatter: (params: unknown) => {
           if (!onTooltipDataChange) return '';
-          
+
           if (!params || !Array.isArray(params) || params.length === 0) {
             setTimeout(() => onTooltipDataChange?.(null), 0);
             return '';
           }
 
-          const param = params[0];
+          const param = params[0] as { value?: unknown[] };
           if (!param || !param.value || !Array.isArray(param.value)) {
             setTimeout(() => onTooltipDataChange?.(null), 0);
             return '';
@@ -315,8 +321,14 @@ export const SpreadChart = memo(function SpreadChart({
 
           const directSpreadValue = dataPoint[1];
           const reverseSpreadValue = dataPoint[2];
-          const directSpread = typeof directSpreadValue === 'number' && !isNaN(directSpreadValue) ? directSpreadValue : null;
-          const reverseSpread = typeof reverseSpreadValue === 'number' && !isNaN(reverseSpreadValue) ? reverseSpreadValue : null;
+          const directSpread =
+            typeof directSpreadValue === 'number' && !isNaN(directSpreadValue)
+              ? directSpreadValue
+              : null;
+          const reverseSpread =
+            typeof reverseSpreadValue === 'number' && !isNaN(reverseSpreadValue)
+              ? reverseSpreadValue
+              : null;
 
           onTooltipDataChange({
             timestamp,
@@ -360,9 +372,13 @@ export const SpreadChart = memo(function SpreadChart({
           itemStyle: {
             color: '#eab308', // Желтые точки
           },
-          showSymbol: (params: any) => {
+          showSymbol: (params: unknown) => {
             // Показываем точки только для реальных данных (не NaN)
-            return !isNaN(params[1] as number) && params[1] !== null && params[1] !== undefined;
+            if (!Array.isArray(params) || params.length < 2) return false;
+            const value = params[1];
+            return (
+              !isNaN(value as number) && value !== null && value !== undefined
+            );
           },
           connectNulls: false,
           markLine: {
@@ -410,44 +426,54 @@ export const SpreadChart = memo(function SpreadChart({
         },
       ],
     };
-  }, [chartData, yMin, yMax, intervalMinutes, themeColors, onTooltipDataChange]);
+  }, [
+    chartData,
+    yMin,
+    yMax,
+    intervalMinutes,
+    themeColors,
+    onTooltipDataChange,
+  ]);
 
   // Обновляем график при изменении темы
   useEffect(() => {
     if (chartRef.current && chartData.length > 0) {
       const chartInstance = chartRef.current.getEchartsInstance();
-      chartInstance.setOption({
-        backgroundColor: 'transparent',
-        xAxis: {
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: '#ffffff', // Белая линия для нижней границы
-              width: 1,
+      chartInstance.setOption(
+        {
+          backgroundColor: 'transparent',
+          xAxis: {
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: '#ffffff', // Белая линия для нижней границы
+                width: 1,
+              },
+            },
+            axisLabel: {
+              color: themeColors.textSecondary,
+            },
+            splitLine: {
+              lineStyle: {
+                color: themeColors.gridLine,
+              },
             },
           },
-          axisLabel: {
-            color: themeColors.textSecondary,
-          },
-          splitLine: {
-            lineStyle: {
-              color: themeColors.gridLine,
+          yAxis: {
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: '#ffffff', // Белая линия для левой границы
+                width: 1,
+              },
+            },
+            axisLabel: {
+              color: themeColors.textSecondary,
             },
           },
         },
-        yAxis: {
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: '#ffffff', // Белая линия для левой границы
-              width: 1,
-            },
-          },
-          axisLabel: {
-            color: themeColors.textSecondary,
-          },
-        },
-      }, { notMerge: false, lazyUpdate: true });
+        { notMerge: false, lazyUpdate: true }
+      );
     }
   }, [resolvedTheme, themeColors, chartData.length]);
 
@@ -483,7 +509,9 @@ export const SpreadChart = memo(function SpreadChart({
       <Card className={cn('p-4', className)}>
         <div className="h-[450px] sm:h-[500px] flex items-center justify-center">
           <p className="text-sm text-light-600 dark:text-dark-400">
-            {!spreadData ? 'Select sources to display chart' : 'No chart data available'}
+            {!spreadData
+              ? 'Select sources to display chart'
+              : 'No chart data available'}
           </p>
         </div>
       </Card>
@@ -497,7 +525,10 @@ export const SpreadChart = memo(function SpreadChart({
   };
 
   return (
-    <Card className={cn('p-4 sm:p-6', className)} onMouseLeave={handleMouseLeave}>
+    <Card
+      className={cn('p-4 sm:p-6', className)}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="h-[450px] sm:h-[500px] w-full">
         <ReactECharts
           ref={chartRef}

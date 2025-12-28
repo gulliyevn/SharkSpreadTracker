@@ -231,6 +231,7 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
             spreadData={spreadData || null}
             source1={source1}
             source2={source2}
+            timeframe={timeframe}
             isLoading={isLoadingSpread}
           />
         ) : chartType === 'prices' ? (
