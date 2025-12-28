@@ -174,7 +174,7 @@ export function Modal({
       <div
         ref={modalRef}
         className={cn(
-          'relative z-10 w-full rounded-lg shadow-xl',
+          'relative z-10 w-full rounded-lg shadow-xl overflow-hidden',
           'bg-white dark:bg-dark-800',
           'border border-light-300 dark:border-dark-700',
           'animate-in fade-in-0 zoom-in-95 duration-200',
@@ -186,11 +186,11 @@ export function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-light-200 dark:border-dark-700 flex-shrink-0">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-2 sm:py-2.5 border-b border-light-200 dark:border-dark-700 flex-shrink-0 bg-light-50 dark:bg-dark-900/50 rounded-t-lg">
             {title && (
               <h2
                 id="modal-title"
-                className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate pr-2"
+                className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate pr-3"
               >
                 {title}
               </h2>
@@ -199,15 +199,16 @@ export function Modal({
               <button
                 onClick={onClose}
                 className={cn(
-                  'ml-auto p-2 rounded-md transition-colors flex-shrink-0 touch-manipulation',
-                  'min-w-[44px] min-h-[44px] flex items-center justify-center', // Минимум 44x44px для touch targets
-                  'text-gray-700 dark:text-gray-400',
+                  'ml-auto p-1.5 rounded-lg transition-colors flex-shrink-0 touch-manipulation',
+                  'min-w-[36px] min-h-[36px] flex items-center justify-center',
+                  'text-gray-500 dark:text-gray-400',
                   'hover:bg-light-200 dark:hover:bg-dark-700',
-                  'hover:text-gray-900 dark:hover:text-gray-50'
+                  'hover:text-gray-900 dark:hover:text-white',
+                  'active:scale-95'
                 )}
                 aria-label="Close modal"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>

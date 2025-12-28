@@ -5,6 +5,7 @@
     "success": "Success",
     "cancel": "Cancel",
     "save": "Save",
+    "saved": "Saved",
     "delete": "Delete",
     "edit": "Edit",
     "close": "Close",
@@ -46,12 +47,12 @@
     "bsc": "BSC"
   },
   "timeframes": {
-    "1m": "1 minute",
-    "5m": "5 minutes",
-    "15m": "15 minutes",
-    "1h": "1 hour",
-    "4h": "4 hours",
-    "1d": "1 day"
+    "1m": "1M",
+    "5m": "5M",
+    "15m": "15M",
+    "1h": "1H",
+    "4h": "4H",
+    "1d": "1D"
   },
   "spread": {
     "title": "Spread",
@@ -61,7 +62,11 @@
     "from": "From",
     "to": "To",
     "price": "Price",
-    "spreadPercent": "Spread %"
+    "spreadPercent": "Spread %",
+    "directSpread": "Direct Spread",
+    "reverseSpread": "Reverse Spread",
+    "directSpreadPercent": "Direct Spread (%)",
+    "reverseSpreadPercent": "Reverse Spread (%)"
   },
   "tokens": {
     "title": "Tokens",
@@ -99,7 +104,14 @@
     "title": "Spread Charts",
     "description": "View spread charts and analyze trading opportunities",
     "comingSoon": "Charts Coming Soon",
-    "placeholder": "Spread charts will be displayed here. Select tokens and timeframes to analyze trading opportunities."
+    "placeholder": "Spread charts will be displayed here. Select tokens and timeframes to analyze trading opportunities.",
+    "spreadChart": "Spread Chart",
+    "timeframe": "Timeframe"
+  },
+  "modal": {
+    "copyTokenSymbol": "Copy token symbol",
+    "openExchange": "Open {{exchange}} on {{chain}}",
+    "openMexcFutures": "Open MEXC Futures"
   },
   "apiKeys": {
     "warning": {

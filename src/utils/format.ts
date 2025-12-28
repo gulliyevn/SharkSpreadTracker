@@ -57,7 +57,7 @@ export function formatDateTime(
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    timeZone: 'UTC',
+    // Используем локальное время (убрали timeZone: 'UTC')
   };
   return date.toLocaleString('ru-RU', options || defaultOptions);
 }
@@ -71,7 +71,7 @@ export function formatTime(timestamp: number): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    timeZone: 'UTC',
+    // Используем локальное время (убрали timeZone: 'UTC')
   });
 }
 
@@ -84,6 +84,6 @@ export function formatDate(timestamp: number): string {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    timeZone: 'UTC',
+    // Используем локальное время (убрали timeZone: 'UTC')
   });
 }

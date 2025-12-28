@@ -508,20 +508,7 @@ export function TokensPage() {
           isOpen={editingToken !== null}
           onClose={handleCloseModal}
           token={editingToken}
-          price={
-            editingTokenData.priceA && editingTokenData.priceB
-              ? (Number(editingTokenData.priceA) +
-                  Number(editingTokenData.priceB)) /
-                2
-              : editingTokenData.priceA
-                ? Number(editingTokenData.priceA)
-                : editingTokenData.priceB
-                  ? Number(editingTokenData.priceB)
-                  : null
-          }
-          directSpread={
-            editingTokenData.spread ? Number(editingTokenData.spread) : null
-          }
+          tokenData={editingTokenData}
           reverseSpread={null}
         />
       )}

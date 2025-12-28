@@ -1,40 +1,107 @@
-import { useState, useMemo, useCallback, memo } from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-  Brush,
-} from 'recharts';
+import { useMemo, memo, useEffect, useRef } from 'react';
+import ReactECharts from 'echarts-for-react';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { formatDateTime } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import { calculateSpread } from '@/utils/calculations';
-import type { SpreadResponse, SourceType } from '@/types';
+import { TIMEFRAMES } from '@/constants/timeframes';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { SpreadResponse, SourceType, TimeframeOption } from '@/types';
+
+export interface ChartTooltipData {
+  timestamp: number;
+  directSpread: number | null;
+  reverseSpread: number | null;
+}
 
 export interface SpreadChartProps {
   spreadData: SpreadResponse | null;
   source1: SourceType | null;
   source2: SourceType | null;
+  timeframe: TimeframeOption;
   isLoading?: boolean;
   className?: string;
+  onTooltipDataChange?: (data: ChartTooltipData | null) => void;
 }
 
 /**
- * Рассчитывает спред между двумя источниками для точки данных
- * Использует общую утилиту calculateSpread для устранения дублирования
+ * Округлить timestamp до начала интервала таймфрейма
+ * Важно: всегда округляет ВНИЗ до начала интервала
  */
-function calculateSpreadForPoint(
-  point: SpreadResponse['history'][0],
-  source1: SourceType,
-  source2: SourceType
-): { directSpread: number | null; reverseSpread: number | null } {
+function roundToTimeframe(timestamp: number, intervalMinutes: number): number {
+  const date = new Date(timestamp);
+  const rounded = new Date(date);
+  
+  // Всегда обнуляем секунды и миллисекунды
+  rounded.setSeconds(0);
+  rounded.setMilliseconds(0);
+  
+  if (intervalMinutes < 60) {
+    // Для интервалов меньше часа (1m, 5m, 15m): округляем минуты ВНИЗ
+    const minutes = date.getMinutes();
+    const roundedMinutes = Math.floor(minutes / intervalMinutes) * intervalMinutes;
+    rounded.setMinutes(roundedMinutes);
+  } else if (intervalMinutes < 1440) {
+    // Для интервалов меньше дня (1h, 4h): округляем общее количество минут ВНИЗ
+    const totalMinutes = date.getHours() * 60 + date.getMinutes();
+    const roundedTotalMinutes = Math.floor(totalMinutes / intervalMinutes) * intervalMinutes;
+    const roundedHours = Math.floor(roundedTotalMinutes / 60);
+    const roundedMins = roundedTotalMinutes % 60;
+    rounded.setHours(roundedHours);
+    rounded.setMinutes(roundedMins);
+  } else {
+    // Для интервалов в днях (1d): округляем до начала дня
+    rounded.setHours(0);
+    rounded.setMinutes(0);
+  }
+  
+  return rounded.getTime();
+}
+
+/**
+ * График спреда с двумя линиями (Direct и Reverse spread)
+ * Использует Apache ECharts для лучшей работы с таймфреймами
+ */
+export const SpreadChart = memo(function SpreadChart({
+  spreadData,
+  source1,
+  source2,
+  timeframe,
+  isLoading = false,
+  className,
+  onTooltipDataChange,
+}: SpreadChartProps) {
+  const chartRef = useRef<ReactECharts>(null);
+  const { resolvedTheme } = useTheme();
+  const intervalMinutes = TIMEFRAMES[timeframe].minutes;
+  
+  // Получаем цвета в зависимости от темы
+  const themeColors = useMemo(() => {
+    const isDark = resolvedTheme === 'dark';
+    return {
+      textPrimary: isDark ? '#f9fafb' : '#111827',
+      textSecondary: isDark ? '#d1d5db' : '#374151',
+      textTertiary: isDark ? '#9ca3af' : '#6b7280',
+      border: isDark ? '#374151' : '#e5e7eb',
+      background: isDark ? '#111827' : '#ffffff',
+      gridLine: isDark ? 'rgba(229, 231, 235, 0.1)' : 'rgba(229, 231, 235, 0.2)',
+    };
+  }, [resolvedTheme]);
+
+  // Преобразуем данные спреда в формат для графика с фильтрацией по таймфрейму
+  const chartData = useMemo(() => {
+    if (
+      !spreadData ||
+      !source1 ||
+      !source2 ||
+      !spreadData.history.length
+    ) {
+      return [];
+    }
+
+    // Преобразуем все точки
+    const rawData = spreadData.history
+      .map((point) => {
   const price1 =
     source1 === 'mexc'
       ? point.mexc_price
@@ -49,269 +116,397 @@ function calculateSpreadForPoint(
         ? point.jupiter_price
         : point.pancakeswap_price;
 
-  // Используем общую утилиту для расчета спреда
   const directSpread = calculateSpread(price1, price2);
   const reverseSpread = calculateSpread(price2, price1);
 
-  return { directSpread, reverseSpread };
-}
-
-/**
- * График спреда с двумя линиями (Direct и Reverse spread)
- * Оптимизирован с помощью React.memo для предотвращения лишних ререндеров
- */
-export const SpreadChart = memo(function SpreadChart({
-  spreadData,
-  source1,
-  source2,
-  isLoading = false,
-  className,
-}: SpreadChartProps) {
-  const [isZoomed, setIsZoomed] = useState(false);
-
-  /**
-   * Получить цвет для спреда на основе его значения
-   * Положительный (>0): зеленый → арбитражная возможность
-   * Отрицательный (<0): красный → невыгодно
-   * Нулевой (=0): серый → нет разницы
-   */
-  const getSpreadColor = useCallback((spread: number | null): string => {
-    if (spread === null) {
-      return 'rgb(156, 163, 175)'; // gray-400
-    }
-    if (spread > 0) {
-      return 'rgb(34, 197, 94)'; // green-500 - арбитражная возможность
-    }
-    if (spread < 0) {
-      return 'rgb(239, 68, 68)'; // red-500 - невыгодно
-    }
-    return 'rgb(156, 163, 175)'; // gray-400 - нет разницы
-  }, []);
-
-  // Подготавливаем данные для графика
-  const chartData = useMemo(() => {
-    if (
-      !spreadData ||
-      !source1 ||
-      !source2 ||
-      spreadData.history.length === 0
-    ) {
-      return [];
-    }
-
-    return spreadData.history
-      .map((point) => {
-        const { directSpread, reverseSpread } = calculateSpreadForPoint(
-          point,
-          source1,
-          source2
-        );
-
-        const directValue =
-          directSpread !== null ? Number(directSpread.toFixed(3)) : null;
-        const reverseValue =
-          reverseSpread !== null ? Number(reverseSpread.toFixed(3)) : null;
-
         return {
           timestamp: point.timestamp,
-          time: formatDateTime(point.timestamp, {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            timeZone: 'UTC',
-          }),
-          directSpread: directValue,
-          reverseSpread: reverseValue,
-          // Добавляем цвета для каждой точки
-          directSpreadColor: getSpreadColor(directValue),
-          reverseSpreadColor: getSpreadColor(reverseValue),
+          directSpread: directSpread ?? 0,
+          reverseSpread: reverseSpread ?? 0,
         };
       })
       .filter(
         (point) => point.directSpread !== null || point.reverseSpread !== null
-      );
-  }, [spreadData, source1, source2, getSpreadColor]);
+      )
+      .sort((a, b) => a.timestamp - b.timestamp);
 
-  const handleDoubleClick = useCallback(() => {
-    setIsZoomed(false);
-  }, []);
+    if (rawData.length === 0) return [];
+
+    // Группируем данные по интервалам таймфрейма
+    const groupedMap = new Map<number, typeof rawData[0]>();
+    
+    for (const point of rawData) {
+      const roundedTimestamp = roundToTimeframe(point.timestamp, intervalMinutes);
+      const existing = groupedMap.get(roundedTimestamp);
+      
+      if (!existing || point.timestamp > existing.timestamp) {
+        groupedMap.set(roundedTimestamp, point);
+      }
+    }
+
+    // Преобразуем в формат для ECharts: [timestamp, directSpread, reverseSpread]
+    const filteredData = Array.from(groupedMap.entries())
+      .map(([roundedTimestamp, point]) => [
+        roundedTimestamp, // timestamp
+        point.directSpread, // directSpread
+        point.reverseSpread, // reverseSpread
+      ])
+      .sort((a, b) => (a[0] as number) - (b[0] as number));
+
+    // Добавляем пустое пространство в конце (3 часа после последней точки)
+    if (filteredData.length > 0) {
+      const lastPoint = filteredData[filteredData.length - 1];
+      if (lastPoint && Array.isArray(lastPoint) && typeof lastPoint[0] === 'number') {
+        const lastTimestamp = lastPoint[0];
+        const emptySpaceEnd = lastTimestamp + 3 * 60 * 60 * 1000; // +3 часа
+        
+        // Добавляем одну пустую точку в конце для создания пустого пространства
+        // ECharts будет растягивать график до этой точки
+        filteredData.push([
+          emptySpaceEnd, // timestamp
+          NaN, // directSpread (NaN = нет данных для ECharts)
+          NaN, // reverseSpread (NaN = нет данных для ECharts)
+        ] as [number, number, number]);
+      }
+    }
+
+    return filteredData;
+  }, [spreadData, source1, source2, intervalMinutes]);
+
+  // Вычисляем диапазон значений для оси Y (центрируем 0)
+  const { yMin, yMax } = useMemo(() => {
+    if (chartData.length === 0) {
+      return { yMin: -1, yMax: 1 };
+    }
+
+    const allValues = chartData
+      .flatMap((point) => [point[1] as number, point[2] as number])
+      .filter((v): v is number => typeof v === 'number' && !isNaN(v));
+
+    if (allValues.length === 0) {
+      return { yMin: -1, yMax: 1 };
+    }
+
+    const minValue = Math.min(...allValues);
+    const maxValue = Math.max(...allValues);
+    const maxAbsValue = Math.max(Math.abs(minValue), Math.abs(maxValue));
+    const padding = Math.max(maxAbsValue * 0.15, 0.5);
+    const symmetricRange = maxAbsValue + padding;
+
+    return {
+      yMin: -symmetricRange,
+      yMax: symmetricRange,
+    };
+  }, [chartData]);
+
+  // Конфигурация ECharts
+  const option = useMemo(() => {
+    if (chartData.length === 0) {
+      return {};
+    }
+
+        return {
+      grid: {
+        left: '70px',
+        right: '30px',
+        top: '10px',
+        bottom: '50px',
+        containLabel: false,
+      },
+      xAxis: {
+        type: 'time' as const,
+        boundaryGap: false, // Не добавляем отступ, используем пустые точки
+        axisLine: {
+          show: true,
+          onZero: false,
+          lineStyle: {
+            color: '#ffffff', // Белая линия для нижней границы (над датой)
+            width: 1,
+          },
+        },
+        axisLabel: {
+          color: themeColors.textSecondary,
+          fontSize: 11,
+          rotate: 0, // Без поворота - ровно
+          formatter: (value: number) => {
+            const date = new Date(value);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${day}.${month}`;
+          },
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            type: 'dashed',
+            color: themeColors.gridLine,
+            opacity: 1,
+          },
+          // Вертикальные линии по интервалам таймфрейма
+          interval: () => {
+            // Показываем линии на каждом интервале
+            return true;
+          },
+        },
+        minInterval: intervalMinutes * 60 * 1000, // Минимальный интервал
+      },
+      yAxis: {
+        type: 'value' as const,
+        scale: false,
+        min: yMin,
+        max: yMax,
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: '#ffffff', // Белая линия для левой границы
+            width: 1,
+          },
+        },
+        axisLabel: {
+          color: themeColors.textSecondary,
+          fontSize: 12,
+          formatter: (value: number) => {
+            return value.toFixed(2);
+          },
+        },
+        splitLine: {
+          show: false, // Убираем горизонтальные линии (они будут добавлены через markLine для 0)
+          lineStyle: {
+            type: 'dashed',
+            color: themeColors.gridLine,
+            opacity: 1,
+          },
+        },
+      },
+      tooltip: {
+        trigger: 'axis' as const,
+        show: true,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+        textStyle: {
+          color: 'transparent',
+        },
+        formatter: (params: any) => {
+          if (!onTooltipDataChange) return '';
+          
+          if (!params || !Array.isArray(params) || params.length === 0) {
+            setTimeout(() => onTooltipDataChange?.(null), 0);
+            return '';
+          }
+
+          const param = params[0];
+          if (!param || !param.value || !Array.isArray(param.value)) {
+            setTimeout(() => onTooltipDataChange?.(null), 0);
+            return '';
+          }
+
+          const timestamp = param.value[0];
+          if (!timestamp || typeof timestamp !== 'number') {
+            setTimeout(() => onTooltipDataChange?.(null), 0);
+            return '';
+          }
+
+          // Находим данные из chartData по timestamp
+          const dataPoint = chartData.find((point) => point[0] === timestamp);
+          if (!dataPoint || !Array.isArray(dataPoint)) {
+            setTimeout(() => onTooltipDataChange?.(null), 0);
+            return '';
+          }
+
+          const directSpreadValue = dataPoint[1];
+          const reverseSpreadValue = dataPoint[2];
+          const directSpread = typeof directSpreadValue === 'number' && !isNaN(directSpreadValue) ? directSpreadValue : null;
+          const reverseSpread = typeof reverseSpreadValue === 'number' && !isNaN(reverseSpreadValue) ? reverseSpreadValue : null;
+
+          onTooltipDataChange({
+            timestamp,
+            directSpread,
+            reverseSpread,
+          });
+
+          return ''; // Возвращаем пустую строку, чтобы tooltip был невидимым
+        },
+        axisPointer: {
+          show: false, // Скрываем указатель
+        },
+      },
+      dataZoom: [
+        {
+          type: 'inside' as const,
+          start: 0,
+          end: 100,
+          xAxisIndex: [0],
+        },
+        {
+          type: 'slider' as const,
+          show: false, // Скрываем слайдер, используем только внутри графика
+          start: 0,
+          end: 100,
+          xAxisIndex: [0],
+        },
+      ],
+      series: [
+        {
+          name: 'Direct Spread',
+          type: 'line' as const,
+          data: chartData.map((point) => [point[0], point[1]]),
+          smooth: false,
+          lineStyle: {
+            color: '#10b981',
+            width: 2.5,
+          },
+          symbol: 'circle',
+          symbolSize: 6,
+          itemStyle: {
+            color: '#eab308', // Желтые точки
+          },
+          showSymbol: (params: any) => {
+            // Показываем точки только для реальных данных (не NaN)
+            return !isNaN(params[1] as number) && params[1] !== null && params[1] !== undefined;
+          },
+          connectNulls: false,
+          markLine: {
+            silent: true,
+            symbol: 'none',
+            lineStyle: {
+              color: '#eab308',
+              width: 2,
+              type: 'dashed',
+              dashOffset: 4,
+            },
+            data: [
+              {
+                yAxis: 0,
+              },
+            ],
+          },
+        },
+        {
+          name: 'Reverse Spread',
+          type: 'line' as const,
+          data: chartData.map((point) => [point[0], point[2]]),
+          smooth: false,
+          lineStyle: {
+            color: '#ef4444',
+            width: 2.5,
+          },
+          symbol: 'none', // Без точек для reverse spread
+          showSymbol: false,
+          connectNulls: false,
+          markLine: {
+            silent: true,
+            symbol: 'none',
+            lineStyle: {
+              color: '#ffffff',
+              width: 1,
+              type: 'solid',
+            },
+            data: [
+              {
+                yAxis: yMin, // Белая линия для нижней границы (над датой)
+              },
+            ],
+          },
+        },
+      ],
+    };
+  }, [chartData, yMin, yMax, intervalMinutes, themeColors, onTooltipDataChange]);
+
+  // Обновляем график при изменении темы
+  useEffect(() => {
+    if (chartRef.current && chartData.length > 0) {
+      const chartInstance = chartRef.current.getEchartsInstance();
+      chartInstance.setOption({
+        backgroundColor: 'transparent',
+        xAxis: {
+          axisLine: {
+            show: true,
+            lineStyle: {
+              color: '#ffffff', // Белая линия для нижней границы
+              width: 1,
+            },
+          },
+          axisLabel: {
+            color: themeColors.textSecondary,
+          },
+          splitLine: {
+            lineStyle: {
+              color: themeColors.gridLine,
+            },
+          },
+        },
+        yAxis: {
+          axisLine: {
+            show: true,
+            lineStyle: {
+              color: '#ffffff', // Белая линия для левой границы
+              width: 1,
+            },
+          },
+          axisLabel: {
+            color: themeColors.textSecondary,
+          },
+        },
+      }, { notMerge: false, lazyUpdate: true });
+    }
+  }, [resolvedTheme, themeColors, chartData.length]);
+
+  // Очищаем tooltip при уходе мыши с графика
+  useEffect(() => {
+    if (!chartRef.current || !onTooltipDataChange) return;
+
+    const chartInstance = chartRef.current.getEchartsInstance();
+
+    const handleGlobalOut = () => {
+      onTooltipDataChange(null);
+    };
+
+    chartInstance.on('globalout', handleGlobalOut);
+
+    return () => {
+      chartInstance.off('globalout', handleGlobalOut);
+    };
+  }, [onTooltipDataChange]);
 
   if (isLoading) {
     return (
       <Card className={cn('p-4', className)}>
-        <div className="h-[400px] flex items-center justify-center">
+        <div className="h-[450px] sm:h-[500px] flex items-center justify-center">
           <LoadingSpinner size="md" />
         </div>
       </Card>
     );
   }
 
-  if (!spreadData || !source1 || !source2) {
+  if (!spreadData || !source1 || !source2 || chartData.length === 0) {
     return (
       <Card className={cn('p-4', className)}>
-        <div className="h-[400px] flex items-center justify-center">
+        <div className="h-[450px] sm:h-[500px] flex items-center justify-center">
           <p className="text-sm text-light-600 dark:text-dark-400">
-            Select sources to display chart
+            {!spreadData ? 'Select sources to display chart' : 'No chart data available'}
           </p>
         </div>
       </Card>
     );
   }
 
-  if (chartData.length === 0) {
-    return (
-      <Card className={cn('p-4', className)}>
-        <div className="h-[400px] flex items-center justify-center">
-          <p className="text-sm text-light-600 dark:text-dark-400">
-            No chart data available
-          </p>
-        </div>
-      </Card>
-    );
-  }
-
-  // Находим диапазон значений для оси Y
-  const allValues = chartData
-    .flatMap((d) => [d.directSpread, d.reverseSpread])
-    .filter((v): v is number => v !== null);
-
-  const minValue = Math.min(...allValues, 0) - 1;
-  const maxValue = Math.max(...allValues, 0) + 1;
+  const handleMouseLeave = () => {
+    if (onTooltipDataChange) {
+      onTooltipDataChange(null);
+    }
+  };
 
   return (
-    <Card className={cn('p-4', className)}>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-base sm:text-lg font-semibold text-dark-950 dark:text-dark-50">
-            Spread Chart
-          </h3>
-          <p className="text-xs text-light-600 dark:text-dark-400 mt-1">
-            {chartData.length} data points
-          </p>
-        </div>
-        {isZoomed && (
-          <button
-            onClick={handleDoubleClick}
-            className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
-          >
-            Double-click to reset zoom
-          </button>
-        )}
-      </div>
-
-      <div className="h-[400px] w-full" onDoubleClick={handleDoubleClick}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 20, left: 10, bottom: 80 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="currentColor"
-              className="opacity-20"
-            />
-            <XAxis
-              dataKey="time"
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              stroke="currentColor"
-              className="text-light-600 dark:text-dark-400"
-            />
-            <YAxis
-              domain={[minValue, maxValue]}
-              tick={{ fontSize: 12 }}
-              label={{
-                value: 'Spread (%)',
-                angle: -90,
-                position: 'insideLeft',
-              }}
-              stroke="currentColor"
-              className="text-light-600 dark:text-dark-400"
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'var(--color-dark-800)',
-                border: '1px solid var(--color-dark-700)',
-                borderRadius: '8px',
-                color: 'var(--color-dark-50)',
-              }}
-              labelStyle={{ color: 'var(--color-dark-50)' }}
-              formatter={(value: unknown, name: string) => {
-                if (value === null || value === undefined) return 'N/A';
-                const numValue =
-                  typeof value === 'number'
-                    ? value
-                    : typeof value === 'string'
-                      ? parseFloat(value)
-                      : Number(value);
-                if (isNaN(numValue)) return 'N/A';
-
-                // Цветовая схема для tooltip
-                const color =
-                  numValue > 0
-                    ? 'rgb(34, 197, 94)' // green-500 - арбитражная возможность
-                    : numValue < 0
-                      ? 'rgb(239, 68, 68)' // red-500 - невыгодно
-                      : 'rgb(156, 163, 175)'; // gray-400 - нет разницы
-
-                return [
-                  <span key={name} style={{ color }}>
-                    {numValue > 0 ? '+' : ''}
-                    {numValue.toFixed(3)}%
-                  </span>,
-                  name,
-                ];
-              }}
-              labelFormatter={(label: unknown) => `Time: ${String(label)}`}
-            />
-            <Legend
-              wrapperStyle={{ paddingTop: '20px' }}
-              iconType="square"
-              formatter={(value) => {
-                if (value === 'directSpread') return '■ Прямой спред (%)';
-                if (value === 'reverseSpread') return '■ Обратный спред (%)';
-                return value;
-              }}
-            />
-            <ReferenceLine
-              y={0}
-              stroke="currentColor"
-              strokeWidth={1}
-              className="opacity-50"
-            />
-            <Brush
-              dataKey="time"
-              height={30}
-              stroke="currentColor"
-              className="text-light-600 dark:text-dark-400"
-            />
-            <Line
-              type="monotone"
-              dataKey="directSpread"
-              stroke="#10b981"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-              name="directSpread"
-              connectNulls={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="reverseSpread"
-              stroke="#ef4444"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-              name="reverseSpread"
-              connectNulls={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+    <Card className={cn('p-4 sm:p-6', className)} onMouseLeave={handleMouseLeave}>
+      <div className="h-[450px] sm:h-[500px] w-full">
+        <ReactECharts
+          ref={chartRef}
+          option={option}
+          style={{ height: '100%', width: '100%' }}
+          opts={{ renderer: 'canvas' }}
+          notMerge={false}
+          lazyUpdate={false}
+        />
       </div>
     </Card>
   );

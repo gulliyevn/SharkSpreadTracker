@@ -5,6 +5,7 @@
     "success": "Başarılı",
     "cancel": "İptal",
     "save": "Kaydet",
+    "saved": "Kaydedildi",
     "delete": "Sil",
     "edit": "Düzenle",
     "close": "Kapat",
@@ -46,12 +47,12 @@
     "bsc": "BSC"
   },
   "timeframes": {
-    "1m": "1 dakika",
-    "5m": "5 dakika",
-    "15m": "15 dakika",
-    "1h": "1 saat",
-    "4h": "4 saat",
-    "1d": "1 gün"
+    "1m": "1D",
+    "5m": "5D",
+    "15m": "15D",
+    "1h": "1S",
+    "4h": "4S",
+    "1d": "1G"
   },
   "spread": {
     "title": "Spread",
@@ -61,7 +62,11 @@
     "from": "Kaynak",
     "to": "Hedef",
     "price": "Fiyat",
-    "spreadPercent": "Spread %"
+    "spreadPercent": "Spread %",
+    "directSpread": "Doğrudan Spread",
+    "reverseSpread": "Ters Spread",
+    "directSpreadPercent": "Doğrudan Spread (%)",
+    "reverseSpreadPercent": "Ters Spread (%)"
   },
   "tokens": {
     "title": "Tokenler",
@@ -99,7 +104,14 @@
     "title": "Spread Grafikleri",
     "description": "Spread grafiklerini görüntüleyin ve ticaret fırsatlarını analiz edin",
     "comingSoon": "Grafikler yakında",
-    "placeholder": "Spread grafikleri burada görüntülenecek. Ticaret fırsatlarını analiz etmek için tokenler ve zaman dilimleri seçin."
+    "placeholder": "Spread grafikleri burada görüntülenecek. Ticaret fırsatlarını analiz etmek için tokenler ve zaman dilimleri seçin.",
+    "spreadChart": "Spread Grafiği",
+    "timeframe": "Zaman Dilimi"
+  },
+  "modal": {
+    "copyTokenSymbol": "Token sembolünü kopyala",
+    "openExchange": "{{chain}} üzerinde {{exchange}} aç",
+    "openMexcFutures": "MEXC Futures'ı aç"
   },
   "apiKeys": {
     "warning": {

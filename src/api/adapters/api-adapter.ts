@@ -29,6 +29,7 @@ import {
   subscribeToConnectionStatus,
   type ConnectionStatus,
 } from './connection-status';
+import { MockApiAdapter } from '../mocks/mock-adapter';
 
 // Реэкспортируем для обратной совместимости
 export { getConnectionStatus, subscribeToConnectionStatus };
@@ -405,8 +406,22 @@ class BackendApiAdapter implements IApiAdapter {
   }
 }
 
+/**
+ * Определяем, использовать ли мок-данные
+ * Включается через переменную окружения VITE_USE_MOCK_DATA=true
+ */
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
 // Создаем единственный экземпляр адаптера
-const apiAdapter: IApiAdapter = new BackendApiAdapter();
+// В dev режиме можно использовать мок-данные для разработки UI без бэкенда
+const apiAdapter: IApiAdapter = USE_MOCK_DATA
+  ? new MockApiAdapter()
+  : new BackendApiAdapter();
+
+if (USE_MOCK_DATA) {
+  console.log('🎭 [API] Using MOCK data adapter for development');
+  console.log('🎭 [API] Set VITE_USE_MOCK_DATA=false to use real backend');
+}
 
 /**
  * Экспортируем функции для удобства использования
