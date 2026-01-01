@@ -113,12 +113,7 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
   });
 
   // Проверяем, если это объект с полем error (ошибка от бэкенда)
-  if (
-    !isArray &&
-    parsed &&
-    typeof parsed === 'object' &&
-    'error' in parsed
-  ) {
+  if (!isArray && parsed && typeof parsed === 'object' && 'error' in parsed) {
     const errorMessage =
       typeof (parsed as { error: unknown }).error === 'string'
         ? (parsed as { error: string }).error
