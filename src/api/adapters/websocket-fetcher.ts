@@ -38,14 +38,15 @@ export async function fetchStraightSpreadsInternal(
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1');
-  
+
   // Используем HTTP fallback если:
   // 1. Явно указано в переменной окружения
   // 2. На production (Vercel)
   // 3. На HTTPS страницах (кроме localhost HTTP)
   const useHttpFallback =
     import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' ||
-    (isProduction || (isHttps && !isLocalhost));
+    isProduction ||
+    (isHttps && !isLocalhost);
 
   if (useHttpFallback) {
     logger.info('[WebSocket] Using HTTP fallback for production/HTTPS');
