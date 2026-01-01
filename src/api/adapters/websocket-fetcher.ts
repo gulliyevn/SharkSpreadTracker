@@ -47,6 +47,7 @@ export async function fetchStraightSpreadsInternal(
 
   // На production или HTTPS страницах всегда используем HTTP fallback
   // Браузер блокирует ws:// соединения с HTTPS страниц (Mixed Content Policy)
+  // На localhost можно использовать прямой WebSocket (если VITE_WEBSOCKET_URL установлен)
   const isDev = import.meta.env.DEV;
   const isProduction = import.meta.env.PROD;
   const isHttps =
@@ -57,9 +58,9 @@ export async function fetchStraightSpreadsInternal(
       window.location.hostname === '127.0.0.1');
   const useHttpDirectly =
     import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' ||
-    (isDev && isLocalhost) ||
     isProduction ||
     isHttps;
+  // НЕ включаем localhost в useHttpDirectly - на localhost можно использовать прямой WebSocket
 
   if (useHttpDirectly) {
     const mode =

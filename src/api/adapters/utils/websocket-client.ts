@@ -112,6 +112,23 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
     itemCount,
   });
 
+  // Проверяем, если это объект с полем error (ошибка от бэкенда)
+  if (
+    !isArray &&
+    parsed &&
+    typeof parsed === 'object' &&
+    'error' in parsed
+  ) {
+    const errorMessage =
+      typeof (parsed as { error: unknown }).error === 'string'
+        ? (parsed as { error: string }).error
+        : 'Unknown error from backend';
+    logger.warn('[WebSocket] Backend returned error:', errorMessage);
+    logger.debug('[WebSocket] Error object:', parsed);
+    // Возвращаем пустой массив при ошибке от бэкенда
+    return [];
+  }
+
   // Нормализуем в массив
   const list = Array.isArray(parsed) ? parsed : [parsed];
 
