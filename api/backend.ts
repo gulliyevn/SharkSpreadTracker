@@ -58,11 +58,19 @@ export default async function handler(
   // Поэтому проксируем запросы к /socket/* как обычные HTTP запросы
 
   try {
+    console.log('[Backend Proxy] Requesting:', {
+      method: req.method,
+      backendUrl,
+      path,
+    });
+    
     const response = await fetch(backendUrl, {
       method: req.method,
       headers: {
         Accept: 'application/json',
         'User-Agent': 'SharkSpreadTracker/1.0',
+        // Явно указываем, что это HTTP запрос (не WebSocket upgrade)
+        'Connection': 'keep-alive',
       },
       body: req.method !== 'GET' && req.method !== 'HEAD' 
         ? JSON.stringify(req.body) 
@@ -71,6 +79,14 @@ export default async function handler(
 
     const responseText = await response.text();
     const contentType = response.headers.get('content-type') || '';
+    
+    console.log('[Backend Proxy] Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType,
+      headers: Object.fromEntries(response.headers.entries()),
+      bodyPreview: responseText.substring(0, 200),
+    });
 
     if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
       return res.status(500).json({

@@ -71,16 +71,23 @@ export async function fetchStraightSpreadsInternal(
     logger.info(mode);
     console.log('🚀 [WebSocket]', mode);
     console.log('🚀 [WebSocket] WEBSOCKET_URL:', WEBSOCKET_URL);
-    // На production/HTTPS/localhost WEBSOCKET_URL уже относительный (/api/backend/...)
-    // Создаем URL напрямую, без createWebSocketUrl (который для WebSocket)
+    
+    // На production/HTTPS/localhost всегда используем прокси через /api/backend
+    // Даже если WEBSOCKET_URL это ws:// URL, преобразуем его в относительный путь
     let httpUrl: URL;
     if (WEBSOCKET_URL.startsWith('/')) {
       // Относительный путь - используем текущий origin
       httpUrl = new URL(WEBSOCKET_URL, window.location.origin);
+    } else if (WEBSOCKET_URL.startsWith('ws://') || WEBSOCKET_URL.startsWith('wss://')) {
+      // WebSocket URL - преобразуем в относительный путь через прокси
+      // ws://158.220.122.153:8080/socket/sharkStraight -> /api/backend/socket/sharkStraight
+      const wsUrlObj = new URL(WEBSOCKET_URL);
+      httpUrl = new URL(`/api/backend${wsUrlObj.pathname}${wsUrlObj.search}`, window.location.origin);
     } else {
-      // Абсолютный URL (не должно быть на production/localhost, но на всякий случай)
+      // Абсолютный HTTP URL (не должно быть на production/localhost, но на всякий случай)
       httpUrl = new URL(WEBSOCKET_URL);
     }
+    
     // Добавляем query параметры
     if (params.token) {
       httpUrl.searchParams.set('token', params.token);
