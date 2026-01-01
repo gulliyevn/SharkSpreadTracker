@@ -52,14 +52,10 @@ export default async function handler(
   
   const backendUrl = `${BACKEND_URL}${path}${req.url?.includes('?') ? req.url.split('?')[1] : ''}`;
 
-  // WebSocket endpoints не поддерживают HTTP fallback
-  if (path.startsWith('/socket')) {
-    return res.status(400).json({
-      error: 'WebSocket endpoint does not support HTTP fallback',
-      message: 'This endpoint requires a WebSocket connection',
-      endpoint: path,
-    });
-  }
+  // ВАЖНО: /socket/sharkStraight поддерживает HTTP fallback
+  // Согласно документации API, если WebSocket handshake не удался,
+  // сервер возвращает HTTP 200 с JSON payload (массив объектов StraightData)
+  // Поэтому проксируем запросы к /socket/* как обычные HTTP запросы
 
   try {
     const response = await fetch(backendUrl, {

@@ -45,23 +45,10 @@ export default async function handler(req: Request) {
     method: req.method,
   });
 
-  // WebSocket endpoints не поддерживают HTTP fallback
-  if (path.startsWith('/socket')) {
-    return new Response(
-      JSON.stringify({
-        error: 'WebSocket endpoint does not support HTTP fallback',
-        message: 'This endpoint requires a WebSocket connection',
-        endpoint: path,
-      }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
-  }
+  // ВАЖНО: /socket/sharkStraight поддерживает HTTP fallback
+  // Согласно документации API, если WebSocket handshake не удался,
+  // сервер возвращает HTTP 200 с JSON payload (массив объектов StraightData)
+  // Поэтому проксируем запросы к /socket/* как обычные HTTP запросы
 
   try {
     const requestBody =
