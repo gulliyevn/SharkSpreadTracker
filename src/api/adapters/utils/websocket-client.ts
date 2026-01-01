@@ -124,6 +124,31 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
     return [];
   }
 
+  // Проверяем, если это объект с type="update" и полем updates (формат бэкенда)
+  if (
+    !isArray &&
+    parsed &&
+    typeof parsed === 'object' &&
+    'type' in parsed &&
+    'updates' in parsed
+  ) {
+    const typeValue = (parsed as { type: unknown }).type;
+    const updatesValue = (parsed as { updates: unknown }).updates;
+
+    if (typeValue === 'update' && Array.isArray(updatesValue)) {
+      logger.debug(
+        '[WebSocket] Found update wrapper, extracting updates array:',
+        {
+          type: typeValue,
+          updatesCount: updatesValue.length,
+        }
+      );
+      // Извлекаем массив из поля updates
+      parsed = updatesValue;
+      // Теперь parsed - это массив, продолжаем обработку
+    }
+  }
+
   // Нормализуем в массив
   const list = Array.isArray(parsed) ? parsed : [parsed];
 
@@ -163,21 +188,26 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
 
   for (const item of list) {
     // Фильтруем только известные служебные сообщения
-    // Валидные данные по документации НЕ содержат поле type
+    // Валидные данные по документации НЕ содержат поле type (или type !== serviceTypes)
     if (
       item &&
       typeof item === 'object' &&
       'type' in item &&
-      typeof (item as { type: unknown }).type === 'string' &&
-      serviceTypes.includes(
-        ((item as { type: string }).type as string).toLowerCase()
-      )
+      typeof (item as { type: unknown }).type === 'string'
     ) {
-      if (skippedServiceMessages.length < 3) {
-        skippedServiceMessages.push(item);
+      const itemType = (
+        (item as { type: string }).type as string
+      ).toLowerCase();
+      // Если это служебное сообщение (connected, ping, pong, heartbeat) - пропускаем
+      if (serviceTypes.includes(itemType)) {
+        if (skippedServiceMessages.length < 3) {
+          skippedServiceMessages.push(item);
+        }
+        itemsSkipped++;
+        continue;
       }
-      itemsSkipped++;
-      continue;
+      // Если это не служебное сообщение, но есть поле type - это может быть обертка
+      // В этом случае продолжаем обработку, так как мы уже извлекли данные выше
     }
 
     // Проверяем, что элемент является объектом

@@ -116,15 +116,18 @@ export const TokenGrid = memo(function TokenGrid({
           gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
         }}
       >
-        {visibleTokens.map((row, index) => {
+        {visibleTokens.map((row) => {
           const network = (row.network || '').toLowerCase();
           const chain: 'solana' | 'bsc' =
             network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
           const symbol = (row.token || '').toUpperCase().trim();
+          // Используем только symbol-chain для key, БЕЗ index
+          // Это гарантирует, что React будет обновлять тот же компонент при изменении данных токена
+          const key = `${symbol}-${chain}`;
 
           return (
             <TokenCard
-              key={`${symbol}-${chain}-${index}`}
+              key={key}
               token={row}
               isFavorite={false}
               onFavoriteToggle={

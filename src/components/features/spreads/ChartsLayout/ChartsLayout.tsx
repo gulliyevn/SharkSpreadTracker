@@ -32,7 +32,7 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
   const [source1, setSource1] = useState<SourceType | null>(null);
   const [source2, setSource2] = useState<SourceType | null>(null);
   const [chartType, setChartType] = useState<ChartType>('spread');
-  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
 
   // Загружаем настройки из localStorage
   useEffect(() => {
@@ -88,8 +88,8 @@ export function ChartsLayout({ tokens, className }: ChartsLayoutProps) {
       setChartType(savedChartType as ChartType);
     }
 
-    if (savedAutoRefresh === 'false') {
-      setIsAutoRefresh(false);
+    if (savedAutoRefresh === 'true') {
+      setIsAutoRefresh(true);
     }
   }, []);
 

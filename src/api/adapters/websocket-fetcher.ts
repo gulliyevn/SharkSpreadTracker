@@ -17,7 +17,7 @@ import {
 import type { StraightData } from '@/types';
 import { wsConnectionManager } from './websocket-connection-manager';
 
-const DATA_RECEIVE_TIMEOUT = 90000; // 90 секунд - таймаут для получения данных (бэкенду нужно около минуты для загрузки)
+const DATA_RECEIVE_TIMEOUT = 150000; // 150 секунд (2.5 минуты) - таймаут для получения данных (бэкенду нужно около 2 минут для загрузки)
 
 export async function fetchStraightSpreadsInternal(
   params: WebSocketParams
@@ -29,15 +29,11 @@ export async function fetchStraightSpreadsInternal(
     return [];
   }
 
-  // На production/HTTPS используем HTTP fallback через прокси
-  // Браузер блокирует ws:// соединения с HTTPS страниц (Mixed Content Policy)
-  // Бэкенд не поддерживает HTTP fallback (возвращает 426), но пробуем как последнюю попытку
-  const isProduction = import.meta.env.PROD;
-  const isHttps =
-    typeof window !== 'undefined' && window.location.protocol === 'https:';
-  const useHttpFallback =
-    import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' ||
-    (isProduction && isHttps);
+  // Бэкенд НЕ поддерживает HTTP fallback (возвращает 426)
+  // Всегда используем WebSocket Connection Manager для keep-alive соединения
+  // На HTTPS страницах браузер может заблокировать ws:// (Mixed Content Policy),
+  // но это единственный способ, так как бэкенд не поддерживает wss:// и HTTP fallback
+  const useHttpFallback = import.meta.env.VITE_USE_HTTP_FALLBACK === 'true';
 
   if (useHttpFallback) {
     logger.info('[WebSocket] Using HTTP fallback for production/HTTPS');
@@ -125,10 +121,27 @@ export async function fetchStraightSpreadsInternal(
       params.signal.addEventListener('abort', () => finish([]), { once: true });
     }
 
+    // ВАЖНО: Сначала подписываемся, ПОТОМ устанавливаем соединение
+    // Это гарантирует, что мы не пропустим данные, которые придут сразу после подключения
+    logger.debug(
+      `[WebSocket] Subscribing to Connection Manager before connecting...`
+    );
+
     // Подписываемся на сообщения через Connection Manager
     unsubscribeData = wsConnectionManager.subscribe((data: StraightData[]) => {
+      logger.debug(
+        `[WebSocket] Callback received ${data.length} rows, current rows: ${rows.length}, settled: ${settled}`
+      );
       if (data.length > 0) {
-        rows.push(...data);
+        // Для больших массивов (>100k элементов) используем цикл вместо spread,
+        // чтобы избежать "Maximum call stack size exceeded"
+        if (data.length > 100000) {
+          for (const item of data) {
+            rows.push(item);
+          }
+        } else {
+          rows.push(...data);
+        }
         logger.info(
           `[WebSocket] Received ${data.length} rows via Connection Manager, total: ${rows.length}`
         );
@@ -139,9 +152,18 @@ export async function fetchStraightSpreadsInternal(
           clearTimeout(timeoutId);
           timeoutId = setTimeout(() => {
             if (!settled && rows.length > 0) {
+              logger.debug(
+                `[WebSocket] Finishing with ${rows.length} rows after timeout delay`
+              );
               finish(rows);
             }
           }, 1000); // Даем 1 секунду на получение всех сообщений
+        } else {
+          // Если timeoutId еще не установлен (редкий случай), вызываем finish сразу
+          logger.warn('[WebSocket] timeoutId is null, finishing immediately');
+          if (!settled && rows.length > 0) {
+            finish(rows);
+          }
         }
       }
     });
@@ -154,7 +176,11 @@ export async function fetchStraightSpreadsInternal(
       }
     });
 
+    logger.debug(
+      `[WebSocket] Subscription complete, now connecting to WebSocket...`
+    );
     // Устанавливаем соединение (если еще не установлено)
+    // Это должно быть ПОСЛЕ подписки, чтобы не пропустить данные
     wsConnectionManager.connect(params);
   });
 }

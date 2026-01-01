@@ -17,7 +17,7 @@ import { BACKEND_URL } from '@/constants/api';
 import type { WebSocketParams } from './utils/websocket-client';
 import type { StraightData } from '@/types';
 
-const HTTP_FALLBACK_TIMEOUT = 90000; // 90 секунд - таймаут для HTTP fallback запроса (бэкенду нужно около минуты для загрузки данных)
+const HTTP_FALLBACK_TIMEOUT = 150000; // 150 секунд (2.5 минуты) - таймаут для HTTP fallback запроса (бэкенду нужно около 2 минут для загрузки данных)
 
 export async function fetchStraightSpreadsHttpFallback(
   url: URL,

@@ -57,7 +57,7 @@ export function TokensPage() {
   // Автообновление токенов
   const [isAutoRefresh, setIsAutoRefresh] = useState(() => {
     const saved = localStorage.getItem('tokens-auto-refresh');
-    return saved !== 'false'; // По умолчанию включено
+    return saved === 'true'; // По умолчанию выключено, только при явном включении кнопки Auto
   });
 
   // Загружаем токены из API с ценами и спредами (постепенно)
@@ -87,7 +87,14 @@ export function TokensPage() {
   }, [tokens]);
 
   const filteredTokens = useMemo(() => {
-    let filtered = tokens;
+    // Дедупликация токенов по token+network (оставляем последний по времени)
+    // Используем Map для уникальности по ключу "token-network"
+    const uniqueMap = new Map<string, StraightData>();
+    for (const token of tokens) {
+      const key = `${(token.token || '').toUpperCase().trim()}-${(token.network || '').toLowerCase()}`;
+      uniqueMap.set(key, token); // Последний токен перезапишет предыдущий
+    }
+    let filtered = Array.from(uniqueMap.values());
 
     // Фильтр по chain
     if (chainFilter !== 'all') {

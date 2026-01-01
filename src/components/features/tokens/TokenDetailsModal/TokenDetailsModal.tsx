@@ -41,7 +41,7 @@ export function TokenDetailsModal({
   const [timeframe, setTimeframe] = useState<TimeframeOption>('1h');
   const [isAutoRefresh, setIsAutoRefresh] = useState(() => {
     const saved = localStorage.getItem('tokens-auto-refresh');
-    return saved !== 'false'; // По умолчанию включено
+    return saved === 'true'; // По умолчанию выключено, только при явном включении кнопки Auto
   });
   const [tooltipData, setTooltipData] = useState<{
     timestamp: number;

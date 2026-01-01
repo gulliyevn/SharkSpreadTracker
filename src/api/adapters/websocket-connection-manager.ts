@@ -39,6 +39,8 @@ class WebSocketConnectionManager {
   private isConnecting = false;
   private params: WebSocketParams = {};
   private url: string = '';
+  // Буфер последних полученных данных для новых подписчиков
+  private lastData: StraightData[] | null = null;
 
   private constructor() {
     // Private constructor for Singleton
@@ -59,6 +61,27 @@ class WebSocketConnectionManager {
     logger.debug(
       `[WS Manager] Subscriber added. Total subscribers: ${this.subscribers.size}`
     );
+
+    // Если уже есть последние данные, отправляем их новому подписчику сразу
+    // Это решает проблему, когда данные приходят до создания подписки
+    if (this.lastData && this.lastData.length > 0) {
+      logger.info(
+        `[WS Manager] ✅ Sending cached data (${this.lastData.length} rows) to new subscriber immediately`
+      );
+      try {
+        // Вызываем синхронно, чтобы гарантировать, что данные попадут в callback
+        // до того, как произойдет что-то еще
+        callback(this.lastData);
+        logger.debug('[WS Manager] Cached data sent successfully');
+      } catch (error) {
+        logger.error(
+          '[WS Manager] Error sending cached data to subscriber:',
+          error
+        );
+      }
+    } else {
+      logger.debug('[WS Manager] No cached data available for new subscriber');
+    }
 
     // Если есть соединение, автоматически подключаемся
     if (!this.ws && !this.isConnecting) {
@@ -147,6 +170,13 @@ class WebSocketConnectionManager {
 
     this.ws.onopen = () => {
       logger.info('[WS Manager] ✅ Connected successfully');
+      logger.info('[WS Manager] WebSocket state:', {
+        readyState: this.ws?.readyState,
+        url: this.url,
+        subscribers: this.subscribers.size,
+        hasLastData: !!this.lastData,
+        lastDataLength: this.lastData?.length || 0,
+      });
       this.isConnecting = false;
       this.reconnectAttempts = 0; // Сброс счетчика при успешном подключении
       if (this.connectionTimer) {
@@ -157,27 +187,67 @@ class WebSocketConnectionManager {
     };
 
     this.ws.onmessage = async (event) => {
+      logger.info('[WS Manager] 📨 Message received!', {
+        dataType: typeof event.data,
+        isString: typeof event.data === 'string',
+        isBlob: event.data instanceof Blob,
+        isArrayBuffer: event.data instanceof ArrayBuffer,
+        blobSize: event.data instanceof Blob ? event.data.size : undefined,
+      });
+
       try {
         let textData: string;
 
         if (typeof event.data === 'string') {
           textData = event.data;
+          logger.debug(
+            '[WS Manager] Message is string, length:',
+            textData.length
+          );
         } else if (event.data instanceof Blob) {
+          logger.debug('[WS Manager] Message is Blob, size:', event.data.size);
           textData = await event.data.text();
+          logger.debug(
+            '[WS Manager] Blob converted to text, length:',
+            textData.length
+          );
         } else if (event.data instanceof ArrayBuffer) {
+          logger.debug(
+            '[WS Manager] Message is ArrayBuffer, size:',
+            event.data.byteLength
+          );
           textData = new TextDecoder().decode(event.data);
+          logger.debug(
+            '[WS Manager] ArrayBuffer decoded, length:',
+            textData.length
+          );
         } else {
           logger.warn('[WS Manager] Unknown message type:', typeof event.data);
           return;
         }
 
+        // Логируем первые 500 символов для диагностики
+        logger.info(
+          '[WS Manager] Raw message preview (first 500 chars):',
+          textData.slice(0, 500)
+        );
+        logger.info('[WS Manager] Parsing message...');
         const parsedRows = parseWebSocketMessage(textData);
+        logger.info(
+          `[WS Manager] Parsed ${parsedRows.length} rows from message`
+        );
 
         if (parsedRows.length > 0) {
-          logger.debug(
-            `[WS Manager] Received ${parsedRows.length} rows, notifying ${this.subscribers.size} subscribers`
+          // Сохраняем последние данные для новых подписчиков
+          this.lastData = parsedRows;
+          logger.info(
+            `[WS Manager] ✅ Received ${parsedRows.length} rows, notifying ${this.subscribers.size} subscribers`
           );
           this.notifySubscribers(parsedRows);
+        } else {
+          logger.warn(
+            '[WS Manager] ⚠️ No valid rows after parsing (might be error message or empty data)'
+          );
         }
       } catch (error) {
         logger.error('[WS Manager] Failed to process message:', error);
@@ -199,8 +269,23 @@ class WebSocketConnectionManager {
 
     this.ws.onclose = (event) => {
       logger.info(
-        `[WS Manager] 🔌 Connection closed: code=${event.code}, reason="${event.reason || 'none'}"`
+        `[WS Manager] 🔌 Connection closed: code=${event.code}, reason="${event.reason || 'none'}", wasClean=${event.wasClean}`
       );
+      logger.info('[WS Manager] Connection state on close:', {
+        hasLastData: !!this.lastData,
+        lastDataLength: this.lastData?.length || 0,
+        subscribers: this.subscribers.size,
+      });
+
+      // Согласно документации API, бэкенд закрывает соединение после отправки данных (code 1000 = normal closure)
+      // Это нормальное поведение для request-response паттерна через WebSocket
+      if (event.code === 1000 && event.wasClean) {
+        logger.info(
+          '[WS Manager] Normal closure after data sent (request-response pattern)'
+        );
+        // Не переподключаемся автоматически - соединение закрыто нормально
+        // Новые запросы создадут новое соединение
+      }
 
       this.isConnecting = false;
       this.ws = null;
@@ -211,6 +296,7 @@ class WebSocketConnectionManager {
       }
 
       // Если это не было намеренное закрытие (code 1000 = normal closure)
+      // И есть подписчики, которые еще ждут данных - переподключаемся
       if (event.code !== 1000 && this.subscribers.size > 0) {
         logger.warn('[WS Manager] Unexpected close, will attempt reconnect');
         setConnectionStatus('disconnected');
@@ -225,13 +311,21 @@ class WebSocketConnectionManager {
    * Уведомить всех подписчиков о новых данных
    */
   private notifySubscribers(data: StraightData[]): void {
+    logger.info(
+      `[WS Manager] Notifying ${this.subscribers.size} subscribers with ${data.length} rows`
+    );
+    let notifiedCount = 0;
     this.subscribers.forEach((callback) => {
       try {
         callback(data);
+        notifiedCount++;
       } catch (error) {
         logger.error('[WS Manager] Error in subscriber callback:', error);
       }
     });
+    logger.info(
+      `[WS Manager] ✅ Notified ${notifiedCount} subscribers successfully`
+    );
   }
 
   /**
