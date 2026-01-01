@@ -64,14 +64,20 @@ export default async function handler(
       path,
     });
     
+    // ВАЖНО: Создаем чистые заголовки без WebSocket upgrade заголовков
+    // Бэкенд должен вернуть HTTP 200 с JSON, если нет заголовков Upgrade
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'User-Agent': 'SharkSpreadTracker/1.0',
+      'Connection': 'keep-alive', // Явно указываем HTTP, не WebSocket
+    };
+    
+    // Удаляем все заголовки, связанные с WebSocket upgrade (если они есть)
+    // Это гарантирует, что бэкенд увидит обычный HTTP запрос
+    
     const response = await fetch(backendUrl, {
       method: req.method,
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'SharkSpreadTracker/1.0',
-        // Явно указываем, что это HTTP запрос (не WebSocket upgrade)
-        'Connection': 'keep-alive',
-      },
+      headers,
       body: req.method !== 'GET' && req.method !== 'HEAD' 
         ? JSON.stringify(req.body) 
         : undefined,
