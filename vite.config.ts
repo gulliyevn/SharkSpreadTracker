@@ -53,7 +53,7 @@ export default defineConfig({
       '/api/backend': {
         target: process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080',
         changeOrigin: true,
-        timeout: 30000, // 30 секунд таймаут для прокси (больше чем HTTP_FALLBACK_TIMEOUT)
+        timeout: 120000, // 120 секунд таймаут для прокси (бэкенду нужно около минуты для загрузки данных)
         rewrite: (path) => {
           // Убираем /api/backend из пути, оставляя остальное
           // /api/backend/socket/sharkStraight -> /socket/sharkStraight

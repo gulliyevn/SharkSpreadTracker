@@ -1,32 +1,23 @@
 /**
  * WebSocket fetcher для получения данных через WebSocket
  *
- * ВАЖНО: WebSocket создается каждый раз заново - это ПРАВИЛЬНО!
- * Согласно документации API, бэкенд использует request-response паттерн:
- * - Клиент устанавливает WebSocket соединение
- * - Сервер сразу отправляет данные и закрывает соединение
- * - Для получения новых данных нужно переподключаться
+ * ВАЖНО: Бэкенд ожидает keep-alive соединение (одно постоянное открытое соединение),
+ * а не request-response паттерн (новое соединение для каждого запроса).
  *
- * Автоматическое переподключение реализовано через React Query:
- * - useSpreadData использует refetchInterval для периодического обновления
- * - При каждом обновлении создается новое WebSocket соединение
- * - Это соответствует архитектуре бэкенда и не является багом
+ * Использует WebSocketConnectionManager для управления постоянным соединением.
  */
 
 import { logger } from '@/utils/logger';
 import { WEBSOCKET_URL } from '@/constants/api';
-import { setConnectionStatus } from './connection-status';
 import { fetchStraightSpreadsHttpFallback } from './http-fallback';
 import {
   createWebSocketUrl,
-  parseWebSocketMessage,
   type WebSocketParams,
 } from './utils/websocket-client';
 import type { StraightData } from '@/types';
+import { wsConnectionManager } from './websocket-connection-manager';
 
-const WS_TIMEOUT = 10000; // 10 секунд - таймаут для WebSocket
-const HTTP_FALLBACK_TIMEOUT = 10000; // 10 секунд - таймаут для HTTP fallback запроса
-const DATA_RECEIVED_DELAY = 500; // 500мс задержка для обработки всех сообщений
+const DATA_RECEIVE_TIMEOUT = 90000; // 90 секунд - таймаут для получения данных (бэкенду нужно около минуты для загрузки)
 
 export async function fetchStraightSpreadsInternal(
   params: WebSocketParams
@@ -35,178 +26,97 @@ export async function fetchStraightSpreadsInternal(
     logger.error(
       '[WebSocket] WEBSOCKET_URL not configured. Please set VITE_WEBSOCKET_URL or VITE_BACKEND_URL'
     );
-    setConnectionStatus('error');
     return [];
   }
 
-  if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
-    logger.warn('[WebSocket] WebSocket not available, using HTTP fallback');
-    const url = createWebSocketUrl(WEBSOCKET_URL, params);
-    return await fetchStraightSpreadsHttpFallback(url, params);
-  }
-
-  // На production или HTTPS страницах всегда используем HTTP fallback
+  // На production/HTTPS используем HTTP fallback через прокси
   // Браузер блокирует ws:// соединения с HTTPS страниц (Mixed Content Policy)
-  // На localhost можно использовать прямой WebSocket (если VITE_WEBSOCKET_URL установлен)
-  const isDev = import.meta.env.DEV;
+  // Бэкенд не поддерживает HTTP fallback (возвращает 426), но пробуем как последнюю попытку
   const isProduction = import.meta.env.PROD;
   const isHttps =
     typeof window !== 'undefined' && window.location.protocol === 'https:';
-  const isLocalhost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1');
-  const useHttpDirectly =
+  const useHttpFallback =
     import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' ||
-    isProduction ||
-    isHttps;
-  // НЕ включаем localhost в useHttpDirectly - на localhost можно использовать прямой WebSocket
+    (isProduction && isHttps);
 
-  if (useHttpDirectly) {
-    const mode =
-      isDev && isLocalhost
-        ? '[WebSocket] Using HTTP fallback on localhost (dev mode)'
-        : isProduction || isHttps
-          ? '[WebSocket] Using HTTP fallback on production/HTTPS (Mixed Content Policy)'
-          : '[WebSocket] Using HTTP fallback directly (VITE_USE_HTTP_FALLBACK=true)';
-    logger.info(mode);
-    console.log('🚀 [WebSocket]', mode);
-    console.log('🚀 [WebSocket] WEBSOCKET_URL:', WEBSOCKET_URL);
-
-    // На production/HTTPS/localhost всегда используем прокси через /api/backend
-    // Даже если WEBSOCKET_URL это ws:// URL, преобразуем его в относительный путь
+  if (useHttpFallback) {
+    logger.info('[WebSocket] Using HTTP fallback for production/HTTPS');
     let httpUrl: URL;
+
     if (WEBSOCKET_URL.startsWith('/')) {
-      // Относительный путь - используем текущий origin
       httpUrl = new URL(WEBSOCKET_URL, window.location.origin);
     } else if (
       WEBSOCKET_URL.startsWith('ws://') ||
       WEBSOCKET_URL.startsWith('wss://')
     ) {
-      // WebSocket URL - преобразуем в относительный путь через прокси
-      // ws://158.220.122.153:8080/socket/sharkStraight -> /api/backend/socket/sharkStraight
       const wsUrlObj = new URL(WEBSOCKET_URL);
       httpUrl = new URL(
         `/api/backend${wsUrlObj.pathname}${wsUrlObj.search}`,
         window.location.origin
       );
     } else {
-      // Абсолютный HTTP URL (не должно быть на production/localhost, но на всякий случай)
       httpUrl = new URL(WEBSOCKET_URL);
     }
 
-    // Добавляем query параметры
     if (params.token) {
       httpUrl.searchParams.set('token', params.token);
     }
     if (params.network) {
       httpUrl.searchParams.set('network', params.network);
     }
-    console.log('🚀 [WebSocket] Final HTTP URL:', httpUrl.toString());
-    // Создаем фиктивный URL объект для совместимости с fetchStraightSpreadsHttpFallback
-    const url = new URL(httpUrl.toString());
-    setConnectionStatus('connecting');
-    console.log('🚀 [WebSocket] Calling fetchStraightSpreadsHttpFallback...');
-    const result = await fetchStraightSpreadsHttpFallback(url, params);
-    console.log('🚀 [WebSocket] Result:', result.length, 'rows');
-    if (result.length > 0) {
-      setConnectionStatus('connected');
-    } else {
-      setConnectionStatus('disconnected');
+
+    try {
+      return await fetchStraightSpreadsHttpFallback(httpUrl, params);
+    } catch (err) {
+      logger.error('[WebSocket] HTTP fallback failed:', err);
+      return [];
     }
-    return result;
   }
 
-  logger.info(`[WebSocket] Connecting to: ${WEBSOCKET_URL}`);
-  logger.info(
-    `[WebSocket] Protocol: ${typeof window !== 'undefined' ? window.location.protocol : 'unknown'}`
-  );
-  logger.info(
-    `[WebSocket] Is HTTPS: ${typeof window !== 'undefined' ? window.location.protocol === 'https:' : 'unknown'}`
-  );
-  setConnectionStatus('connecting');
+  // Проверяем доступность WebSocket API
+  if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
+    logger.warn('[WebSocket] WebSocket not available, using HTTP fallback');
+    const url = createWebSocketUrl(WEBSOCKET_URL, params);
+    return await fetchStraightSpreadsHttpFallback(url, params);
+  }
 
-  const url = createWebSocketUrl(WEBSOCKET_URL, params);
-  const wsUrlString = url.toString();
-  logger.info(`[WebSocket] Final URL: ${wsUrlString}`);
-  logger.info(`[WebSocket] URL protocol: ${url.protocol}`);
+  // Используем Connection Manager для keep-alive соединения
+  logger.info('[WebSocket] Using WebSocket Connection Manager (keep-alive)');
 
-  // Создаем новое WebSocket соединение для каждого запроса
-  // Это правильно для request-response паттерна бэкенда
   return new Promise<StraightData[]>((resolve) => {
     let settled = false;
     const rows: StraightData[] = [];
-    let messageCount = 0;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let httpFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
+    let unsubscribeData: (() => void) | null = null;
+    let unsubscribeError: (() => void) | null = null;
 
-    const ws = new WebSocket(wsUrlString);
-
-    // Настраиваем WebSocket для больших сообщений
-    ws.binaryType = 'blob';
-
-    const cleanup = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      if (httpFallbackTimeout) {
-        clearTimeout(httpFallbackTimeout);
-        httpFallbackTimeout = null;
-      }
-      try {
-        if (
-          ws.readyState === WebSocket.OPEN ||
-          ws.readyState === WebSocket.CONNECTING
-        ) {
-          ws.close();
-        }
-      } catch {
-        // Игнорируем ошибки закрытия
-      }
+    const unsubscribe = () => {
+      if (unsubscribeData) unsubscribeData();
+      if (unsubscribeError) unsubscribeError();
+      unsubscribeData = null;
+      unsubscribeError = null;
     };
 
     const finish = (result: StraightData[]) => {
       if (settled) return;
       settled = true;
-      cleanup();
-      if (result.length > 0) {
-        setConnectionStatus('connected');
-      } else {
-        setConnectionStatus('disconnected');
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
+      unsubscribe();
       resolve(result);
     };
 
-    // Таймаут для автоматического переключения на HTTP fallback
-    httpFallbackTimeout = setTimeout(async () => {
-      if (settled || rows.length > 0) {
-        logger.debug(
-          '[WebSocket] HTTP fallback timeout skipped - already settled or has data'
-        );
-        return;
-      }
-      logger.warn(
-        '[WebSocket] ⏱️ No data received, switching to HTTP fallback...'
-      );
-      cleanup();
-      try {
-        const httpResult = await fetchStraightSpreadsHttpFallback(url, params);
-        finish(httpResult);
-      } catch (err) {
-        logger.error('[WebSocket] HTTP fallback failed:', err);
-        finish([]);
-      }
-    }, WS_TIMEOUT);
-
-    // Общий таймаут
+    // Таймаут для получения данных
     timeoutId = setTimeout(() => {
       if (!settled) {
-        logger.warn('[WebSocket] Overall timeout reached');
-        finish(rows);
+        logger.warn('[WebSocket] Data receive timeout reached');
+        finish(rows.length > 0 ? rows : []);
       }
-    }, WS_TIMEOUT + HTTP_FALLBACK_TIMEOUT);
+    }, DATA_RECEIVE_TIMEOUT);
 
+    // Обработчик отмены запроса
     if (params.signal) {
       if (params.signal.aborted) {
         finish([]);
@@ -215,114 +125,36 @@ export async function fetchStraightSpreadsInternal(
       params.signal.addEventListener('abort', () => finish([]), { once: true });
     }
 
-    const handleMessage = (newRows: StraightData[]) => {
-      for (const row of newRows) {
-        rows.push(row);
-      }
-      messageCount++;
-
-      logger.info(
-        `[WebSocket] Received ${newRows.length} rows, total: ${rows.length}`
-      );
-
-      // Если получили данные, отменяем HTTP fallback и завершаем через небольшую задержку
-      if (rows.length > 0 && httpFallbackTimeout) {
-        clearTimeout(httpFallbackTimeout);
-        httpFallbackTimeout = null;
-        setTimeout(() => {
-          if (!settled) {
-            finish(rows);
-          }
-        }, DATA_RECEIVED_DELAY);
-      }
-    };
-
-    ws.onopen = () => {
-      logger.info('[WebSocket] ✅ Connected successfully!');
-      setConnectionStatus('connected');
-    };
-
-    ws.onmessage = async (event) => {
-      messageCount++;
-      logger.info(`[WebSocket] 📩 Message received (message #${messageCount})`);
-
-      let textData: string;
-
-      // Обрабатываем и строки, и Blob
-      if (typeof event.data === 'string') {
-        textData = event.data;
-      } else if (event.data instanceof Blob) {
-        try {
-          textData = await event.data.text();
-        } catch (err) {
-          logger.error('[WebSocket] Failed to convert Blob to text:', err);
-          return;
-        }
-      } else if (event.data instanceof ArrayBuffer) {
-        try {
-          textData = new TextDecoder().decode(event.data);
-        } catch (err) {
-          logger.error(
-            '[WebSocket] Failed to convert ArrayBuffer to text:',
-            err
-          );
-          return;
-        }
-      } else {
-        logger.warn('[WebSocket] ⚠️ Unknown message type:', typeof event.data);
-        return;
-      }
-
-      // Парсим данные
-      try {
-        const parsedRows = parseWebSocketMessage(textData);
+    // Подписываемся на сообщения через Connection Manager
+    unsubscribeData = wsConnectionManager.subscribe((data: StraightData[]) => {
+      if (data.length > 0) {
+        rows.push(...data);
         logger.info(
-          `[WebSocket] ✅ Parsed ${parsedRows.length} rows from message`
+          `[WebSocket] Received ${data.length} rows via Connection Manager, total: ${rows.length}`
         );
-        handleMessage(parsedRows);
-      } catch (err) {
-        logger.error('[WebSocket] ❌ Failed to parse message:', err);
-        if (!settled) {
-          logger.warn(
-            '[WebSocket] Finishing with empty array due to parse error'
-          );
-          finish([]);
+
+        // Если получили данные, завершаем через небольшую задержку
+        // (чтобы собрать все сообщения от бэкенда)
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            if (!settled && rows.length > 0) {
+              finish(rows);
+            }
+          }, 1000); // Даем 1 секунду на получение всех сообщений
         }
       }
-    };
+    });
 
-    ws.onerror = (error) => {
-      logger.error('[WebSocket] ❌ Error event triggered');
-      logger.error('[WebSocket] Error details:', error);
-      // На localhost это может быть нормально из-за CORS/сетевых ограничений
-      // На production должно работать, если сервер доступен из интернета
-      if (
-        typeof window !== 'undefined' &&
-        window.location.hostname === 'localhost'
-      ) {
-        logger.debug(
-          '[WebSocket] Note: WebSocket errors on localhost are common due to CORS/network restrictions. This should work on production.'
-        );
-      }
-      setConnectionStatus('error');
-    };
-
-    ws.onclose = (event) => {
-      logger.info(
-        `[WebSocket] 🔌 Closed: code=${event.code}, received ${messageCount} messages, ${rows.length} rows`
-      );
-
-      // Если соединение закрылось без данных и мы еще не settled
+    // Подписываемся на ошибки
+    unsubscribeError = wsConnectionManager.onError((error: Error) => {
+      logger.error('[WebSocket] Connection Manager error:', error);
       if (!settled) {
-        if (rows.length > 0) {
-          finish(rows);
-        } else {
-          logger.warn(
-            '[WebSocket] ⚠️ Connection closed without receiving any messages!'
-          );
-          setConnectionStatus('disconnected');
-        }
+        finish([]);
       }
-    };
+    });
+
+    // Устанавливаем соединение (если еще не установлено)
+    wsConnectionManager.connect(params);
   });
 }
