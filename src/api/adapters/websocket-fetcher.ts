@@ -29,11 +29,23 @@ export async function fetchStraightSpreadsInternal(
     return [];
   }
 
-  // Бэкенд НЕ поддерживает HTTP fallback (возвращает 426)
-  // Всегда используем WebSocket Connection Manager для keep-alive соединения
-  // На HTTPS страницах браузер может заблокировать ws:// (Mixed Content Policy),
-  // но это единственный способ, так как бэкенд не поддерживает wss:// и HTTP fallback
-  const useHttpFallback = import.meta.env.VITE_USE_HTTP_FALLBACK === 'true';
+  // На production/HTTPS используем HTTP fallback через прокси, так как браузер блокирует ws:// (Mixed Content Policy)
+  // На localhost с HTTP используем прямой WebSocket
+  const isProduction = import.meta.env.PROD;
+  const isHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1');
+  
+  // Используем HTTP fallback если:
+  // 1. Явно указано в переменной окружения
+  // 2. На production (Vercel)
+  // 3. На HTTPS страницах (кроме localhost HTTP)
+  const useHttpFallback =
+    import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' ||
+    (isProduction || (isHttps && !isLocalhost));
 
   if (useHttpFallback) {
     logger.info('[WebSocket] Using HTTP fallback for production/HTTPS');
