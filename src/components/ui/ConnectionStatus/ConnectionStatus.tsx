@@ -55,32 +55,36 @@ export function ConnectionStatus({
       case 'connected':
         return {
           icon: Wifi,
-          color: 'text-success-500',
-          bgColor: 'bg-success-500/10',
+          color: 'text-green-500 dark:text-green-400',
+          bgColor:
+            'bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20',
           label: t('connection.connected') || 'Connected',
           pulse: false,
         };
       case 'connecting':
         return {
           icon: RefreshCw,
-          color: 'text-warning-500',
-          bgColor: 'bg-warning-500/10',
+          color: 'text-yellow-500 dark:text-yellow-400',
+          bgColor:
+            'bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20',
           label: t('connection.connecting') || 'Connecting...',
           pulse: true,
         };
       case 'disconnected':
         return {
           icon: WifiOff,
-          color: 'text-error-500',
-          bgColor: 'bg-error-500/10',
+          color: 'text-red-500 dark:text-red-400',
+          bgColor:
+            'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20',
           label: t('connection.disconnected') || 'Disconnected',
           pulse: false,
         };
       case 'error':
         return {
           icon: WifiOff,
-          color: 'text-error-500',
-          bgColor: 'bg-error-500/10',
+          color: 'text-red-500 dark:text-red-400',
+          bgColor:
+            'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20',
           label: t('connection.error') || 'Connection Error',
           pulse: false,
         };
@@ -93,7 +97,7 @@ export function ConnectionStatus({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm',
+        'flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg text-sm',
         config.bgColor,
         className
       )}
@@ -104,7 +108,11 @@ export function ConnectionStatus({
       }
     >
       <Icon
-        className={cn('h-4 w-4', config.color, config.pulse && 'animate-spin')}
+        className={cn(
+          'h-4 w-4 flex-shrink-0',
+          config.color,
+          config.pulse && 'animate-spin'
+        )}
       />
       {showLabel && (
         <span className={cn('font-medium', config.color)}>{config.label}</span>

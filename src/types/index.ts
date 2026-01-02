@@ -69,6 +69,7 @@ export interface StraightData {
   spread: string; // Спред в процентах
   network: string; // Например, "solana" или "bsc"
   limit: string; // Например, "all"
+  address?: string; // Адрес токена (contract address для BSC или mint address для Solana)
 }
 
 /**

@@ -2,11 +2,13 @@ import { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { TokenCard } from '../TokenCard';
 import type { StraightData } from '@/types';
 import { logger } from '@/utils/logger';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface TokenGridProps {
   tokens: StraightData[];
   onFavoriteToggle?: (token: StraightData) => void;
   onEdit?: (token: StraightData) => void;
+  isFavorite?: (token: StraightData) => boolean; // Функция для проверки, является ли токен избранным
 }
 
 // Максимальное количество токенов для начального рендеринга
@@ -28,7 +30,9 @@ export const TokenGrid = memo(function TokenGrid({
   tokens,
   onFavoriteToggle,
   onEdit,
+  isFavorite,
 }: TokenGridProps) {
+  const { t } = useLanguage();
   const [columnCount, setColumnCount] = useState(3);
   const [visibleCount, setVisibleCount] = useState(INITIAL_RENDER_LIMIT);
 
@@ -129,7 +133,7 @@ export const TokenGrid = memo(function TokenGrid({
             <TokenCard
               key={key}
               token={row}
-              isFavorite={false}
+              isFavorite={isFavorite ? isFavorite(row) : false}
               onFavoriteToggle={
                 onFavoriteToggle ? () => onFavoriteToggle(row) : undefined
               }
@@ -140,8 +144,10 @@ export const TokenGrid = memo(function TokenGrid({
       </div>
       {visibleCount < tokens.length && (
         <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          Показано {visibleCount} из {tokens.length} токенов. Прокрутите вниз
-          для загрузки остальных.
+          {t('tokens.showing')
+            ?.replace('{{visible}}', String(visibleCount))
+            ?.replace('{{total}}', String(tokens.length)) ||
+            `Показано ${visibleCount} из ${tokens.length} токенов. Прокрутите вниз для загрузки остальных.`}
         </div>
       )}
     </>

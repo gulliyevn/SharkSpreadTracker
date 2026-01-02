@@ -4,11 +4,63 @@ import { cn } from '@/utils/cn';
 import type { StraightData } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
 import { createMexcFuturesUrl } from '@/utils/mexc-futures';
+import { createJupiterSwapUrlWithUSDC } from '@/utils/jupiter-swap';
+import { createPancakeSwapUrlWithBUSD } from '@/utils/pancakeswap-swap';
 
 // Иконки бирж и сетей из публичной папки assets
 const MEXC_LOGO = '/assets/MEXC Logo Mark_Blue.png';
 const SOLANA_LOGO = '/assets/solana-sol-logo.svg';
 const BSC_LOGO = '/assets/bnb-bnb-logo.svg';
+
+/**
+ * Вычисляет цвет фона для блока спреда на основе значения
+ * @param spread - значение спреда
+ * @param isReverse - true для обратного спреда (красный), false для прямого (зеленый)
+ * @returns объект с HSL цветом в формате {h, s, l} или null для серого
+ */
+function getSpreadColor(
+  spread: number,
+  isReverse: boolean
+): {
+  h: number;
+  s: number;
+  l: number;
+} | null {
+  if (spread === 0) return null; // Серый цвет
+
+  const threshold = 3; // Порог для максимального цвета
+  const absSpread = Math.abs(spread);
+
+  if (isReverse) {
+    // Обратный спред: серый → красный (от 0 до -3)
+    if (absSpread >= threshold) {
+      // Полностью красный
+      return { h: 0, s: 70, l: 50 }; // red-500 примерно
+    }
+    // Интерполяция от серого (0) к красному (threshold)
+    const ratio = absSpread / threshold;
+    // Серый: h=0, s=0, l=40 -> Красный: h=0, s=70, l=50
+    return {
+      h: 0,
+      s: Math.round(70 * ratio),
+      l: Math.round(40 + 10 * ratio),
+    };
+  } else {
+    // Прямой спред: серый → зеленый (от 0 до +3)
+    if (absSpread >= threshold) {
+      // Полностью зеленый
+      return { h: 142, s: 70, l: 50 }; // green-500 примерно
+    }
+    // Интерполяция от серого (0) к зеленому (threshold)
+    const ratio = absSpread / threshold;
+    // Серый: h=0, s=0, l=40 -> Зеленый: h=142, s=70, l=50
+    return {
+      h: Math.round(142 * ratio),
+      s: Math.round(70 * ratio),
+      l: Math.round(40 + 10 * ratio),
+    };
+  }
+}
 
 interface TokenCardProps {
   token: StraightData;
@@ -39,7 +91,19 @@ export const TokenCard = memo(function TokenCard({
   const chain: 'solana' | 'bsc' =
     network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
   const directSpread = token.spread ? Number(token.spread) : null; // Прямой спред (BNB/Sol → MEXC)
-  const limit = token.limit || 'all';
+  // Берем limit из JSON с бэкенда, если отсутствует или пустой - используем 'all'
+  const limit =
+    token.limit && token.limit.trim() !== '' ? token.limit.trim() : 'all';
+  // Адрес токена для копирования и создания URL для Jupiter/PancakeSwap
+  const tokenAddress = token.address || null;
+
+  // Вычисляем цвета для блоков спреда
+  const directSpreadColor =
+    directSpread !== null ? getSpreadColor(directSpread, false) : null;
+  const reverseSpreadColor =
+    reverseSpread !== null && !isNaN(reverseSpread)
+      ? getSpreadColor(reverseSpread, true)
+      : null;
 
   // Форматируем лимит: если "all" - показываем "all", иначе число с $
   const formattedLimit =
@@ -58,16 +122,19 @@ export const TokenCard = memo(function TokenCard({
   const exchangeUrls = useMemo<Record<string, string>>(() => {
     const urls: Record<string, string> = {};
 
-    // MEXC Futures URL
+    // MEXC Futures URL (использует символ токена)
     urls.mexc = createMexcFuturesUrl(tokenSymbol);
 
     // Network exchange URL (Jupiter, Match, или PancakeSwap)
-    if (networkExchange === 'jupiter') {
-      urls.network = 'https://jup.ag';
+    // Используем адрес токена (как MEXC использует символ)
+    if (networkExchange === 'jupiter' || chain === 'solana') {
+      // Используем адрес токена для создания URL с USDC (как MEXC использует символ)
+      urls.network = createJupiterSwapUrlWithUSDC(tokenAddress || '', 'buy');
     } else if (networkExchange === 'match') {
       urls.network = 'https://match.xyz';
-    } else if (networkExchange === 'pancakeswap') {
-      urls.network = 'https://pancakeswap.finance';
+    } else if (networkExchange === 'pancakeswap' || chain === 'bsc') {
+      // Используем адрес токена для создания URL с BUSD (как MEXC использует символ)
+      urls.network = createPancakeSwapUrlWithBUSD(tokenAddress || '', 'buy');
     } else {
       // Fallback
       urls.network =
@@ -75,7 +142,7 @@ export const TokenCard = memo(function TokenCard({
     }
 
     return urls;
-  }, [tokenSymbol, networkExchange, chain]);
+  }, [tokenSymbol, networkExchange, chain, tokenAddress]);
 
   // Иконка для сети (Solana или BSC)
   const networkIcon = useMemo(() => {
@@ -95,15 +162,21 @@ export const TokenCard = memo(function TokenCard({
   const handleMouseLeave = useCallback(() => setIsHovered(false), []);
 
   const handleCopyToken = useCallback(async () => {
+    // Копируем адрес токена (если есть), иначе символ токена
+    const textToCopy = tokenAddress || tokenSymbol;
     try {
-      await navigator.clipboard.writeText(tokenSymbol);
+      await navigator.clipboard.writeText(textToCopy);
       setIsCopied(true);
-      success('Token symbol copied to clipboard');
+      success(
+        tokenAddress
+          ? 'Token address copied to clipboard'
+          : 'Token symbol copied to clipboard'
+      );
       setTimeout(() => setIsCopied(false), 2000);
     } catch {
       // Fallback для старых браузеров
       const textArea = document.createElement('textarea');
-      textArea.value = tokenSymbol;
+      textArea.value = textToCopy;
       textArea.style.position = 'fixed';
       textArea.style.opacity = '0';
       document.body.appendChild(textArea);
@@ -111,14 +184,18 @@ export const TokenCard = memo(function TokenCard({
       try {
         document.execCommand('copy');
         setIsCopied(true);
-        success('Token symbol copied to clipboard');
+        success(
+          tokenAddress
+            ? 'Token address copied to clipboard'
+            : 'Token symbol copied to clipboard'
+        );
         setTimeout(() => setIsCopied(false), 2000);
       } catch {
         // Игнорируем ошибку
       }
       document.body.removeChild(textArea);
     }
-  }, [tokenSymbol, success]);
+  }, [tokenAddress, tokenSymbol, success]);
 
   const handleMexcClick = useCallback(() => {
     const url = exchangeUrls.mexc;
@@ -192,8 +269,8 @@ export const TokenCard = memo(function TokenCard({
                   ? 'text-green-500 dark:text-green-400'
                   : 'text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400'
               )}
-              aria-label="Copy token symbol"
-              title="Copy token symbol"
+              aria-label="Copy token address"
+              title="Copy token address"
             >
               {isCopied ? (
                 <Check className="h-3 w-3" />
@@ -261,25 +338,32 @@ export const TokenCard = memo(function TokenCard({
           {/* Контейнер для спредов: зеленый слева, красный/серый справа, разделены по середине */}
           <div className="flex h-7 rounded overflow-hidden">
             {/* Зеленый спред (прямой: BNB/Sol → MEXC) - слева */}
-            {directSpread !== null ? (
-              <div className="bg-green-500 dark:bg-green-600 px-2.5 min-w-[50px] h-full flex items-center justify-center text-center">
-                <span className="text-white text-xs font-medium">
-                  {directSpread.toFixed(2)}%
-                </span>
-              </div>
-            ) : (
-              <div className="bg-gray-400 dark:bg-gray-600 px-2.5 min-w-[50px] h-full flex items-center justify-center text-center">
-                <span className="text-white text-xs font-medium">—</span>
-              </div>
-            )}
+            <div
+              className={cn(
+                'px-2.5 min-w-[50px] h-full flex items-center justify-center text-center',
+                !directSpreadColor && 'bg-gray-400 dark:bg-gray-600'
+              )}
+              style={{
+                backgroundColor: directSpreadColor
+                  ? `hsl(${directSpreadColor.h}, ${directSpreadColor.s}%, ${directSpreadColor.l}%)`
+                  : undefined,
+              }}
+            >
+              <span className="text-white text-xs font-medium">
+                {directSpread !== null ? `${directSpread.toFixed(2)}%` : '—'}
+              </span>
+            </div>
             {/* Обратный спред (обратный: MEXC → BNB/Sol, из отдельной ручки сервера) - справа */}
             <div
               className={cn(
                 'px-2.5 min-w-[50px] h-full flex items-center justify-center text-center',
-                reverseSpread !== null && !isNaN(reverseSpread)
-                  ? 'bg-red-500 dark:bg-red-600'
-                  : 'bg-gray-400 dark:bg-gray-600'
+                !reverseSpreadColor && 'bg-gray-400 dark:bg-gray-600'
               )}
+              style={{
+                backgroundColor: reverseSpreadColor
+                  ? `hsl(${reverseSpreadColor.h}, ${reverseSpreadColor.s}%, ${reverseSpreadColor.l}%)`
+                  : undefined,
+              }}
             >
               <span className="text-white text-xs font-medium">
                 {reverseSpread !== null && !isNaN(reverseSpread)

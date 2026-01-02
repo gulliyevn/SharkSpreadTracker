@@ -108,9 +108,7 @@ describe('SpreadChart', () => {
     );
 
     // Проверяем что отображается сообщение о необходимости выбора источников
-    expect(
-      screen.getByText(/Select sources to display chart/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Select currency on chart/i)).toBeInTheDocument();
   });
 
   it('should display message when no chart data is available', () => {
@@ -138,7 +136,7 @@ describe('SpreadChart', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/No chart data available/i)).toBeInTheDocument();
+    expect(screen.getByText(/No data available/i)).toBeInTheDocument();
   });
 
   it('should render chart when data and sources are provided', () => {

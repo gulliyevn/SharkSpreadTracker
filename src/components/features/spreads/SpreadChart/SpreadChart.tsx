@@ -6,6 +6,7 @@ import { cn } from '@/utils/cn';
 import { calculateSpread } from '@/utils/calculations';
 import { TIMEFRAMES } from '@/constants/timeframes';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { SpreadResponse, SourceType, TimeframeOption } from '@/types';
 
 export interface ChartTooltipData {
@@ -75,6 +76,7 @@ export const SpreadChart = memo(function SpreadChart({
 }: SpreadChartProps) {
   const chartRef = useRef<ReactECharts>(null);
   const { resolvedTheme } = useTheme();
+  const { t } = useLanguage();
   const intervalMinutes = TIMEFRAMES[timeframe].minutes;
 
   // Получаем цвета в зависимости от темы
@@ -509,9 +511,9 @@ export const SpreadChart = memo(function SpreadChart({
       <Card className={cn('p-4', className)}>
         <div className="h-[450px] sm:h-[500px] flex items-center justify-center">
           <p className="text-sm text-light-600 dark:text-dark-400">
-            {!spreadData
-              ? 'Select sources to display chart'
-              : 'No chart data available'}
+            {!source1 || !source2
+              ? t('charts.selectCurrency') || 'Выберите валюту на графике'
+              : t('charts.noData') || 'Нет данных для отображения'}
           </p>
         </div>
       </Card>

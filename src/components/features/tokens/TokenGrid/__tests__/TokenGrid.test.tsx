@@ -3,6 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { TokenGrid } from '../TokenGrid';
 import type { StraightData } from '@/types';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import '@/lib/i18n';
 
 // Mock TokenCard - используем правильный путь
 vi.mock('@/components/features/tokens/TokenCard', () => ({
@@ -56,6 +60,20 @@ describe('TokenGrid', () => {
     },
   ];
 
+  const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+  };
+
   beforeEach(() => {
     // Мокаем window.innerWidth
     Object.defineProperty(window, 'innerWidth', {
@@ -70,7 +88,11 @@ describe('TokenGrid', () => {
   });
 
   it('should render tokens in grid', () => {
-    render(<TokenGrid tokens={mockTokens} />);
+    render(
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} />
+      </TestWrapper>
+    );
 
     expect(screen.getByTestId('token-card-BTC')).toBeInTheDocument();
     expect(screen.getByTestId('token-card-ETH')).toBeInTheDocument();
@@ -78,12 +100,20 @@ describe('TokenGrid', () => {
   });
 
   it('should render nothing when tokens array is empty', () => {
-    const { container } = render(<TokenGrid tokens={[]} />);
+    const { container } = render(
+      <TestWrapper>
+        <TokenGrid tokens={[]} />
+      </TestWrapper>
+    );
     expect(container.firstChild).toBeNull();
   });
 
   it('should apply grid layout with dynamic columns', () => {
-    const { container } = render(<TokenGrid tokens={mockTokens} />);
+    const { container } = render(
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} />
+      </TestWrapper>
+    );
     const grid = container.firstChild as HTMLElement;
 
     // Проверяем, что grid рендерится с правильными классами и стилями
@@ -97,7 +127,9 @@ describe('TokenGrid', () => {
   it('should call onFavoriteToggle when favorite button is clicked', async () => {
     const onFavoriteToggle = vi.fn();
     render(
-      <TokenGrid tokens={mockTokens} onFavoriteToggle={onFavoriteToggle} />
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} onFavoriteToggle={onFavoriteToggle} />
+      </TestWrapper>
     );
 
     const favoriteButtons = screen.getAllByText('Toggle Favorite');
@@ -110,7 +142,11 @@ describe('TokenGrid', () => {
   });
 
   it('should pass favorite state to TokenCard', () => {
-    render(<TokenGrid tokens={mockTokens} />);
+    render(
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} />
+      </TestWrapper>
+    );
 
     // Проверяем, что токены рендерятся
     expect(screen.getByTestId('token-card-BTC')).toBeInTheDocument();
@@ -119,7 +155,11 @@ describe('TokenGrid', () => {
   });
 
   it('should handle resize events', async () => {
-    const { container } = render(<TokenGrid tokens={mockTokens} />);
+    const { container } = render(
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} />
+      </TestWrapper>
+    );
     const grid = container.firstChild as HTMLElement;
 
     expect(grid).toBeInTheDocument();
@@ -143,7 +183,11 @@ describe('TokenGrid', () => {
   });
 
   it('should have grid gap class', () => {
-    const { container } = render(<TokenGrid tokens={mockTokens} />);
+    const { container } = render(
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} />
+      </TestWrapper>
+    );
     const grid = container.firstChild as HTMLElement;
 
     expect(grid).toHaveClass('grid', 'gap-4');
@@ -173,7 +217,11 @@ describe('TokenGrid', () => {
       },
     ];
 
-    render(<TokenGrid tokens={duplicateTokens} />);
+    render(
+      <TestWrapper>
+        <TokenGrid tokens={duplicateTokens} />
+      </TestWrapper>
+    );
 
     // Оба токена должны рендериться, несмотря на одинаковый symbol
     const cards = screen.getAllByTestId('token-card-BTC');
@@ -187,7 +235,11 @@ describe('TokenGrid', () => {
       value: 800, // Tablet
     });
 
-    const { container } = render(<TokenGrid tokens={mockTokens} />);
+    const { container } = render(
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} />
+      </TestWrapper>
+    );
     const grid = container.firstChild as HTMLElement;
 
     expect(grid).toBeInTheDocument();
@@ -197,7 +249,11 @@ describe('TokenGrid', () => {
 
   it('should pass onEdit callback to TokenCard', () => {
     const onEdit = vi.fn();
-    render(<TokenGrid tokens={mockTokens} onEdit={onEdit} />);
+    render(
+      <TestWrapper>
+        <TokenGrid tokens={mockTokens} onEdit={onEdit} />
+      </TestWrapper>
+    );
 
     expect(screen.getByTestId('token-card-BTC')).toBeInTheDocument();
   });

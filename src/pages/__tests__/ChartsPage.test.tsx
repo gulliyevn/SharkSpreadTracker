@@ -5,12 +5,15 @@ import { ChartsPage } from '../ChartsPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { MinSpreadProvider } from '@/contexts/MinSpreadContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+import type { StraightData } from '@/types';
 import '@/lib/i18n';
 
-// Мок для useTokens
-const mockUseTokens = vi.fn();
-vi.mock('@/api/hooks/useTokens', () => ({
-  useTokens: () => mockUseTokens(),
+// Мок для useTokensWithSpreads
+const mockUseTokensWithSpreads = vi.fn();
+vi.mock('@/api/hooks/useTokensWithSpreads', () => ({
+  useTokensWithSpreads: () => mockUseTokensWithSpreads(),
 }));
 
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -21,7 +24,11 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          <MinSpreadProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </MinSpreadProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -33,7 +40,7 @@ describe('ChartsPage', () => {
   });
 
   it('should render ChartsPage with title', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: false,
       error: null,
@@ -47,13 +54,14 @@ describe('ChartsPage', () => {
     );
 
     await waitFor(() => {
-      const titles = screen.queryAllByText(/Charts|графики/i);
-      expect(titles.length).toBeGreaterThan(0);
+      // Проверяем, что страница рендерится (фильтры присутствуют)
+      const allButtons = screen.queryAllByText(/All|Все/i);
+      expect(allButtons.length).toBeGreaterThan(0);
     });
   });
 
   it('should display loading skeleton when loading', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: true,
       error: null,
@@ -74,7 +82,7 @@ describe('ChartsPage', () => {
 
   it('should display error when tokens fail to load', async () => {
     const mockRefetch = vi.fn();
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: false,
       error: new Error('Failed to load'),
@@ -95,7 +103,7 @@ describe('ChartsPage', () => {
   });
 
   it('should display empty state when no tokens', async () => {
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: [],
       isLoading: false,
       error: null,
@@ -114,12 +122,30 @@ describe('ChartsPage', () => {
   });
 
   it('should filter tokens by chain', async () => {
-    const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-      { symbol: 'ETH', chain: 'bsc' as const },
+    const mockTokens: StraightData[] = [
+      {
+        token: 'BTC',
+        aExchange: 'Jupiter',
+        bExchange: 'MEXC',
+        priceA: '50000',
+        priceB: '50250',
+        spread: '5.5',
+        network: 'solana',
+        limit: 'all',
+      },
+      {
+        token: 'ETH',
+        aExchange: 'PancakeSwap',
+        bExchange: 'MEXC',
+        priceA: '3000',
+        priceB: '3063',
+        spread: '2.1',
+        network: 'bsc',
+        limit: 'all',
+      },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
@@ -133,8 +159,9 @@ describe('ChartsPage', () => {
     );
 
     await waitFor(() => {
-      const titles = screen.queryAllByText(/Charts/i);
-      expect(titles.length).toBeGreaterThan(0);
+      // Проверяем, что страница рендерится (фильтры присутствуют)
+      const allButtons = screen.queryAllByText(/All|Все/i);
+      expect(allButtons.length).toBeGreaterThan(0);
     });
 
     // Находим кнопку фильтра по chain
@@ -145,12 +172,30 @@ describe('ChartsPage', () => {
   });
 
   it('should display ChartsLayout when tokens are loaded', async () => {
-    const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-      { symbol: 'ETH', chain: 'bsc' as const },
+    const mockTokens: StraightData[] = [
+      {
+        token: 'BTC',
+        aExchange: 'Jupiter',
+        bExchange: 'MEXC',
+        priceA: '50000',
+        priceB: '50250',
+        spread: '5.5',
+        network: 'solana',
+        limit: 'all',
+      },
+      {
+        token: 'ETH',
+        aExchange: 'PancakeSwap',
+        bExchange: 'MEXC',
+        priceA: '3000',
+        priceB: '3063',
+        spread: '2.1',
+        network: 'bsc',
+        limit: 'all',
+      },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
@@ -164,18 +209,37 @@ describe('ChartsPage', () => {
     );
 
     await waitFor(() => {
-      const titles = screen.queryAllByText(/Charts/i);
-      expect(titles.length).toBeGreaterThan(0);
+      // Проверяем, что страница рендерится (фильтры присутствуют)
+      const allButtons = screen.queryAllByText(/All|Все/i);
+      expect(allButtons.length).toBeGreaterThan(0);
     });
   });
 
   it('should handle chain filter change', async () => {
-    const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-      { symbol: 'ETH', chain: 'bsc' as const },
+    const mockTokens: StraightData[] = [
+      {
+        token: 'BTC',
+        aExchange: 'Jupiter',
+        bExchange: 'MEXC',
+        priceA: '50000',
+        priceB: '50250',
+        spread: '5.5',
+        network: 'solana',
+        limit: 'all',
+      },
+      {
+        token: 'ETH',
+        aExchange: 'PancakeSwap',
+        bExchange: 'MEXC',
+        priceA: '3000',
+        priceB: '3063',
+        spread: '2.1',
+        network: 'bsc',
+        limit: 'all',
+      },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
@@ -189,23 +253,47 @@ describe('ChartsPage', () => {
     );
 
     await waitFor(() => {
-      const titles = screen.queryAllByText(/Charts/i);
-      expect(titles.length).toBeGreaterThan(0);
+      // Проверяем, что страница рендерится (фильтры присутствуют)
+      const allButtons = screen.queryAllByText(/All|Все/i);
+      expect(allButtons.length).toBeGreaterThan(0);
     });
-
-    // Проверяем что chain filter присутствует
-    const chainLabel = screen.queryByText(/Chain:/i);
-    expect(chainLabel || document.body).toBeInTheDocument();
   });
 
   it('should calculate chain counts correctly', async () => {
-    const mockTokens = [
-      { symbol: 'BTC', chain: 'solana' as const },
-      { symbol: 'ETH', chain: 'solana' as const },
-      { symbol: 'BNB', chain: 'bsc' as const },
+    const mockTokens: StraightData[] = [
+      {
+        token: 'BTC',
+        aExchange: 'Jupiter',
+        bExchange: 'MEXC',
+        priceA: '50000',
+        priceB: '50250',
+        spread: '5.5',
+        network: 'solana',
+        limit: 'all',
+      },
+      {
+        token: 'ETH',
+        aExchange: 'Jupiter',
+        bExchange: 'MEXC',
+        priceA: '3000',
+        priceB: '3063',
+        spread: '2.1',
+        network: 'solana',
+        limit: 'all',
+      },
+      {
+        token: 'BNB',
+        aExchange: 'PancakeSwap',
+        bExchange: 'MEXC',
+        priceA: '400',
+        priceB: '410',
+        spread: '2.5',
+        network: 'bsc',
+        limit: 'all',
+      },
     ];
 
-    mockUseTokens.mockReturnValue({
+    mockUseTokensWithSpreads.mockReturnValue({
       data: mockTokens,
       isLoading: false,
       error: null,
@@ -219,8 +307,9 @@ describe('ChartsPage', () => {
     );
 
     await waitFor(() => {
-      const titles = screen.queryAllByText(/Charts/i);
-      expect(titles.length).toBeGreaterThan(0);
+      // Проверяем, что страница рендерится (фильтры присутствуют)
+      const allButtons = screen.queryAllByText(/All|Все/i);
+      expect(allButtons.length).toBeGreaterThan(0);
     });
   });
 });

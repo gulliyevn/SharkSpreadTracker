@@ -38,7 +38,7 @@ describe('ConnectionStatus', () => {
     );
 
     // ConnectionStatus рендерит div без role, используем querySelector или проверяем по тексту
-    const container = document.querySelector('[class*="rounded-full"]');
+    const container = document.querySelector('[class*="rounded-lg"]');
     expect(container).toBeInTheDocument();
   });
 
@@ -62,7 +62,7 @@ describe('ConnectionStatus', () => {
     );
 
     // Иконка должна быть, но текст не должен отображаться
-    const container = document.querySelector('[class*="rounded-full"]');
+    const container = document.querySelector('[class*="rounded-lg"]');
     expect(container).toBeInTheDocument();
     // Проверяем что нет текста "Connected"
     expect(screen.queryByText(/connected/i)).not.toBeInTheDocument();

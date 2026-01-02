@@ -79,7 +79,9 @@
     "searchDescription": "Sembol veya isme göre token ara",
     "loadMore": "Daha fazla yükle",
     "scrollToLoad": "Daha fazla yüklemek için aşağı kaydırın...",
-    "allLoaded": "Tüm tokenler yüklendi"
+    "allLoaded": "Tüm tokenler yüklendi",
+    "showing": "{{total}} tokenin {{visible}} tanesi gösteriliyor. Daha fazlasını yüklemek için aşağı kaydırın.",
+    "favorites": "Favoriler"
   },
   "filters": {
     "minSpread": "Min:",
@@ -106,7 +108,26 @@
     "comingSoon": "Grafikler yakında",
     "placeholder": "Spread grafikleri burada görüntülenecek. Ticaret fırsatlarını analiz etmek için tokenler ve zaman dilimleri seçin.",
     "spreadChart": "Spread Grafiği",
-    "timeframe": "Zaman Dilimi"
+    "timeframe": "Zaman Dilimi",
+    "selectCurrency": "Grafikte para birimi seçin",
+    "noData": "Gösterilecek veri yok",
+    "metrics": {
+      "currentSpread": "Mevcut spread",
+      "lastPoint": "son nokta",
+      "averageSpread": "Ortalama spread",
+      "byFilter": "filtreye göre",
+      "maximum": "Maksimum",
+      "peak": "tepe",
+      "signals": "Sinyaller",
+      "pointsInRange": "aralıktaki noktalar"
+    },
+    "history": {
+      "title": "Geçmiş",
+      "time": "Zaman",
+      "price1": "Fiyat 1",
+      "price2": "Fiyat 2",
+      "spread": "Spread"
+    }
   },
   "modal": {
     "copyTokenSymbol": "Token sembolünü kopyala",

@@ -79,7 +79,9 @@
     "searchDescription": "Search tokens by symbol or name",
     "loadMore": "Load More",
     "scrollToLoad": "Scroll to load more...",
-    "allLoaded": "All tokens loaded"
+    "allLoaded": "All tokens loaded",
+    "showing": "Showing {{visible}} of {{total}} tokens. Scroll down to load more.",
+    "favorites": "Favorites"
   },
   "filters": {
     "minSpread": "Min:",
@@ -106,7 +108,26 @@
     "comingSoon": "Charts Coming Soon",
     "placeholder": "Spread charts will be displayed here. Select tokens and timeframes to analyze trading opportunities.",
     "spreadChart": "Spread Chart",
-    "timeframe": "Timeframe"
+    "timeframe": "Timeframe",
+    "selectCurrency": "Select currency on chart",
+    "noData": "No data available",
+    "metrics": {
+      "currentSpread": "Current spread",
+      "lastPoint": "last point",
+      "averageSpread": "Average spread",
+      "byFilter": "by filter",
+      "maximum": "Maximum",
+      "peak": "peak",
+      "signals": "Signals",
+      "pointsInRange": "points in range"
+    },
+    "history": {
+      "title": "History",
+      "time": "Time",
+      "price1": "Price 1",
+      "price2": "Price 2",
+      "spread": "Spread"
+    }
   },
   "modal": {
     "copyTokenSymbol": "Copy token symbol",

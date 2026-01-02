@@ -32,6 +32,14 @@ import {
   trackTokenSelected,
 } from '@/lib/analytics';
 import type { Token, StraightData } from '@/types';
+import { STORAGE_KEYS } from '@/constants/api';
+
+/**
+ * Функция для создания уникального ключа токена (token-network)
+ */
+function getTokenKey(token: StraightData): string {
+  return `${(token.token || '').toUpperCase().trim()}-${(token.network || '').toLowerCase()}`;
+}
 
 /**
  * Главная страница с токенами
@@ -60,6 +68,20 @@ export function TokensPage() {
     return saved === 'true'; // По умолчанию выключено, только при явном включении кнопки Auto
   });
 
+  // Избранные токены (Set с ключами token-network)
+  const [favoriteTokens, setFavoriteTokens] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.FAVORITE_TOKENS);
+      if (saved) {
+        const favorites = JSON.parse(saved) as string[];
+        return new Set(favorites);
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+    return new Set<string>();
+  });
+
   // Загружаем токены из API с ценами и спредами (постепенно)
   const {
     data: tokens = [],
@@ -70,15 +92,23 @@ export function TokensPage() {
     refetch,
   } = useTokensWithSpreads();
 
-  // Подсчет токенов по chain
+  // Подсчет токенов по chain (с дедупликацией)
   const chainCounts = useMemo(() => {
+    // Дедупликация токенов по token+network (такая же как в filteredTokens)
+    const uniqueMap = new Map<string, StraightData>();
+    for (const token of tokens) {
+      const key = `${(token.token || '').toUpperCase().trim()}-${(token.network || '').toLowerCase()}`;
+      uniqueMap.set(key, token); // Последний токен перезапишет предыдущий
+    }
+    const uniqueTokens = Array.from(uniqueMap.values());
+
     const counts = {
-      all: tokens.length,
-      solana: tokens.filter((r) => {
+      all: uniqueTokens.length,
+      solana: uniqueTokens.filter((r) => {
         const network = (r.network || '').toLowerCase();
         return network !== 'bsc' && network !== 'bep20';
       }).length,
-      bsc: tokens.filter((r) => {
+      bsc: uniqueTokens.filter((r) => {
         const network = (r.network || '').toLowerCase();
         return network === 'bsc' || network === 'bep20';
       }).length,
@@ -86,12 +116,26 @@ export function TokensPage() {
     return counts;
   }, [tokens]);
 
+  // Избранные токены для секции наверху
+  const favoriteTokensList = useMemo(() => {
+    if (favoriteTokens.size === 0) return [];
+    // Дедупликация токенов по token+network
+    const uniqueMap = new Map<string, StraightData>();
+    for (const token of tokens) {
+      const key = getTokenKey(token);
+      if (favoriteTokens.has(key)) {
+        uniqueMap.set(key, token);
+      }
+    }
+    return Array.from(uniqueMap.values());
+  }, [tokens, favoriteTokens]);
+
   const filteredTokens = useMemo(() => {
     // Дедупликация токенов по token+network (оставляем последний по времени)
     // Используем Map для уникальности по ключу "token-network"
     const uniqueMap = new Map<string, StraightData>();
     for (const token of tokens) {
-      const key = `${(token.token || '').toUpperCase().trim()}-${(token.network || '').toLowerCase()}`;
+      const key = getTokenKey(token);
       uniqueMap.set(key, token); // Последний токен перезапишет предыдущий
     }
     let filtered = Array.from(uniqueMap.values());
@@ -306,6 +350,28 @@ export function TokensPage() {
     trackTokenSelected(symbol, chain);
   }, []);
 
+  const handleFavoriteToggle = useCallback((token: StraightData) => {
+    const tokenKey = getTokenKey(token);
+    setFavoriteTokens((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(tokenKey)) {
+        newSet.delete(tokenKey);
+      } else {
+        newSet.add(tokenKey);
+      }
+      // Сохраняем в localStorage
+      try {
+        localStorage.setItem(
+          STORAGE_KEYS.FAVORITE_TOKENS,
+          JSON.stringify(Array.from(newSet))
+        );
+      } catch (error) {
+        console.error('Error saving favorites:', error);
+      }
+      return newSet;
+    });
+  }, []);
+
   const handleCloseModal = useCallback(() => {
     setEditingToken(null);
   }, []);
@@ -329,6 +395,15 @@ export function TokensPage() {
     setChainFilter(value);
     trackTokenFilter('chain', value);
   }, []);
+
+  // Функция для проверки, является ли токен избранным
+  const isFavoriteCheck = useCallback(
+    (token: StraightData) => {
+      const tokenKey = getTokenKey(token);
+      return favoriteTokens.has(tokenKey);
+    },
+    [favoriteTokens]
+  );
 
   return (
     <div className="min-h-screen bg-white dark:bg-dark-900">
@@ -470,6 +545,21 @@ export function TokensPage() {
             />
           )}
 
+          {/* Избранные токены - дубликаты наверху */}
+          {!isLoading && !error && favoriteTokensList.length > 0 && (
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">
+                {t('tokens.favorites') || 'Favorites'}
+              </h2>
+              <TokenGrid
+                tokens={favoriteTokensList}
+                onEdit={handleTokenEdit}
+                onFavoriteToggle={handleFavoriteToggle}
+                isFavorite={isFavoriteCheck}
+              />
+            </div>
+          )}
+
           {/* Список токенов */}
           {!isLoading && !error && (
             <>
@@ -501,7 +591,12 @@ export function TokensPage() {
               ) : (
                 // Адаптивная сетка токенов - показывает ВСЕ токены без ограничений
                 <div className="w-full">
-                  <TokenGrid tokens={filteredTokens} onEdit={handleTokenEdit} />
+                  <TokenGrid
+                    tokens={filteredTokens}
+                    onEdit={handleTokenEdit}
+                    onFavoriteToggle={handleFavoriteToggle}
+                    isFavorite={isFavoriteCheck}
+                  />
                 </div>
               )}
             </>

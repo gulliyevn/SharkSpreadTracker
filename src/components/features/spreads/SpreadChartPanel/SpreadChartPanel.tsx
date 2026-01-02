@@ -52,10 +52,6 @@ export function SpreadChartPanel({
     isOpen && token !== null
   );
 
-  if (!token) {
-    return null;
-  }
-
   return (
     <div className={cn('relative', className)}>
       {/* TimeframeSelector справа сверху - встроенные кнопки */}

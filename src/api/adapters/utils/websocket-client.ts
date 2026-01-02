@@ -38,15 +38,19 @@ export function createWebSocketUrl(
     throw new Error('WebSocket baseUrl cannot be empty');
   }
 
-  // ВАЖНО: Принудительно заменяем wss:// на ws://, так как сервер не поддерживает SSL
-  // Это критично для production, где страница загружена по HTTPS, но сервер использует ws://
-  const normalizedBaseUrl = baseUrl.replace(/^wss:\/\//, 'ws://');
+  // Поддерживаем как ws://, так и wss:// протоколы
+  // wss:// требуется для HTTPS страниц (production на Vercel)
+  // ws:// используется для localhost и HTTP страниц
+  const normalizedBaseUrl = baseUrl;
 
-  // Если baseUrl уже полный URL (начинается с ws://), используем его напрямую
+  // Если baseUrl уже полный URL (начинается с ws:// или wss://), используем его напрямую
   // Иначе создаем новый URL относительно текущего location
   let url: URL;
-  if (normalizedBaseUrl.startsWith('ws://')) {
-    // Явно создаем URL с ws:// протоколом
+  if (
+    normalizedBaseUrl.startsWith('ws://') ||
+    normalizedBaseUrl.startsWith('wss://')
+  ) {
+    // Создаем URL с ws:// или wss:// протоколом
     url = new URL(normalizedBaseUrl);
   } else {
     url = new URL(
@@ -172,6 +176,7 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
   const skippedInvalidItems: unknown[] = [];
 
   // Обязательные поля согласно документации API
+  // limit - опциональное поле (может отсутствовать, тогда будет "all" по умолчанию)
   const requiredFields = [
     'token',
     'aExchange',
@@ -180,7 +185,7 @@ export function parseWebSocketMessage(rawData: string): StraightData[] {
     'priceB',
     'spread',
     'network',
-    'limit',
+    // 'limit' - убрано из обязательных, так как может отсутствовать
   ];
 
   // Известные служебные типы сообщений

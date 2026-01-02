@@ -135,7 +135,9 @@ export function Header() {
           {/* Right side controls - на десктопе справа */}
           <div className="hidden sm:flex items-center gap-1 sm:gap-2">
             {/* Connection Status */}
-            <ConnectionStatus showLabel={false} />
+            <div className="-ml-2.5">
+              <ConnectionStatus showLabel={false} />
+            </div>
 
             {/* View Switcher - кнопка для графиков */}
             <button
