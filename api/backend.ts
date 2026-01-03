@@ -67,11 +67,11 @@ export default async function handler(
   try {
     // Логируем только в dev режиме
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Backend Proxy] Requesting:', {
-        method: req.method,
-        backendUrl,
-        path,
-      });
+    console.log('[Backend Proxy] Requesting:', {
+      method: req.method,
+      backendUrl,
+      path,
+    });
     }
     
     // ВАЖНО: Создаем чистые заголовки без WebSocket upgrade заголовков
@@ -98,12 +98,12 @@ export default async function handler(
     
     // Логируем только в dev режиме
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Backend Proxy] Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        contentType,
-        bodyPreview: responseText.substring(0, 200),
-      });
+    console.log('[Backend Proxy] Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType,
+      bodyPreview: responseText.substring(0, 200),
+    });
     }
 
     if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
@@ -121,7 +121,7 @@ export default async function handler(
   } catch (error) {
     // Ошибки логируем всегда, но детали только в dev
     if (process.env.NODE_ENV === 'development') {
-      console.error('[Backend Proxy] Error:', error);
+    console.error('[Backend Proxy] Error:', error);
     }
     return res.status(500).json({ error: 'Failed to proxy request to backend' });
   }

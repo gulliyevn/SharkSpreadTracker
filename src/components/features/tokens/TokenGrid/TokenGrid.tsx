@@ -1,8 +1,8 @@
-import { useState, useEffect, memo, useCallback } from 'react';
+import { useState, useEffect, memo, useCallback, useMemo, useRef } from 'react';
+import { Grid, type CellComponentProps } from 'react-window';
 import { TokenCard } from '../TokenCard';
 import type { StraightData } from '@/types';
 import { logger } from '@/utils/logger';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface TokenGridProps {
   tokens: StraightData[];
@@ -11,19 +11,19 @@ export interface TokenGridProps {
   isFavorite?: (token: StraightData) => boolean; // Функция для проверки, является ли токен избранным
 }
 
-// Максимальное количество токенов для начального рендеринга
-// Остальные будут загружаться по мере прокрутки
-const INITIAL_RENDER_LIMIT = 100;
-const LOAD_MORE_BATCH = 50;
+// Примерная высота TokenCard (можно настроить под реальные размеры)
+// Реальная высота карточки примерно 60-70px
+const ITEM_HEIGHT = 70; // Высота одной карточки токена
+const ITEM_GAP = 2; // Отступ между элементами (горизонтальный и вертикальный)
 
 /**
- * Адаптивная сетка токенов с автоматическим определением количества колонок
- * Использует CSS Grid для эффективного отображения всех токенов
+ * Адаптивная сетка токенов с виртуализацией для оптимизации производительности
+ * Использует react-window для рендеринга только видимых элементов
  *
  * Особенности:
  * - Адаптивный layout: 1 колонка на мобильных, 2 на планшетах, 3 на десктопе
+ * - Виртуализация: рендерит только видимые элементы для оптимизации производительности
  * - Автоматическое определение размеров на основе ширины экрана
- * - Ленивая загрузка для оптимизации производительности при большом количестве токенов
  * - Оптимизирован с помощью React.memo для предотвращения лишних ререндеров
  */
 export const TokenGrid = memo(function TokenGrid({
@@ -32,14 +32,17 @@ export const TokenGrid = memo(function TokenGrid({
   onEdit,
   isFavorite,
 }: TokenGridProps) {
-  const { t } = useLanguage();
+  // const { t } = useLanguage(); // Не используется в виртуализированной версии
   const [columnCount, setColumnCount] = useState(3);
-  const [visibleCount, setVisibleCount] = useState(INITIAL_RENDER_LIMIT);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   // Определяем количество колонок в зависимости от ширины экрана
-  // Используем useCallback для оптимизации
   const updateLayout = useCallback(() => {
-    const width = window.innerWidth;
+    if (!containerRef.current) return;
+
+    const width = containerRef.current.clientWidth || window.innerWidth;
+    const height = containerRef.current.clientHeight || window.innerHeight;
 
     if (width < 640) {
       // Mobile: 1 колонка
@@ -51,9 +54,13 @@ export const TokenGrid = memo(function TokenGrid({
       // Desktop: 3 колонки
       setColumnCount(3);
     }
+
+    // Обновляем размеры контейнера
+    setContainerSize({ width, height });
   }, []);
 
   useEffect(() => {
+    // Инициализация размеров при монтировании
     updateLayout();
 
     // Debounce для resize события
@@ -68,53 +75,91 @@ export const TokenGrid = memo(function TokenGrid({
     };
 
     window.addEventListener('resize', handleResize, { passive: true });
+
+    // Используем ResizeObserver для отслеживания изменений размера контейнера
+    let resizeObserver: ResizeObserver | null = null;
+    if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        updateLayout();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
     return () => {
       window.removeEventListener('resize', handleResize);
       if (resizeTimer) {
         clearTimeout(resizeTimer);
       }
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, [updateLayout]);
 
-  // Сбрасываем видимые токены при изменении списка токенов
-  useEffect(() => {
-    setVisibleCount(Math.min(INITIAL_RENDER_LIMIT, tokens.length));
-  }, [tokens.length]);
+  // Вычисляем количество строк на основе количества токенов и колонок
+  const rowCount = useMemo(() => {
+    if (tokens.length === 0 || columnCount === 0) return 0;
+    return Math.ceil(tokens.length / columnCount);
+  }, [tokens.length, columnCount]);
 
-  // Ленивая загрузка при прокрутке
-  useEffect(() => {
-    if (visibleCount >= tokens.length) return;
+  // Вычисляем ширину колонки
+  const columnWidth = useMemo(() => {
+    if (columnCount === 0 || containerSize.width === 0) return 0;
+    // Учитываем горизонтальный gap между элементами и немного уменьшаем ширину контейнера
+    const totalGap = ITEM_GAP * (columnCount - 1);
+    const containerWidth = containerSize.width - 8; // Уменьшаем ширину на 8px
+    return (containerWidth - totalGap) / columnCount;
+  }, [columnCount, containerSize.width]);
 
-    const handleScroll = () => {
-      const scrollBottom = window.innerHeight + window.scrollY;
-      const documentHeight = document.documentElement.scrollHeight;
+  // Функция для получения токена по индексу строки и колонки
+  const getToken = useCallback(
+    (rowIndex: number, columnIndex: number): StraightData | null => {
+      const index = rowIndex * columnCount + columnIndex;
+      const token = index < tokens.length ? tokens[index] : undefined;
+      return token ?? null;
+    },
+    [tokens, columnCount]
+  );
 
-      // Загружаем больше токенов когда пользователь близко к низу страницы
-      if (scrollBottom >= documentHeight - 500) {
-        setVisibleCount((prev) =>
-          Math.min(prev + LOAD_MORE_BATCH, tokens.length)
-        );
+  // Рендерер ячейки для виртуализированной сетки
+  const Cell = useCallback(
+    ({ columnIndex, rowIndex, style, ariaAttributes }: CellComponentProps) => {
+      const token = getToken(rowIndex, columnIndex);
+
+      if (!token) {
+        return <div style={style} {...ariaAttributes} />;
       }
-    };
 
-    // Throttle для оптимизации производительности
-    let ticking = false;
-    const throttledHandleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          handleScroll();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
+      const network = (token.network || '').toLowerCase();
+      const chain: 'solana' | 'bsc' =
+        network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
+      const symbol = (token.token || '').toUpperCase().trim();
+      const key = `${symbol}-${chain}`;
 
-    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', throttledHandleScroll);
-  }, [visibleCount, tokens.length]);
-
-  // Видимые токены (slice быстрая операция, мемоизация не нужна)
-  const visibleTokens = tokens.slice(0, visibleCount);
+      return (
+        <div
+          style={{
+            ...style,
+            paddingRight: columnIndex < columnCount - 1 ? `${ITEM_GAP}px` : '0',
+            paddingBottom: rowIndex < rowCount - 1 ? `${ITEM_GAP}px` : '0',
+            boxSizing: 'border-box',
+          }}
+          {...ariaAttributes}
+        >
+          <TokenCard
+            key={key}
+            token={token}
+            isFavorite={isFavorite ? isFavorite(token) : false}
+            onFavoriteToggle={
+              onFavoriteToggle ? () => onFavoriteToggle(token) : undefined
+            }
+            onEdit={onEdit ? () => onEdit(token) : undefined}
+          />
+        </div>
+      );
+    },
+    [getToken, isFavorite, onFavoriteToggle, onEdit, columnCount, rowCount]
+  );
 
   // Защита от пустых данных
   if (tokens.length === 0) {
@@ -127,21 +172,24 @@ export const TokenGrid = memo(function TokenGrid({
     return null;
   }
 
-  return (
-    <>
+  // Если контейнер еще не инициализирован или нет токенов для виртуализации, показываем обычную сетку
+  const shouldUseVirtualization =
+    containerSize.width > 0 && containerSize.height > 0 && tokens.length > 50;
+
+  if (!shouldUseVirtualization) {
+    return (
       <div
+        ref={containerRef}
         className="grid gap-4"
         style={{
           gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
         }}
       >
-        {visibleTokens.map((row) => {
+        {tokens.map((row) => {
           const network = (row.network || '').toLowerCase();
           const chain: 'solana' | 'bsc' =
             network === 'bsc' || network === 'bep20' ? 'bsc' : 'solana';
           const symbol = (row.token || '').toUpperCase().trim();
-          // Используем только symbol-chain для key, БЕЗ index
-          // Это гарантирует, что React будет обновлять тот же компонент при изменении данных токена
           const key = `${symbol}-${chain}`;
 
           return (
@@ -157,14 +205,36 @@ export const TokenGrid = memo(function TokenGrid({
           );
         })}
       </div>
-      {visibleCount < tokens.length && (
-        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          {t('tokens.showing')
-            ?.replace('{{visible}}', String(visibleCount))
-            ?.replace('{{total}}', String(tokens.length)) ||
-            `Показано ${visibleCount} из ${tokens.length} токенов. Прокрутите вниз для загрузки остальных.`}
-        </div>
-      )}
-    </>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        height: containerSize.height || '100vh',
+        minHeight: '600px', // Минимальная высота для виртуализации
+      }}
+    >
+      <Grid
+        columnCount={columnCount}
+        columnWidth={columnWidth}
+        defaultHeight={containerSize.height}
+        defaultWidth={containerSize.width}
+        rowCount={rowCount}
+        rowHeight={ITEM_HEIGHT + ITEM_GAP}
+        cellComponent={Cell}
+        cellProps={{} as Record<string, never>}
+        onResize={({ height, width }) => {
+          setContainerSize({ width, height });
+        }}
+        style={{
+          overflowX: 'hidden',
+          height: containerSize.height,
+          width: containerSize.width,
+        }}
+      />
+    </div>
   );
 });

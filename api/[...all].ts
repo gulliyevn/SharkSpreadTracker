@@ -51,12 +51,12 @@ export default async function handler(req: Request) {
 
   // Логируем только в dev режиме
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Backend Proxy] Request:', {
-      path: pathname,
-      extractedPath: path,
-      backendUrl,
-      method: req.method,
-    });
+  console.log('[Backend Proxy] Request:', {
+    path: pathname,
+    extractedPath: path,
+    backendUrl,
+    method: req.method,
+  });
   }
 
   // ВАЖНО: /socket/sharkStraight поддерживает HTTP fallback
@@ -110,7 +110,7 @@ export default async function handler(req: Request) {
   } catch (error) {
     // Ошибки логируем только в dev
     if (process.env.NODE_ENV === 'development') {
-      console.error('[Backend Proxy] Error:', error);
+    console.error('[Backend Proxy] Error:', error);
     }
     return new Response(
       JSON.stringify({ error: 'Failed to proxy request to backend' }),
