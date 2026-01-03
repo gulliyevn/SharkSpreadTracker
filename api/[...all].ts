@@ -33,17 +33,31 @@ export default async function handler(req: Request) {
   const path = pathname.replace(/^\/api\/backend/, '') || '/';
   
   // ВАЖНО: Edge Functions используют runtime env (не VITE_ префикс)
-  const BACKEND_URL =
-    process.env.BACKEND_URL || 'http://158.220.122.153:8080';
+  const BACKEND_URL = process.env.BACKEND_URL;
+  
+  if (!BACKEND_URL) {
+    return new Response(
+      JSON.stringify({
+        error: 'BACKEND_URL environment variable is not set. Please configure it in Vercel project settings.',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
   
   const backendUrl = `${BACKEND_URL}${path}${url.search}`;
 
-  console.log('[Backend Proxy] Request:', {
-    path: pathname,
-    extractedPath: path,
-    backendUrl,
-    method: req.method,
-  });
+  // Логируем только в dev режиме
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Backend Proxy] Request:', {
+      path: pathname,
+      extractedPath: path,
+      backendUrl,
+      method: req.method,
+    });
+  }
 
   // ВАЖНО: /socket/sharkStraight поддерживает HTTP fallback
   // Согласно документации API, если WebSocket handshake не удался,
@@ -94,7 +108,10 @@ export default async function handler(req: Request) {
       },
     });
   } catch (error) {
-    console.error('[Backend Proxy] Error:', error);
+    // Ошибки логируем только в dev
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Backend Proxy] Error:', error);
+    }
     return new Response(
       JSON.stringify({ error: 'Failed to proxy request to backend' }),
       {

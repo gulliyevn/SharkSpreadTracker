@@ -419,8 +419,8 @@ const apiAdapter: IApiAdapter = USE_MOCK_DATA
   : new BackendApiAdapter();
 
 if (USE_MOCK_DATA) {
-  console.log('🎭 [API] Using MOCK data adapter for development');
-  console.log('🎭 [API] Set VITE_USE_MOCK_DATA=false to use real backend');
+  logger.info('🎭 [API] Using MOCK data adapter for development');
+  logger.info('🎭 [API] Set VITE_USE_MOCK_DATA=false to use real backend');
 }
 
 /**

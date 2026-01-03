@@ -189,6 +189,7 @@ describe('cache-utils', () => {
           dataUpdatedAt: Date.now() - 15 * 60 * 1000, // 15 minutes ago
           status: 'success',
         },
+        getObserversCount: vi.fn().mockReturnValue(0), // Нет активных подписчиков
       };
 
       vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
@@ -207,10 +208,30 @@ describe('cache-utils', () => {
           dataUpdatedAt: Date.now() - 5 * 60 * 1000, // 5 minutes ago
           status: 'success',
         },
+        getObserversCount: vi.fn().mockReturnValue(0),
       };
 
       vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
         getAll: () => [recentQuery],
+        remove: removeMock,
+      } as never);
+
+      cleanupOldCache();
+      expect(removeMock).not.toHaveBeenCalled();
+    });
+
+    it('should not remove queries with active observers', () => {
+      const removeMock = vi.fn();
+      const queryWithObservers = {
+        state: {
+          dataUpdatedAt: Date.now() - 15 * 60 * 1000, // 15 minutes ago
+          status: 'success',
+        },
+        getObserversCount: vi.fn().mockReturnValue(2), // Есть активные подписчики
+      };
+
+      vi.mocked(queryClient.getQueryCache).mockReturnValueOnce({
+        getAll: () => [queryWithObservers],
         remove: removeMock,
       } as never);
 

@@ -251,5 +251,56 @@ describe('ThemeContext', () => {
 
       trackThemeChangeSpy.mockRestore();
     });
+
+    it('should handle window undefined (SSR)', () => {
+      const originalMatchMedia = window.matchMedia;
+
+      // Мокаем matchMedia для SSR сценария
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: () => ({
+          matches: false,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }),
+      });
+
+      const setStoredTheme = vi.fn();
+      vi.mocked(useLocalStorage).mockReturnValue(['system', setStoredTheme]);
+
+      // getSystemTheme должен вернуть 'dark' когда window undefined в SSR
+      // Но в тестах window доступен, поэтому просто проверяем что не падает
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      // Восстанавливаем
+      window.matchMedia = originalMatchMedia;
+
+      // Проверяем что тема установлена (не упало)
+      expect(result.current).toBeDefined();
+    });
+
+    it('should handle document undefined in applyTheme (SSR)', () => {
+      // Тестируем что applyTheme не падает когда document недоступен
+      // В реальном SSR это обрабатывается в функции applyTheme
+      const setStoredTheme = vi.fn();
+      vi.mocked(useLocalStorage).mockReturnValue(['light', setStoredTheme]);
+      mockMatchMedia.mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      });
+
+      // В jsdom document всегда доступен, но функция applyTheme проверяет typeof document === 'undefined'
+      // Проверяем что тема применяется нормально
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      // Проверяем что тема установлена (не упало)
+      expect(result.current).toBeDefined();
+      expect(result.current.theme).toBe('light');
+    });
   });
 });

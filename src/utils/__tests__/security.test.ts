@@ -71,6 +71,38 @@ describe('security', () => {
       expect(sanitizeUrl('ws://localhost:8080')).toBeTruthy();
       expect(sanitizeUrl('wss://localhost:8080')).toBeTruthy();
     });
+
+    it('should handle invalid BACKEND_URL in backend-only mode', () => {
+      // Мокаем VITE_BACKEND_URL с невалидным URL через vi.stubEnv
+      const originalEnv = import.meta.env.VITE_BACKEND_URL;
+      vi.stubEnv('VITE_BACKEND_URL', 'not-a-valid-url');
+
+      // Должен разрешить localhost когда BACKEND_URL невалидный
+      expect(sanitizeUrl('http://localhost:3000')).toBe(
+        'http://localhost:3000'
+      );
+
+      // Восстанавливаем через vi.unstubAllEnvs или просто оставляем как есть для теста
+      vi.unstubAllEnvs();
+      if (originalEnv) {
+        vi.stubEnv('VITE_BACKEND_URL', originalEnv);
+      }
+    });
+
+    it('should allow URLs matching backend hostname', () => {
+      const originalEnv = import.meta.env.VITE_BACKEND_URL;
+      vi.stubEnv('VITE_BACKEND_URL', 'https://backend.example.com');
+
+      expect(sanitizeUrl('https://backend.example.com/api')).toBe(
+        'https://backend.example.com/api'
+      );
+
+      // Восстанавливаем
+      vi.unstubAllEnvs();
+      if (originalEnv) {
+        vi.stubEnv('VITE_BACKEND_URL', originalEnv);
+      }
+    });
   });
 
   describe('sanitizeTokenSymbol', () => {
@@ -179,6 +211,26 @@ describe('security', () => {
       expect(safeGet(null, 'a.b', 'default')).toBe('default');
       expect(safeGet(undefined, 'a.b', 'default')).toBe('default');
       expect(safeGet('not-object', 'a.b', 'default')).toBe('default');
+    });
+
+    it('should return default when intermediate path is null', () => {
+      const obj = { a: null };
+      expect(safeGet(obj, 'a.b.c', 'default')).toBe('default');
+    });
+
+    it('should return default when intermediate path is undefined', () => {
+      const obj = { a: undefined };
+      expect(safeGet(obj, 'a.b.c', 'default')).toBe('default');
+    });
+
+    it('should return default when intermediate path is not an object', () => {
+      const obj = { a: 'string' };
+      expect(safeGet(obj, 'a.b.c', 'default')).toBe('default');
+    });
+
+    it('should return default when intermediate path is number', () => {
+      const obj = { a: 42 };
+      expect(safeGet(obj, 'a.b.c', 'default')).toBe('default');
     });
   });
 

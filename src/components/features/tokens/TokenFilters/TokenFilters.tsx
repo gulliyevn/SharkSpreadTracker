@@ -69,6 +69,13 @@ export function TokenFilters({
             ? 'bg-primary-600 border-primary-600 text-white'
             : 'bg-light-100 dark:bg-dark-800 border-light-300 dark:border-dark-700 text-light-700 dark:text-dark-300 hover:bg-light-200 dark:hover:bg-dark-700'
         )}
+        aria-label={
+          showDirectOnly
+            ? 'Hide direct spread only filter'
+            : 'Show direct spread only filter'
+        }
+        aria-pressed={showDirectOnly}
+        role="switch"
       >
         {t('filters.directOnly') || 'Только прямой'}
       </button>
@@ -88,6 +95,13 @@ export function TokenFilters({
             ? 'bg-primary-600 border-primary-600 text-white'
             : 'bg-light-100 dark:bg-dark-800 border-light-300 dark:border-dark-700 text-light-700 dark:text-dark-300 hover:bg-light-200 dark:hover:bg-dark-700'
         )}
+        aria-label={
+          showReverseOnly
+            ? 'Hide reverse spread only filter'
+            : 'Show reverse spread only filter'
+        }
+        aria-pressed={showReverseOnly}
+        role="switch"
       >
         {t('filters.reverseOnly') || 'Только обратный'}
       </button>

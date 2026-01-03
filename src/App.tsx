@@ -28,7 +28,7 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-dark-900 text-gray-900 dark:text-white">
       <Header />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1" role="main">
         <Suspense
           fallback={
             <div className="flex items-center justify-center min-h-[400px]">

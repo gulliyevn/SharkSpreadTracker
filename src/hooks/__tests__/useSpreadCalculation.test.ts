@@ -446,6 +446,52 @@ describe('useSpreadCalculations', () => {
       expect(calc.directSpread).not.toBeNull();
     });
   });
+
+  it('should use cache for repeated calculations', () => {
+    const dataPoints: CurrentData[] = [
+      { ...mockCurrentData, timestamp: 1000 },
+      { ...mockCurrentData, timestamp: 1000 }, // Дубликат с тем же timestamp
+    ];
+
+    const options: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculations(dataPoints, options)
+    );
+
+    expect(result.current).toHaveLength(2);
+    // Оба результата должны быть одинаковыми (из кэша)
+    expect(result.current[0]?.directSpread).toBe(
+      result.current[1]?.directSpread
+    );
+  });
+
+  it('should use median algorithm', () => {
+    const dataPoints: CurrentData[] = [
+      { ...mockCurrentData, timestamp: Date.now() - 2000 },
+      { ...mockCurrentData, timestamp: Date.now() - 1000 },
+      { ...mockCurrentData, timestamp: Date.now() },
+    ];
+
+    const optionsMedian: SpreadCalculationOptions = {
+      source1: 'jupiter',
+      source2: 'mexc',
+      algorithm: 'median',
+    };
+
+    const { result } = renderHook(() =>
+      useSpreadCalculations(dataPoints, optionsMedian)
+    );
+
+    expect(result.current).toHaveLength(3);
+    result.current.forEach((calc) => {
+      expect(calc.directSpread).not.toBeNull();
+      expect(calc.reverseSpread).not.toBeNull();
+    });
+  });
 });
 
 describe('clearSpreadCalculationCache', () => {

@@ -101,11 +101,11 @@ describe('TokenFilters', () => {
       </TestWrapper>
     );
 
-    // Ищем кнопку по тексту (может быть на разных языках)
+    // Ищем кнопку по роли switch (изменено с button на switch для доступности)
     const button = await screen.findByRole(
-      'button',
+      'switch',
       {
-        name: /only direct|только прямой|direct/i,
+        name: /show direct spread only filter|hide direct spread only filter|only direct|только прямой|direct/i,
       },
       { timeout: 3000 }
     );
@@ -137,11 +137,11 @@ describe('TokenFilters', () => {
       </TestWrapper>
     );
 
-    // Ищем кнопку по тексту (может быть на разных языках)
+    // Ищем кнопку по роли switch (изменено с button на switch для доступности)
     const button = await screen.findByRole(
-      'button',
+      'switch',
       {
-        name: /only reverse|только обратный|reverse/i,
+        name: /show reverse spread only filter|hide reverse spread only filter|only reverse|только обратный|reverse/i,
       },
       { timeout: 3000 }
     );

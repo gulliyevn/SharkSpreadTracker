@@ -60,6 +60,7 @@ describe('react-query', () => {
         configurable: true,
       });
 
+      // Создаем частичный мок Query объекта для теста
       const query = {
         state: {
           dataUpdatedAt: Date.now(),
@@ -67,7 +68,7 @@ describe('react-query', () => {
         options: {
           refetchInterval: 5000,
         },
-      } as any;
+      } as unknown as Parameters<typeof refetchInterval>[0];
 
       const result = refetchInterval(query);
       expect(result).toBe(5000);
@@ -89,10 +90,11 @@ describe('react-query', () => {
     const refetchInterval = defaultOptions.queries?.refetchInterval;
 
     if (typeof refetchInterval === 'function') {
+      // Создаем частичный мок Query объекта для теста
       const query = {
         state: {},
         options: {},
-      } as any;
+      } as unknown as Parameters<typeof refetchInterval>[0];
 
       const result = refetchInterval(query);
       expect(result).toBe(false);
@@ -126,9 +128,15 @@ describe('react-query', () => {
 
     if (testQuery) {
       // Обновляем dataUpdatedAt вручную через внутренний API
-      (testQuery.state as any).dataUpdatedAt = oldTime;
-      (testQuery.state as any).status = 'success';
-      (testQuery.state as any).fetchStatus = 'idle';
+      // Используем type assertion для доступа к внутренним свойствам в тестах
+      const state = testQuery.state as {
+        dataUpdatedAt?: number;
+        status?: string;
+        fetchStatus?: string;
+      };
+      state.dataUpdatedAt = oldTime;
+      state.status = 'success';
+      state.fetchStatus = 'idle';
     }
 
     // Ждем немного чтобы setInterval мог сработать

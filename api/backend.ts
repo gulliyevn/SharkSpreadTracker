@@ -9,8 +9,15 @@
 // Node.js runtime позволяет делать запросы к IP-адресам
 
 // ВАЖНО: Node.js Functions используют runtime env (не VITE_ префикс)
-const BACKEND_URL =
-  process.env.BACKEND_URL || 'http://158.220.122.153:8080';
+const BACKEND_URL = (() => {
+  const url = process.env.BACKEND_URL;
+  if (!url) {
+    throw new Error(
+      'BACKEND_URL environment variable is not set. Please configure it in Vercel project settings.'
+    );
+  }
+  return url;
+})();
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
@@ -58,11 +65,14 @@ export default async function handler(
   // Поэтому проксируем запросы к /socket/* как обычные HTTP запросы
 
   try {
-    console.log('[Backend Proxy] Requesting:', {
-      method: req.method,
-      backendUrl,
-      path,
-    });
+    // Логируем только в dev режиме
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Backend Proxy] Requesting:', {
+        method: req.method,
+        backendUrl,
+        path,
+      });
+    }
     
     // ВАЖНО: Создаем чистые заголовки без WebSocket upgrade заголовков
     // Бэкенд должен вернуть HTTP 200 с JSON, если нет заголовков Upgrade
@@ -86,13 +96,15 @@ export default async function handler(
     const responseText = await response.text();
     const contentType = response.headers.get('content-type') || '';
     
-    console.log('[Backend Proxy] Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      contentType,
-      headers: Object.fromEntries(response.headers.entries()),
-      bodyPreview: responseText.substring(0, 200),
-    });
+    // Логируем только в dev режиме
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Backend Proxy] Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        bodyPreview: responseText.substring(0, 200),
+      });
+    }
 
     if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
       return res.status(500).json({
@@ -107,7 +119,10 @@ export default async function handler(
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(response.status).send(responseText);
   } catch (error) {
-    console.error('[Backend Proxy] Error:', error);
+    // Ошибки логируем всегда, но детали только в dev
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Backend Proxy] Error:', error);
+    }
     return res.status(500).json({ error: 'Failed to proxy request to backend' });
   }
 }

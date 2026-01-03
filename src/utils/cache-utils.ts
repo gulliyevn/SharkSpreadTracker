@@ -105,19 +105,38 @@ export function getCacheSize(): number {
 
 /**
  * Очистить старые записи из кэша (старше чем gcTime)
+ *
+ * ПРИМЕЧАНИЕ: React Query автоматически очищает кэш на основе gcTime.
+ * Эта функция используется для ручной очистки или в edge cases.
+ *
+ * @param maxAge - Максимальный возраст записей в миллисекундах (по умолчанию 10 минут)
  */
-export function cleanupOldCache(): void {
+export function cleanupOldCache(maxAge: number = 10 * 60 * 1000): void {
   const cache = queryClient.getQueryCache();
   const queries = cache.getAll();
   const now = Date.now();
-  const maxAge = 10 * 60 * 1000; // 10 минут (gcTime)
 
+  let removedCount = 0;
   queries.forEach((query) => {
     const dataUpdatedAt = query.state.dataUpdatedAt || 0;
-    if (now - dataUpdatedAt > maxAge && query.state.status === 'success') {
+    // Удаляем только успешные запросы, которые старше maxAge и не используются
+    // Проверяем наличие метода getObserversCount (может отсутствовать в моках)
+    const hasNoObservers =
+      typeof query.getObserversCount === 'function'
+        ? query.getObserversCount() === 0
+        : true; // Если метода нет, считаем что подписчиков нет
+
+    if (
+      now - dataUpdatedAt > maxAge &&
+      query.state.status === 'success' &&
+      hasNoObservers
+    ) {
       cache.remove(query);
+      removedCount++;
     }
   });
 
-  logger.debug(`Cleaned up old cache entries`);
+  if (removedCount > 0) {
+    logger.debug(`Cleaned up ${removedCount} old cache entries`);
+  }
 }

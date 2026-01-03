@@ -1,10 +1,14 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { securityHeaders } from './vite.config.security';
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Загружаем переменные окружения из .env файлов
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  return {
   plugins: [react(), securityHeaders()],
   resolve: {
     alias: {
@@ -48,10 +52,23 @@ export default defineConfig({
     proxy: {
       // ВАЖНО: Порядок прокси важен! Более специфичные маршруты должны быть ПЕРВЫМИ
 
-      // Прокси для HTTP запросов к бэкенду (fallback) - ДОЛЖЕН БЫТЬ ПЕРВЫМ
+      // Прокси для HTTP запросов к бэкенду - ДОЛЖЕН БЫТЬ ПЕРВЫМ
       // Этот маршрут должен быть перед другими /api/* маршрутами
       '/api/backend': {
-        target: process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080',
+        target: (() => {
+          const backendUrl = env.VITE_BACKEND_URL;
+          if (!backendUrl) {
+            if (mode === 'development') {
+              throw new Error(
+                'VITE_BACKEND_URL is not set. Please set it in .env file or environment variables.'
+              );
+            }
+            // В production возвращаем пустую строку, чтобы прокси не работал
+            // Это заставит использовать прямые запросы или вызовет ошибку
+            return '';
+          }
+          return backendUrl;
+        })(),
         changeOrigin: true,
           timeout: 180000, // 180 секунд (3 минуты) таймаут для прокси (бэкенду нужно около 2 минут для загрузки данных)
         rewrite: (path) => {
@@ -59,54 +76,61 @@ export default defineConfig({
           // /api/backend/socket/sharkStraight -> /socket/sharkStraight
           const rewritten = path.replace(/^\/api\/backend/, '');
 
-          console.log('[Proxy] HTTP rewrite:', path, '->', rewritten);
+          // Логируем только в dev режиме
+          if (mode === 'development') {
+            console.log('[Proxy] HTTP rewrite:', path, '->', rewritten);
+          }
 
-          console.log('[Proxy] Full rewritten path:', rewritten);
           return rewritten;
         },
         secure: false,
         configure: (proxy, _options) => {
-          const target =
-            process.env.VITE_BACKEND_URL || 'http://158.220.122.153:8080';
+          const target = env.VITE_BACKEND_URL;
+          if (!target) {
+            if (mode === 'development') {
+              console.error(
+                '[Proxy] VITE_BACKEND_URL is not set. Proxy will not work.'
+              );
+            }
+            return;
+          }
 
-          console.log('[Proxy] HTTP proxy configured for /api/backend');
-
-          console.log('[Proxy] Target backend:', target);
+          // Логируем только в dev режиме
+          const isDev = mode === 'development';
+          if (isDev) {
+            console.log('[Proxy] HTTP proxy configured for /api/backend');
+            console.log('[Proxy] Target backend:', target);
+          }
 
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            const requestUrl = req.url || '';
-            const rewrittenUrl = requestUrl.replace(/^\/api\/backend/, '');
-
-            console.log('[Proxy] HTTP request:', req.method, requestUrl);
-
-            console.log('[Proxy] Proxying to:', `${target}${rewrittenUrl}`);
+            if (isDev) {
+              const requestUrl = req.url || '';
+              const rewrittenUrl = requestUrl.replace(/^\/api\/backend/, '');
+              console.log('[Proxy] HTTP request:', req.method, requestUrl);
+              console.log('[Proxy] Proxying to:', `${target}${rewrittenUrl}`);
+            }
           });
 
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log(
-              '[Proxy] HTTP response:',
-              proxyRes.statusCode,
-              'for',
-              req.url
-            );
-
-            console.log(
-              '[Proxy] Content-Type:',
-              proxyRes.headers['content-type']
-            );
-
-            console.log(
-              '[Proxy] Content-Length:',
-              proxyRes.headers['content-length']
-            );
+            if (isDev) {
+              console.log(
+                '[Proxy] HTTP response:',
+                proxyRes.statusCode,
+                'for',
+                req.url
+              );
+            }
           });
 
           proxy.on('error', (err, _req, _res) => {
-            console.error('[Proxy] HTTP proxy error:', err.message);
-            console.error(
-              '[Proxy] Error code:',
-              (err as NodeJS.ErrnoException).code
-            );
+            // Ошибки всегда логируем, но только в dev
+            if (isDev) {
+              console.error('[Proxy] HTTP proxy error:', err.message);
+              console.error(
+                '[Proxy] Error code:',
+                (err as NodeJS.ErrnoException).code
+              );
+            }
           });
         },
       },
@@ -125,7 +149,7 @@ export default defineConfig({
         configure: (proxy, _options) => {
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             // Логируем заголовки для диагностики (только в dev)
-            if (process.env.NODE_ENV === 'development') {
+            if (mode === 'development') {
               const apiKey = req.headers['x-api-key'];
               if (apiKey) {
                 console.log('[Proxy] Jupiter API: x-api-key header found');
@@ -154,4 +178,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

@@ -90,6 +90,24 @@ describe('validation', () => {
       expect(validateTokenSymbol('WBTC')).toBe(true);
       expect(validateTokenSymbol('1INCH')).toBe(true);
     });
+
+    it('should return false for short symbols starting with numbers and ending with few letters', () => {
+      // Строка 50: /^\d+$/i.test(trimmed) - только цифры
+      expect(validateTokenSymbol('100')).toBe(false);
+      expect(validateTokenSymbol('420')).toBe(false);
+
+      // Строка 56: /^\d+[A-Z]{1,2}$/i.test(trimmed) && trimmed.length <= 5
+      expect(validateTokenSymbol('100X')).toBe(false); // 4 символа, начинается с цифр, заканчивается 1 буквой
+      expect(validateTokenSymbol('420AB')).toBe(false); // 5 символов, начинается с цифр, заканчивается 2 буквами
+      expect(validateTokenSymbol('99A')).toBe(false); // 3 символа, начинается с цифр, заканчивается 1 буквой
+    });
+
+    it('should return true for longer symbols starting with numbers', () => {
+      // Длинные символы с цифрами в начале должны проходить
+      expect(validateTokenSymbol('1INCH')).toBe(true); // 5 символов, но больше 5 букв
+      expect(validateTokenSymbol('1000PEPE')).toBe(true); // 8 символов
+      expect(validateTokenSymbol('42069MEME')).toBe(true); // 9 символов
+    });
   });
 
   describe('validatePrice', () => {

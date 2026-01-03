@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback, useMemo } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { TokenCard } from '../TokenCard';
 import type { StraightData } from '@/types';
 import { logger } from '@/utils/logger';
@@ -55,8 +55,25 @@ export const TokenGrid = memo(function TokenGrid({
 
   useEffect(() => {
     updateLayout();
-    window.addEventListener('resize', updateLayout);
-    return () => window.removeEventListener('resize', updateLayout);
+
+    // Debounce для resize события
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    const handleResize = () => {
+      if (resizeTimer) {
+        clearTimeout(resizeTimer);
+      }
+      resizeTimer = setTimeout(() => {
+        updateLayout();
+      }, 150); // 150ms debounce
+    };
+
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimer) {
+        clearTimeout(resizeTimer);
+      }
+    };
   }, [updateLayout]);
 
   // Сбрасываем видимые токены при изменении списка токенов
@@ -96,10 +113,8 @@ export const TokenGrid = memo(function TokenGrid({
     return () => window.removeEventListener('scroll', throttledHandleScroll);
   }, [visibleCount, tokens.length]);
 
-  // Мемоизируем видимые токены для оптимизации
-  const visibleTokens = useMemo(() => {
-    return tokens.slice(0, visibleCount);
-  }, [tokens, visibleCount]);
+  // Видимые токены (slice быстрая операция, мемоизация не нужна)
+  const visibleTokens = tokens.slice(0, visibleCount);
 
   // Защита от пустых данных
   if (tokens.length === 0) {

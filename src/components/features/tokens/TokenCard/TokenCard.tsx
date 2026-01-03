@@ -336,7 +336,11 @@ export const TokenCard = memo(function TokenCard({
             <Pencil className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </button>
           {/* Контейнер для спредов: зеленый слева, красный/серый справа, разделены по середине */}
-          <div className="flex h-7 rounded overflow-hidden">
+          <div
+            className="flex h-7 rounded overflow-hidden"
+            role="group"
+            aria-label="Spread values"
+          >
             {/* Зеленый спред (прямой: BNB/Sol → MEXC) - слева */}
             <div
               className={cn(
@@ -348,6 +352,7 @@ export const TokenCard = memo(function TokenCard({
                   ? `hsl(${directSpreadColor.h}, ${directSpreadColor.s}%, ${directSpreadColor.l}%)`
                   : undefined,
               }}
+              aria-label={`Direct spread: ${directSpread !== null ? `${directSpread.toFixed(2)}%` : 'not available'}`}
             >
               <span className="text-white text-xs font-medium">
                 {directSpread !== null ? `${directSpread.toFixed(2)}%` : '—'}
@@ -364,6 +369,7 @@ export const TokenCard = memo(function TokenCard({
                   ? `hsl(${reverseSpreadColor.h}, ${reverseSpreadColor.s}%, ${reverseSpreadColor.l}%)`
                   : undefined,
               }}
+              aria-label={`Reverse spread: ${reverseSpread !== null && !isNaN(reverseSpread) ? `${reverseSpread.toFixed(2)}%` : 'not available'}`}
             >
               <span className="text-white text-xs font-medium">
                 {reverseSpread !== null && !isNaN(reverseSpread)

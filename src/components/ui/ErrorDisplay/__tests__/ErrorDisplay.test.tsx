@@ -151,7 +151,9 @@ describe('ErrorDisplay', () => {
   it('should show error message when stack is not available', async () => {
     const error = new Error('Test error');
     // Удаляем stack, чтобы проверить ветку без stack
-    delete (error as any).stack;
+    // Удаляем stack для чистоты теста
+    const errorWithoutStack = error as Error & { stack?: string };
+    delete errorWithoutStack.stack;
 
     render(
       <TestWrapper>
