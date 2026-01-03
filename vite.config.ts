@@ -58,12 +58,14 @@ export default defineConfig(({ mode }) => {
         target: (() => {
           const backendUrl = env.VITE_BACKEND_URL;
           if (!backendUrl) {
-            if (mode === 'development') {
+            // В CI окружении (E2E тесты) не требуем VITE_BACKEND_URL
+            // Прокси просто не будет работать, что приемлемо для тестов
+            if (mode === 'development' && !process.env.CI) {
               throw new Error(
                 'VITE_BACKEND_URL is not set. Please set it in .env file or environment variables.'
               );
             }
-            // В production возвращаем пустую строку, чтобы прокси не работал
+            // В production или CI возвращаем пустую строку, чтобы прокси не работал
             // Это заставит использовать прямые запросы или вызовет ошибку
             return '';
           }
