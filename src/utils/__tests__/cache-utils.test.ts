@@ -133,6 +133,17 @@ describe('cache-utils', () => {
       // Should not throw
       await expect(prefetchTokens()).resolves.toBeUndefined();
     });
+
+    it('should handle dynamic import error in prefetchTokens', async () => {
+      // Мокаем prefetchQuery, чтобы он выбрасывал ошибку при динамическом импорте
+      vi.mocked(queryClient.prefetchQuery).mockImplementationOnce(async () => {
+        // Симулируем ошибку при динамическом импорте
+        throw new Error('Failed to import getAllTokens');
+      });
+
+      // Should not throw
+      await expect(prefetchTokens()).resolves.toBeUndefined();
+    });
   });
 
   describe('getCacheSize', () => {

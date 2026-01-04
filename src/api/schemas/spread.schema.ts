@@ -42,9 +42,7 @@ export const SourcesSchema = z.object({
  */
 export const SpreadResponseSchema = z.object({
   symbol: z.string().min(1, 'Symbol is required'),
-  chain: z.enum(['solana', 'bsc'], {
-    errorMap: () => ({ message: 'Chain must be either solana or bsc' }),
-  }),
+  chain: z.enum(['solana', 'bsc']),
   history: z.array(SpreadDataPointSchema),
   current: CurrentDataSchema.nullable(),
   sources: SourcesSchema,

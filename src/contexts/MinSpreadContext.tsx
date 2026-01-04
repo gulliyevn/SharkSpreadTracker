@@ -18,7 +18,10 @@ export function MinSpreadProvider({ children }: MinSpreadProviderProps) {
     const saved = localStorage.getItem('min-spread');
     if (saved && saved !== '') {
       const parsed = parseFloat(saved);
-      return !isNaN(parsed) && parsed > 0 ? parsed : 0;
+      // Проверяем на NaN, Infinity и валидность числа
+      if (!isNaN(parsed) && isFinite(parsed) && parsed >= 0 && parsed <= 1000) {
+        return parsed;
+      }
     }
     return 0;
   });

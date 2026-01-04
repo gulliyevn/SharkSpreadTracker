@@ -31,7 +31,7 @@ export const MexcFilterSchema = z.union([
   MexcMinNotionalFilterSchema,
   MexcLotSizeFilterSchema,
   // Другие типы фильтров (MARKET_LOT_SIZE, MAX_NUM_ORDERS, etc.) - принимаем любой объект
-  z.record(z.unknown()),
+  z.record(z.string(), z.unknown()),
 ]);
 
 /**

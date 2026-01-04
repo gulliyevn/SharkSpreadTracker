@@ -1,8 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { setupMocks, clearMocks } from './setup/mocks';
 
 test.describe('TokensPage', () => {
   test.beforeEach(async ({ page }) => {
+    // Настраиваем моки перед каждым тестом
+    await setupMocks(page);
     await page.goto('/');
+  });
+
+  test.afterEach(async ({ page }) => {
+    // Очищаем моки после каждого теста
+    await clearMocks(page);
   });
 
   test('should load TokensPage and display tokens', async ({ page }) => {

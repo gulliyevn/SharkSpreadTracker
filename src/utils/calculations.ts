@@ -40,8 +40,28 @@ export function isArbitrageOpportunity(spread: number | null): boolean {
 
 /**
  * Округление числа до указанного количества знаков после запятой
+ * Использует более точный метод для больших чисел
  */
 export function roundToDecimals(value: number, decimals: number = 2): number {
+  if (!isFinite(value)) {
+    return value;
+  }
+
+  // Для больших чисел используем более точный метод
+  if (Math.abs(value) > 1e15) {
+    // Используем toFixed для очень больших чисел
+    return parseFloat(value.toFixed(decimals));
+  }
+
+  // Для обычных чисел используем стандартный метод
   const multiplier = Math.pow(10, decimals);
-  return Math.round(value * multiplier) / multiplier;
+  const rounded = Math.round(value * multiplier) / multiplier;
+
+  // Проверяем на потерю точности
+  if (!isFinite(rounded)) {
+    // Если потеряли точность, используем toFixed
+    return parseFloat(value.toFixed(decimals));
+  }
+
+  return rounded;
 }

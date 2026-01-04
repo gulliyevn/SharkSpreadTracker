@@ -23,6 +23,8 @@ export function TokenSearch({
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-500 dark:text-gray-500" />
       <input
         type="text"
+        id="token-search-input"
+        name="token-search"
         value={value}
         onChange={(e) => {
           // Обновляем значение напрямую без санитизации (React уже защищает от XSS)

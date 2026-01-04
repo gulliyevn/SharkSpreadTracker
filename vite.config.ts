@@ -21,20 +21,37 @@ export default defineConfig(({ mode }) => {
     target: 'es2020', // Современный target для меньшего размера
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Выделяем vendor библиотеки для лучшего кэширования
-          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
-          'query-vendor': ['@tanstack/react-query'],
-          'chart-vendor': ['recharts'],
-          'i18n-vendor': [
-            'i18next',
-            'react-i18next',
-            'i18next-browser-languagedetector',
-          ],
-          'ui-vendor': ['lucide-react', 'react-icons'],
-          // axios используется только в backend.client.ts, который не используется в основном коде
-          // Убираем из manualChunks, чтобы избежать пустого chunk
-          // 'axios-vendor': ['axios'],
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react/jsx-runtime')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'query-vendor';
+            }
+            if (id.includes('recharts')) {
+              return 'chart-vendor';
+            }
+            if (id.includes('i18next') || id.includes('react-i18next')) {
+              return 'i18n-vendor';
+            }
+            if (id.includes('lucide-react') || id.includes('react-icons')) {
+              return 'ui-vendor';
+            }
+            // Остальные node_modules в отдельный chunk
+            return 'vendor';
+          }
+          
+          // Выделяем useTokensWithSpreads в отдельный chunk для code splitting
+          if (id.includes('useTokensWithSpreads')) {
+            return 'tokens-hook';
+          }
+          
+          // Выделяем API адаптеры в отдельный chunk
+          if (id.includes('/api/adapters/')) {
+            return 'api-adapters';
+          }
         },
         // Оптимизация имен файлов для лучшего кэширования
         chunkFileNames: 'assets/[name]-[hash].js',

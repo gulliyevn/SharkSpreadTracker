@@ -127,4 +127,17 @@ describe('initTheme', () => {
     // Восстанавливаем window
     global.window = originalWindow;
   });
+
+  it('должен возвращаться без действий, если document не определен', () => {
+    // Сохраняем оригинальный document
+    const originalDocument = global.document;
+    // @ts-expect-error - временно удаляем document для теста
+    delete global.document;
+
+    // Функция не должна выбросить ошибку
+    expect(() => initTheme()).not.toThrow();
+
+    // Восстанавливаем document
+    global.document = originalDocument;
+  });
 });

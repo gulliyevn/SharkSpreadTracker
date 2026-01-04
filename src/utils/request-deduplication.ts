@@ -101,6 +101,18 @@ if (import.meta.hot) {
   });
 }
 
+// Очищаем интервал при закрытии страницы (предотвращение утечки памяти)
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    cleanupDeduplicationInterval();
+  });
+
+  // Также очищаем при unmount (pagehide для лучшей совместимости)
+  window.addEventListener('pagehide', () => {
+    cleanupDeduplicationInterval();
+  });
+}
+
 /**
  * Создать ключ для дедупликации из параметров запроса
  */

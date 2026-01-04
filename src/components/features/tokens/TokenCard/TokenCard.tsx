@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { createMexcFuturesUrl } from '@/utils/mexc-futures';
 import { createJupiterSwapUrlWithUSDC } from '@/utils/jupiter-swap';
 import { createPancakeSwapUrlWithBUSD } from '@/utils/pancakeswap-swap';
+import { logger } from '@/utils/logger';
 
 // Иконки бирж и сетей из публичной папки assets
 const MEXC_LOGO = '/assets/MEXC Logo Mark_Blue.png';
@@ -83,7 +84,7 @@ export const TokenCard = memo(function TokenCard({
 }: TokenCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const { success } = useToast();
+  const { success, error: showError } = useToast();
 
   // Извлекаем данные из StraightData
   const tokenSymbol = (token.token || '').toUpperCase().trim();
@@ -164,25 +165,11 @@ export const TokenCard = memo(function TokenCard({
   const handleCopyToken = useCallback(async () => {
     // Копируем адрес токена (если есть), иначе символ токена
     const textToCopy = tokenAddress || tokenSymbol;
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      setIsCopied(true);
-      success(
-        tokenAddress
-          ? 'Token address copied to clipboard'
-          : 'Token symbol copied to clipboard'
-      );
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch {
-      // Fallback для старых браузеров
-      const textArea = document.createElement('textarea');
-      textArea.value = textToCopy;
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      document.body.appendChild(textArea);
-      textArea.select();
+
+    // Проверяем доступность Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
       try {
-        document.execCommand('copy');
+        await navigator.clipboard.writeText(textToCopy);
         setIsCopied(true);
         success(
           tokenAddress
@@ -190,24 +177,96 @@ export const TokenCard = memo(function TokenCard({
             : 'Token symbol copied to clipboard'
         );
         setTimeout(() => setIsCopied(false), 2000);
-      } catch {
-        // Игнорируем ошибку
+        return;
+      } catch (error) {
+        // Clipboard API не работает, пробуем fallback
+        if (error instanceof Error) {
+          logger.warn('Clipboard API failed, using fallback:', error.message);
+        }
       }
-      document.body.removeChild(textArea);
     }
-  }, [tokenAddress, tokenSymbol, success]);
+
+    // Fallback для старых браузеров или когда Clipboard API недоступен
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = textToCopy;
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        setIsCopied(true);
+        success(
+          tokenAddress
+            ? 'Token address copied to clipboard'
+            : 'Token symbol copied to clipboard'
+        );
+        setTimeout(() => setIsCopied(false), 2000);
+      } else {
+        throw new Error('execCommand("copy") returned false');
+      }
+    } catch (error) {
+      logger.error('Failed to copy to clipboard:', error);
+      // Показываем пользователю альтернативный способ
+      showError(`Please copy manually: ${textToCopy}`);
+    }
+  }, [tokenAddress, tokenSymbol, success, showError]);
 
   const handleMexcClick = useCallback(() => {
     const url = exchangeUrls.mexc;
     if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      try {
+        const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+        if (
+          !newWindow ||
+          newWindow.closed ||
+          typeof newWindow.closed === 'undefined'
+        ) {
+          // Popup был заблокирован
+          logger.warn(
+            'Popup blocked for MEXC URL. User may need to allow popups.'
+          );
+          // Показываем пользователю сообщение или открываем в той же вкладке
+          window.location.href = url;
+        }
+      } catch (error) {
+        logger.error('Failed to open MEXC URL:', error);
+        // Fallback: открываем в той же вкладке
+        window.location.href = url;
+      }
     }
   }, [exchangeUrls]);
 
   const handleNetworkExchangeClick = useCallback(() => {
     const url = exchangeUrls.network;
     if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      try {
+        const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+        if (
+          !newWindow ||
+          newWindow.closed ||
+          typeof newWindow.closed === 'undefined'
+        ) {
+          // Popup был заблокирован
+          logger.warn(
+            'Popup blocked for network exchange URL. User may need to allow popups.'
+          );
+          // Показываем пользователю сообщение или открываем в той же вкладке
+          window.location.href = url;
+        }
+      } catch (error) {
+        logger.error('Failed to open network exchange URL:', error);
+        // Fallback: открываем в той же вкладке
+        window.location.href = url;
+      }
     }
   }, [exchangeUrls]);
 

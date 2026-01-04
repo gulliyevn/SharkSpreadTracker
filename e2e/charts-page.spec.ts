@@ -1,9 +1,20 @@
 import { test, expect } from '@playwright/test';
+import { setupMocks, clearMocks } from './setup/mocks';
 
 test.describe('ChartsPage', () => {
   test.beforeEach(async ({ page }) => {
+    // Настраиваем моки перед каждым тестом
+    await setupMocks(page);
     // Переходим на страницу Charts
     await page.goto('/');
+  });
+
+  test.afterEach(async ({ page }) => {
+    // Очищаем моки после каждого теста
+    await clearMocks(page);
+  });
+
+  test('should load ChartsPage', async ({ page }) => {
     
     // Ищем кнопку переключения на Charts (обычно в Header)
     const chartsButton = page.locator('button:has-text("Charts"), button:has-text("Графики"), a:has-text("Charts"), a:has-text("Графики")').first();

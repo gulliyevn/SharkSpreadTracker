@@ -159,7 +159,8 @@ export function TokenDetailsModal({
         return;
       }
       const value = parseFloat(inputValue);
-      if (!isNaN(value) && value >= 0) {
+      // Проверяем на NaN, Infinity и валидность числа, ограничиваем разумным максимумом
+      if (!isNaN(value) && isFinite(value) && value >= 0 && value <= 1000) {
         setMinSpread(value);
       }
     },

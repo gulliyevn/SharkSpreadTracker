@@ -36,6 +36,7 @@ export function useLocalStorage<T>(
 
   // Функция для обновления значения
   const setValue = (value: T | ((val: T) => T)) => {
+    let serialized: string | null = null;
     try {
       // Поддержка функционального обновления
       const valueToStore =
@@ -43,7 +44,7 @@ export function useLocalStorage<T>(
       setStoredValue(valueToStore);
       if (typeof window !== 'undefined') {
         // Безопасное сохранение - проверяем размер данных
-        const serialized = JSON.stringify(valueToStore);
+        serialized = JSON.stringify(valueToStore);
         // Ограничение размера localStorage (5MB максимум)
         if (serialized.length > 5 * 1024 * 1024) {
           logger.error(`Data too large for localStorage key "${key}"`);
@@ -53,10 +54,23 @@ export function useLocalStorage<T>(
       }
     } catch (error) {
       // Обработка ошибок QuotaExceededError и других
-      if (error instanceof Error && error.name === 'QuotaExceededError') {
-        logger.error(`localStorage quota exceeded for key "${key}"`);
+      if (error instanceof Error) {
+        if (error.name === 'QuotaExceededError') {
+          logger.error(
+            `localStorage quota exceeded for key "${key}". Data size: ${serialized ? `${serialized.length} bytes` : 'unknown'}. Maximum: 5MB.`
+          );
+        } else if (error.name === 'SecurityError') {
+          logger.error(
+            `localStorage access denied for key "${key}". This may happen in private browsing mode or when cookies are disabled.`
+          );
+        } else {
+          logger.error(
+            `Error setting localStorage key "${key}": ${error.message}`,
+            error
+          );
+        }
       } else {
-        logger.error(`Error setting localStorage key "${key}":`, error);
+        logger.error(`Unknown error setting localStorage key "${key}":`, error);
       }
     }
   };

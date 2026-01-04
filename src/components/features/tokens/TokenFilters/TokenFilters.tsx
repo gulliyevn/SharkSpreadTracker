@@ -28,11 +28,16 @@ export function TokenFilters({
     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
       {/* Фильтр по минимальному спреду */}
       <div className="flex items-center gap-2">
-        <label className="text-xs sm:text-sm text-light-600 dark:text-dark-400 whitespace-nowrap">
+        <label
+          htmlFor="min-spread-input"
+          className="text-xs sm:text-sm text-light-600 dark:text-dark-400 whitespace-nowrap"
+        >
           {t('filters.minSpread') || 'OT:'}
         </label>
         <input
           type="number"
+          id="min-spread-input"
+          name="min-spread"
           min="0"
           step="0.1"
           value={minSpread}

@@ -198,6 +198,95 @@ import { ChartsLayout } from '@/components/features/spreads/ChartsLayout';
 <ChartsLayout tokens={tokens} />
 ```
 
+### API Hooks - React Query hooks
+
+#### useTokens - Получение всех токенов
+```tsx
+import { useTokens } from '@/api/hooks/useTokens';
+
+function MyComponent() {
+  const { data: tokens, isLoading, error, refetch } = useTokens();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  
+  return (
+    <div>
+      {tokens?.map(token => (
+        <div key={token.token}>{token.token}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+#### useSpreadData - Получение данных спреда для токена
+```tsx
+import { useSpreadData } from '@/api/hooks/useSpreadData';
+
+function SpreadComponent({ token }) {
+  const { data: spreadData, isLoading } = useSpreadData(
+    token,
+    '1h', // timeframe
+    true  // enabled
+  );
+  
+  if (isLoading) return <div>Loading spread data...</div>;
+  
+  return (
+    <div>
+      <p>Current spread: {spreadData?.current?.spread}%</p>
+      <p>History points: {spreadData?.history?.length}</p>
+    </div>
+  );
+}
+```
+
+#### useTokensWithSpreads - Токены с ценами и спредами
+```tsx
+import { useTokensWithSpreads } from '@/api/hooks/useTokensWithSpreads';
+
+function TokensList() {
+  const { data: tokens, isLoading, loadedCount, totalCount } = useTokensWithSpreads();
+  
+  return (
+    <div>
+      <p>Loaded: {loadedCount} / {totalCount}</p>
+      {tokens.map(token => (
+        <TokenCard key={token.token} token={token} />
+      ))}
+    </div>
+  );
+}
+```
+
+### Утилиты
+
+#### Расчет спреда
+```tsx
+import { calculateSpread } from '@/utils/calculations';
+
+const spread = calculateSpread(100, 105); // 5%
+const isArbitrage = spread !== null && spread > 0;
+```
+
+#### Валидация токена
+```tsx
+import { validateTokenSymbol } from '@/utils/validation';
+
+if (validateTokenSymbol('BTC')) {
+  // Валидный символ
+}
+```
+
+#### Санитизация данных
+```tsx
+import { sanitizeString, sanitizeUrl } from '@/utils/security';
+
+const safeText = sanitizeString('<script>alert("xss")</script>');
+const safeUrl = sanitizeUrl('https://example.com');
+```
+
 ## 📁 Структура проекта
 
 ```

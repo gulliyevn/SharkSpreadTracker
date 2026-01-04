@@ -5,7 +5,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
     reviewers:
       - "gulliyevn"
     labels:
@@ -35,6 +35,10 @@ updates:
       - dependency-name: "@tanstack/react-query"
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-i18next"
         update-types: ["version-update:semver-major"]
 
   # Enable version updates for GitHub Actions

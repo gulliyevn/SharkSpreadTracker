@@ -33,7 +33,20 @@ export async function fetchStraightSpreadsInternal(
   // ВАЖНО: На HTTPS страницах (production) требуется wss:// (WebSocket Secure)
   // Бэкенд должен поддерживать wss:// для работы на production
   // HTTP fallback доступен только если явно включен через VITE_USE_HTTP_FALLBACK
-  const useHttpFallback = import.meta.env.VITE_USE_HTTP_FALLBACK === 'true';
+  // ИЛИ если мы на HTTPS странице (production) - автоматически используем HTTP fallback
+  // ИЛИ если WebSocket URL начинается с ws:// (небезопасный) на HTTPS странице
+  const isHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const isProduction = import.meta.env.PROD;
+  const isInsecureWs = WEBSOCKET_URL.startsWith('ws://');
+
+  // На localhost в dev режиме используем WebSocket напрямую (если не включен HTTP fallback)
+  // На production/HTTPS или если явно включен HTTP fallback - используем HTTP
+  // Если на HTTPS странице пытаемся использовать ws:// - автоматически переключаемся на HTTP fallback
+  const useHttpFallback =
+    import.meta.env.VITE_USE_HTTP_FALLBACK === 'true' ||
+    (isProduction && isHttps) ||
+    (isHttps && isInsecureWs);
 
   if (useHttpFallback) {
     logger.info('[WebSocket] Using HTTP fallback for production/HTTPS');

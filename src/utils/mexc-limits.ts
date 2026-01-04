@@ -25,7 +25,7 @@ export function extractMexcLimits(
   );
   if (minNotionalFilter && 'minNotional' in minNotionalFilter) {
     const minNotional = parseFloat(minNotionalFilter.minNotional as string);
-    if (!isNaN(minNotional) && minNotional > 0) {
+    if (!isNaN(minNotional) && isFinite(minNotional) && minNotional > 0) {
       limits.minNotional = minNotional;
     }
   }
@@ -43,13 +43,13 @@ export function extractMexcLimits(
     const maxQty = parseFloat(lotSizeFilter.maxQty as string);
     const stepSize = parseFloat(lotSizeFilter.stepSize as string);
 
-    if (!isNaN(minQty) && minQty > 0) {
+    if (!isNaN(minQty) && isFinite(minQty) && minQty > 0) {
       limits.minQty = minQty;
     }
-    if (!isNaN(maxQty) && maxQty > 0) {
+    if (!isNaN(maxQty) && isFinite(maxQty) && maxQty > 0) {
       limits.maxQty = maxQty;
     }
-    if (!isNaN(stepSize) && stepSize > 0) {
+    if (!isNaN(stepSize) && isFinite(stepSize) && stepSize > 0) {
       limits.stepSize = stepSize;
     }
   }

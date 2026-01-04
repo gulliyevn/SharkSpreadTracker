@@ -20,9 +20,14 @@ function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') {
     return 'dark';
   }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  } catch {
+    // Если matchMedia недоступен (например, в некоторых тестовых окружениях), возвращаем 'dark'
+    return 'dark';
+  }
 }
 
 /**
@@ -64,21 +69,26 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   // Слушать изменения системной темы
   useEffect(() => {
-    if (storedTheme !== 'system') {
+    if (storedTheme !== 'system' || typeof window === 'undefined') {
       return;
     }
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      const newTheme = e.matches ? 'dark' : 'light';
-      applyTheme(newTheme);
-      setResolvedTheme(newTheme);
-    };
+    try {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e: MediaQueryListEvent) => {
+        const newTheme = e.matches ? 'dark' : 'light';
+        applyTheme(newTheme);
+        setResolvedTheme(newTheme);
+      };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
+      mediaQuery.addEventListener('change', handleChange);
+      return () => {
+        mediaQuery.removeEventListener('change', handleChange);
+      };
+    } catch {
+      // Если matchMedia недоступен, просто возвращаемся без подписки
+      return;
+    }
   }, [storedTheme]);
 
   const setTheme = (theme: Theme) => {

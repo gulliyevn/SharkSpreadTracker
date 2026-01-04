@@ -32,7 +32,8 @@ import {
   trackTokenSelected,
 } from '@/lib/analytics';
 import type { Token, StraightData } from '@/types';
-import { STORAGE_KEYS } from '@/constants/api';
+import { STORAGE_KEYS, REFRESH_INTERVALS } from '@/constants/api';
+import { logger } from '@/utils/logger';
 
 /**
  * Функция для создания уникального ключа токена (token-network)
@@ -258,7 +259,7 @@ export function TokensPage() {
 
     const interval = setInterval(() => {
       refetch();
-    }, 3000); // Обновляем каждые 3 секунды
+    }, REFRESH_INTERVALS.TOKENS); // Используем константу из настроек (2 минуты)
 
     return () => clearInterval(interval);
   }, [isAutoRefresh, refetch]);
@@ -278,14 +279,15 @@ export function TokensPage() {
 
   const handleMinSpreadInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const inputValue = e.target.value;
+      const inputValue = e.target.value.trim();
       // Разрешаем пустое значение
       if (inputValue === '') {
         setMinSpread(0);
         return;
       }
       const value = parseFloat(inputValue);
-      if (!isNaN(value) && value >= 0) {
+      // Проверяем на NaN, Infinity и валидность числа, ограничиваем разумным максимумом
+      if (!isNaN(value) && isFinite(value) && value >= 0 && value <= 1000) {
         handleMinSpreadChange(value);
       }
     },
@@ -366,7 +368,17 @@ export function TokensPage() {
           JSON.stringify(Array.from(newSet))
         );
       } catch (error) {
-        console.error('Error saving favorites:', error);
+        if (error instanceof Error) {
+          if (error.name === 'QuotaExceededError') {
+            logger.error(
+              'Failed to save favorites: localStorage quota exceeded. Please clear some data.'
+            );
+          } else {
+            logger.error('Failed to save favorites:', error.message);
+          }
+        } else {
+          logger.error('Failed to save favorites:', error);
+        }
       }
       return newSet;
     });
@@ -479,11 +491,16 @@ export function TokensPage() {
 
               {/* Минимальный спред */}
               <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border bg-white dark:bg-dark-800 border-light-300 dark:border-dark-700">
-                <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                <label
+                  htmlFor="tokens-min-spread-input"
+                  className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 whitespace-nowrap"
+                >
                   {t('filters.minSpread')}
                 </label>
                 <input
                   type="number"
+                  id="tokens-min-spread-input"
+                  name="tokens-min-spread"
                   min="0"
                   step="0.1"
                   value={minSpread === 0 ? '' : minSpread}

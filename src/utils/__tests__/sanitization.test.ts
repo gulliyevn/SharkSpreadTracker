@@ -37,6 +37,16 @@ describe('sanitization', () => {
       const schema = z.string();
       expect(sanitizeArray([], schema)).toEqual([]);
     });
+
+    it('should handle error in schema.parse during array sanitization', () => {
+      const schema = z.string().min(6); // Минимум 6 символов
+      const data = ['short', 'toolong'];
+
+      // Первый элемент не пройдет валидацию (меньше 6 символов)
+      // Второй пройдет
+      const result = sanitizeArray(data, schema);
+      expect(result).toEqual(['toolong']);
+    });
   });
 
   describe('sanitizeObject', () => {

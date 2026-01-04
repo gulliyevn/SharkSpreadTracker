@@ -159,5 +159,27 @@ describe('mexc-limits', () => {
 
       expect(extractMexcLimits(symbol)).toBeNull();
     });
+
+    it('should handle invalid stepSize (NaN or Infinity)', () => {
+      const symbol: MexcSymbol = {
+        symbol: 'BTCUSDT',
+        status: 'ENABLED',
+        filters: [
+          {
+            filterType: 'LOT_SIZE',
+            minQty: '0.001',
+            maxQty: '1000.0',
+            stepSize: 'invalid', // Невалидное значение
+          },
+        ],
+      };
+
+      const result = extractMexcLimits(symbol);
+      // stepSize не должен быть извлечен из-за невалидного значения
+      expect(result).toEqual({
+        minQty: 0.001,
+        maxQty: 1000.0,
+      });
+    });
   });
 });

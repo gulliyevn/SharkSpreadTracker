@@ -107,7 +107,8 @@ export function ChartsPage() {
         return;
       }
       const value = parseFloat(inputValue);
-      if (!isNaN(value) && value >= 0) {
+      // Проверяем на NaN, Infinity и валидность числа, ограничиваем разумным максимумом
+      if (!isNaN(value) && isFinite(value) && value >= 0 && value <= 1000) {
         setMinSpread(value);
       }
     },
@@ -472,11 +473,16 @@ export function ChartsPage() {
 
               {/* Минимальный спред */}
               <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border bg-white dark:bg-dark-800 border-light-300 dark:border-dark-700">
-                <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                <label
+                  htmlFor="charts-min-spread-input"
+                  className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 whitespace-nowrap"
+                >
                   {t('filters.minSpread') || 'Min:'}
                 </label>
                 <input
                   type="number"
+                  id="charts-min-spread-input"
+                  name="charts-min-spread"
                   min="0"
                   step="0.1"
                   value={minSpread === 0 ? '' : minSpread}

@@ -25,8 +25,8 @@ describe('API Constants', () => {
   });
 
   it('should export REFRESH_INTERVALS with correct values', () => {
-    expect(REFRESH_INTERVALS.SPREAD_DATA).toBe(30000);
-    expect(REFRESH_INTERVALS.TOKENS).toBe(120000);
+    expect(REFRESH_INTERVALS.SPREAD_DATA).toBe(3000); // 3 секунды
+    expect(REFRESH_INTERVALS.TOKENS).toBe(15000); // 15 секунд
   });
 
   it('should export STORAGE_KEYS with correct values', () => {

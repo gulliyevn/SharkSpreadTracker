@@ -171,5 +171,13 @@ describe('validation', () => {
       const past = Date.now() - 1000; // 1 second ago
       expect(validateTimestamp(past)).toBe(true);
     });
+
+    it('should reject short symbols starting with digits and ending with letters', () => {
+      // Строка 50 - это проверка для коротких символов с цифрами
+      expect(validateTokenSymbol('100X')).toBe(false); // 4 символа, начинается с цифр
+      expect(validateTokenSymbol('420USDT')).toBe(false); // Начинается с цифр и заканчивается на USDT
+      expect(validateTokenSymbol('1INCH')).toBe(true); // Длиннее 5 символов, валидный
+      expect(validateTokenSymbol('3CRV')).toBe(true); // Длиннее 5 символов, валидный
+    });
   });
 });

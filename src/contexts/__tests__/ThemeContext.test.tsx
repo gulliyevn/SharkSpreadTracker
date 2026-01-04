@@ -302,5 +302,33 @@ describe('ThemeContext', () => {
       expect(result.current).toBeDefined();
       expect(result.current.theme).toBe('light');
     });
+
+    it('should handle window undefined in getSystemTheme (SSR)', () => {
+      // В jsdom window всегда доступен, поэтому мы не можем реально удалить его
+      // Вместо этого проверяем, что getSystemTheme корректно обрабатывает случай,
+      // когда window.matchMedia недоступен (симуляция SSR)
+      const setStoredTheme = vi.fn();
+      vi.mocked(useLocalStorage).mockReturnValue(['system', setStoredTheme]);
+
+      // Мокаем matchMedia чтобы выбросить ошибку (симуляция SSR когда matchMedia недоступен)
+      const originalMatchMedia = window.matchMedia;
+      // Временно заменяем matchMedia на функцию, которая выбрасывает ошибку
+      window.matchMedia = (() => {
+        throw new Error('matchMedia is not available');
+      }) as unknown as typeof window.matchMedia;
+
+      // В реальном SSR getSystemTheme проверяет typeof window === 'undefined' и возвращает 'dark'
+      // Когда matchMedia недоступен, функция должна вернуть 'dark' по умолчанию
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      // Восстанавливаем matchMedia
+      window.matchMedia = originalMatchMedia;
+
+      // Проверяем что тема установлена (не упало) и возвращает 'dark' по умолчанию
+      expect(result.current).toBeDefined();
+      expect(result.current.resolvedTheme).toBe('dark');
+    });
   });
 });

@@ -1,9 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { setupMocks, clearMocks } from './setup/mocks';
 
 test.describe('Analytics Tracking', () => {
   test.beforeEach(async ({ page }) => {
+    // Настраиваем моки перед каждым тестом
+    await setupMocks(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+  });
+
+  test.afterEach(async ({ page }) => {
+    // Очищаем моки после каждого теста
+    await clearMocks(page);
   });
 
   test('should track page view on load', async ({ page }) => {

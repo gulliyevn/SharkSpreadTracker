@@ -68,7 +68,7 @@ export function securityHeaders(): Plugin {
         
         res.setHeader(
           'Content-Security-Policy',
-          `default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src ${connectSrc}; base-uri 'self'; form-action 'self'; frame-ancestors 'none';`
+          `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src ${connectSrc}; base-uri 'self'; form-action 'self'; frame-ancestors 'none';`
         );
         // XSS Protection
         res.setHeader('X-XSS-Protection', '1; mode=block');
