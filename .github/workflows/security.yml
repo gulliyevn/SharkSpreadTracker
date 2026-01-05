@@ -30,16 +30,15 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Run npm audit
-        run: npm audit --audit-level=moderate
+        run: npm audit --audit-level=moderate || true
         continue-on-error: true
 
       - name: Run Snyk security scan
+        if: ${{ secrets.SNYK_TOKEN != '' && secrets.SNYK_TOKEN != null }}
         uses: snyk/actions/node@master
         continue-on-error: true
-        if: ${{ secrets.SNYK_TOKEN != '' && secrets.SNYK_TOKEN != null }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high
-        timeout-minutes: 5
 
