@@ -29,7 +29,7 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  */
 export const WEBSOCKET_URL = (() => {
   // ВАЖНО: Если установлен VITE_WEBSOCKET_URL, используем его напрямую
-  // Это позволяет использовать прямой WebSocket URL даже на production
+  // Это позволяет использовать прямой WebSocket URL на production и localhost
   if (import.meta.env.VITE_WEBSOCKET_URL) {
     return import.meta.env.VITE_WEBSOCKET_URL;
   }
@@ -43,22 +43,6 @@ export const WEBSOCKET_URL = (() => {
       'ws://'
     );
     return `${wsUrl}/socket/sharkStraight`;
-  }
-
-  // Fallback: используем относительный путь через прокси (HTTP fallback)
-  // Это используется только если VITE_WEBSOCKET_URL и BACKEND_URL не установлены
-  const isProduction = import.meta.env.PROD;
-  const isHttps =
-    typeof window !== 'undefined' && window.location.protocol === 'https:';
-  const isLocalhost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1');
-  const isDev = import.meta.env.DEV;
-
-  if (isProduction || isHttps || (isDev && isLocalhost)) {
-    // Используем относительный URL для HTTP fallback через прокси
-    return '/api/backend/socket/sharkStraight';
   }
 
   return '';

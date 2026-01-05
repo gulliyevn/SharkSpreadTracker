@@ -36,9 +36,10 @@ jobs:
       - name: Run Snyk security scan
         uses: snyk/actions/node@master
         continue-on-error: true
-        if: ${{ secrets.SNYK_TOKEN != '' }}
+        if: ${{ secrets.SNYK_TOKEN != '' && secrets.SNYK_TOKEN != null }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high
+        timeout-minutes: 5
 

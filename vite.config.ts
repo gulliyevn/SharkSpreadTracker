@@ -89,7 +89,7 @@ export default defineConfig(({ mode }) => {
           return backendUrl;
         })(),
         changeOrigin: true,
-          timeout: 180000, // 180 секунд (3 минуты) таймаут для прокси (бэкенду нужно около 2 минут для загрузки данных)
+        timeout: 180000, // 180 секунд (3 минуты) таймаут для прокси (бэкенду нужно около 2 минут для загрузки данных)
         rewrite: (path) => {
           // Убираем /api/backend из пути, оставляя остальное
           // /api/backend/socket/sharkStraight -> /socket/sharkStraight
