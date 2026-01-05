@@ -23,6 +23,11 @@ import { setConnectionStatus } from './connection-status';
 
 type MessageCallback = (data: StraightData[]) => void;
 type ErrorCallback = (error: Error) => void;
+type CloseCallback = (event: {
+  code: number;
+  wasClean: boolean;
+  hadData: boolean;
+}) => void;
 
 const CONNECTION_TIMEOUT = 30000; // 30 секунд для установления соединения
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000]; // Экспоненциальная задержка, макс 30s
@@ -33,6 +38,7 @@ class WebSocketConnectionManager {
   private ws: WebSocket | null = null;
   private subscribers: Set<MessageCallback> = new Set();
   private errorCallbacks: Set<ErrorCallback> = new Set();
+  private closeCallbacks: Set<CloseCallback> = new Set();
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectionTimer: ReturnType<typeof setTimeout> | null = null;
@@ -111,6 +117,16 @@ class WebSocketConnectionManager {
   }
 
   /**
+   * Подписаться на закрытие соединения
+   */
+  onClose(callback: CloseCallback): () => void {
+    this.closeCallbacks.add(callback);
+    return () => {
+      this.closeCallbacks.delete(callback);
+    };
+  }
+
+  /**
    * Установить соединение
    */
   connect(params: WebSocketParams = {}): void {
@@ -184,6 +200,15 @@ class WebSocketConnectionManager {
         this.connectionTimer = null;
       }
       setConnectionStatus('connected');
+
+      // ВАЖНО: После подключения бэкенд может отправить служебное сообщение {"type":"connected"}
+      // Это нормально, нужно просто подождать реальных данных
+      // Не закрываем соединение и не считаем это ошибкой
+
+      // Логируем, что ждем данные от бэкенда
+      logger.info(
+        `[WS Manager] Waiting for data from backend (${this.subscribers.size} subscribers waiting)...`
+      );
     };
 
     this.ws.onmessage = async (event) => {
@@ -234,8 +259,16 @@ class WebSocketConnectionManager {
         logger.info('[WS Manager] Parsing message...');
         const parsedRows = parseWebSocketMessage(textData);
         logger.info(
-          `[WS Manager] Parsed ${parsedRows.length} rows from message`
+          `[WS Manager] Parsed ${parsedRows.length} rows from message (total length: ${textData.length} chars)`
         );
+
+        // Дополнительное логирование для диагностики
+        if (parsedRows.length === 0 && textData.length > 0) {
+          logger.warn(
+            '[WS Manager] ⚠️ Message received but parsed to 0 rows. Raw message:',
+            textData.slice(0, 1000)
+          );
+        }
 
         if (parsedRows.length > 0) {
           // Сохраняем последние данные для новых подписчиков
@@ -245,9 +278,12 @@ class WebSocketConnectionManager {
           );
           this.notifySubscribers(parsedRows);
         } else {
-          logger.warn(
-            '[WS Manager] ⚠️ No valid rows after parsing (might be error message or empty data)'
+          // Если получили только служебное сообщение (например, {"type":"connected"}),
+          // это нормально - просто ждем реальных данных
+          logger.debug(
+            '[WS Manager] Received service message or empty data, waiting for actual data...'
           );
+          // НЕ логируем это как предупреждение, так как это нормальное поведение
         }
       } catch (error) {
         logger.error('[WS Manager] Failed to process message:', error);
@@ -258,7 +294,25 @@ class WebSocketConnectionManager {
     };
 
     this.ws.onerror = (error) => {
-      logger.error('[WS Manager] ❌ WebSocket error:', error);
+      // Проверяем на Mixed Content проблему (HTTP → WSS)
+      const isMixedContent =
+        typeof window !== 'undefined' &&
+        window.location.protocol === 'http:' &&
+        this.url.startsWith('wss://');
+
+      if (isMixedContent) {
+        logger.error(
+          '[WS Manager] ❌ Mixed Content Error: Cannot connect to wss:// from http:// page\n' +
+            'Backend does not support insecure ws:// protocol (redirects to https://)\n' +
+            'Solutions:\n' +
+            '1. Set VITE_USE_MOCK_DATA=true in .env.local for development\n' +
+            '2. OR setup local HTTPS for dev server\n' +
+            '3. OR use production build (HTTPS)'
+        );
+      } else {
+        logger.error('[WS Manager] ❌ WebSocket error:', error);
+      }
+
       this.isConnecting = false;
       if (this.connectionTimer) {
         clearTimeout(this.connectionTimer);
@@ -275,6 +329,20 @@ class WebSocketConnectionManager {
         hasLastData: !!this.lastData,
         lastDataLength: this.lastData?.length || 0,
         subscribers: this.subscribers.size,
+      });
+
+      // Уведомляем подписчиков о закрытии соединения
+      const hadData = !!(this.lastData && this.lastData.length > 0);
+      this.closeCallbacks.forEach((callback) => {
+        try {
+          callback({
+            code: event.code,
+            wasClean: event.wasClean,
+            hadData,
+          });
+        } catch (err) {
+          logger.error('[WS Manager] Error in close callback:', err);
+        }
       });
 
       // Согласно документации API, бэкенд закрывает соединение после отправки данных (code 1000 = normal closure)
@@ -298,9 +366,21 @@ class WebSocketConnectionManager {
       // Если это не было намеренное закрытие (code 1000 = normal closure)
       // И есть подписчики, которые еще ждут данных - переподключаемся
       if (event.code !== 1000 && this.subscribers.size > 0) {
-        logger.warn('[WS Manager] Unexpected close, will attempt reconnect');
+        // Проверяем, получили ли мы данные перед закрытием
+        if (!this.lastData || this.lastData.length === 0) {
+          logger.warn(
+            `[WS Manager] Unexpected close (code=${event.code}) without receiving data, will attempt reconnect`
+          );
+        } else {
+          logger.info(
+            `[WS Manager] Connection closed (code=${event.code}) but data was received, not reconnecting`
+          );
+        }
         setConnectionStatus('disconnected');
-        this.handleReconnect();
+        // Переподключаемся только если не получили данные
+        if (!this.lastData || this.lastData.length === 0) {
+          this.handleReconnect();
+        }
       } else {
         setConnectionStatus('disconnected');
       }

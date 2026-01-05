@@ -89,6 +89,7 @@ export default defineConfig(({ mode }) => {
           return backendUrl;
         })(),
         changeOrigin: true,
+        ws: true, // ВАЖНО: Включаем поддержку WebSocket для прокси
         timeout: 180000, // 180 секунд (3 минуты) таймаут для прокси (бэкенду нужно около 2 минут для загрузки данных)
         rewrite: (path) => {
           // Убираем /api/backend из пути, оставляя остальное
@@ -125,19 +126,61 @@ export default defineConfig(({ mode }) => {
             if (isDev) {
               const requestUrl = req.url || '';
               const rewrittenUrl = requestUrl.replace(/^\/api\/backend/, '');
-              console.log('[Proxy] HTTP request:', req.method, requestUrl);
+              const isWebSocket = req.headers.upgrade === 'websocket';
+              console.log('[Proxy] HTTP request:', req.method, requestUrl, isWebSocket ? '(WebSocket upgrade)' : '');
               console.log('[Proxy] Proxying to:', `${target}${rewrittenUrl}`);
+              // #region agent log
+              if (isWebSocket) {
+                console.log('[Proxy] [DEBUG] WebSocket upgrade detected:', {
+                  url: requestUrl,
+                  headers: {
+                    upgrade: req.headers.upgrade,
+                    connection: req.headers.connection,
+                    'sec-websocket-key': req.headers['sec-websocket-key'],
+                    'sec-websocket-version': req.headers['sec-websocket-version'],
+                  },
+                });
+              }
+              // #endregion
             }
           });
 
           proxy.on('proxyRes', (proxyRes, req, _res) => {
             if (isDev) {
+              const isWebSocket = req.headers.upgrade === 'websocket';
               console.log(
                 '[Proxy] HTTP response:',
                 proxyRes.statusCode,
                 'for',
-                req.url
+                req.url,
+                isWebSocket ? '(WebSocket upgrade)' : ''
               );
+              // #region agent log
+              if (isWebSocket) {
+                console.log('[Proxy] [DEBUG] WebSocket upgrade response:', {
+                  statusCode: proxyRes.statusCode,
+                  url: req.url,
+                  headers: {
+                    upgrade: proxyRes.headers.upgrade,
+                    connection: proxyRes.headers.connection,
+                    'sec-websocket-accept': proxyRes.headers['sec-websocket-accept'],
+                  },
+                });
+              }
+              // #endregion
+            }
+          });
+          
+          // Обработчик для WebSocket upgrade
+          proxy.on('upgrade', (req, _socket, _head) => {
+            if (isDev) {
+              console.log('[Proxy] [DEBUG] WebSocket upgrade event:', {
+                url: req.url,
+                headers: {
+                  upgrade: req.headers.upgrade,
+                  connection: req.headers.connection,
+                },
+              });
             }
           });
 

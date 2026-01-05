@@ -28,21 +28,68 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
  * константа REVERSE_WEBSOCKET_URL для обратного спреда
  */
 export const WEBSOCKET_URL = (() => {
-  // ВАЖНО: Если установлен VITE_WEBSOCKET_URL, используем его напрямую
-  // Это позволяет использовать прямой WebSocket URL на production и localhost
-  if (import.meta.env.VITE_WEBSOCKET_URL) {
-    return import.meta.env.VITE_WEBSOCKET_URL;
+  const isDev = import.meta.env.DEV;
+  const viteWebsocketUrl = import.meta.env.VITE_WEBSOCKET_URL;
+
+  // ВАЖНО: Если используются mock-данные, WebSocket URL не нужен
+  if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    return '';
+  }
+
+  // ВАЖНО: WebSocket НЕ может быть проксирован через HTTP прокси Vite
+  // Поэтому в dev режиме используем прямой WebSocket URL к бэкенду
+  // Прокси работает только для HTTP запросов, не для WebSocket
+  if (viteWebsocketUrl) {
+    const isAbsolute =
+      viteWebsocketUrl.startsWith('ws://') ||
+      viteWebsocketUrl.startsWith('wss://');
+
+    // В dev режиме: если URL абсолютный, используем его напрямую (WebSocket не проксируется)
+    // ВАЖНО: Если страница HTTP, а WebSocket URL wss://, браузер блокирует Mixed Content
+    // В dev режиме на HTTP странице используем ws:// вместо wss://
+    if (isAbsolute) {
+      let finalUrl = viteWebsocketUrl;
+
+      // В dev режиме: если страница HTTP, а WebSocket URL wss://, преобразуем в ws://
+      if (
+        isDev &&
+        typeof window !== 'undefined' &&
+        window.location.protocol === 'http:' &&
+        viteWebsocketUrl.startsWith('wss://')
+      ) {
+        finalUrl = viteWebsocketUrl.replace('wss://', 'ws://');
+      }
+
+      return finalUrl;
+    }
+
+    // Если URL относительный - используем как есть (может быть для другого случая)
+    return viteWebsocketUrl;
   }
 
   // Если BACKEND_URL установлен, формируем WebSocket URL из него
   if (BACKEND_URL) {
+    // ВАЖНО: WebSocket НЕ может быть проксирован через HTTP прокси
+    // Поэтому всегда используем прямой абсолютный URL к бэкенду
     // Преобразуем http:// или https:// в ws:// или wss://
-    // ВАЖНО: Для production используем wss:// если BACKEND_URL начинается с https://
-    const wsUrl = BACKEND_URL.replace(/^https:\/\//, 'wss://').replace(
+    let wsUrl = BACKEND_URL.replace(/^https:\/\//, 'wss://').replace(
       /^http:\/\//,
       'ws://'
     );
-    return `${wsUrl}/socket/sharkStraight`;
+    let finalUrl = `${wsUrl}/socket/sharkStraight`;
+
+    // В dev режиме: если страница HTTP, а WebSocket URL wss://, преобразуем в ws://
+    // Это избегает Mixed Content блокировки браузером
+    if (
+      isDev &&
+      typeof window !== 'undefined' &&
+      window.location.protocol === 'http:' &&
+      finalUrl.startsWith('wss://')
+    ) {
+      finalUrl = finalUrl.replace('wss://', 'ws://');
+    }
+
+    return finalUrl;
   }
 
   return '';

@@ -125,32 +125,40 @@ async function fetchStraightSpreads(
  */
 class BackendApiAdapter implements IApiAdapter {
   async getAllTokens(signal?: AbortSignal): Promise<StraightData[]> {
-    logger.debug('[API] getAllTokens called');
-    console.log('📞 [API] getAllTokens called');
-    // Используем fetchStraightSpreads который уже имеет кэширование и дедупликацию
-    const rows = await fetchStraightSpreads({ signal });
+    logger.info('[API] getAllTokens called');
+    try {
+      // Используем fetchStraightSpreads который уже имеет кэширование и дедупликацию
+      const rows = await fetchStraightSpreads({ signal });
 
-    logger.debug(`[API] fetchStraightSpreads returned ${rows.length} rows`);
+      logger.debug(`[API] fetchStraightSpreads returned ${rows.length} rows`);
 
-    // Если WebSocket вернул пустой результат - возвращаем пустой массив
-    if (rows.length === 0) {
-      logger.warn('[API] WebSocket returned empty result - no data available');
-      logger.debug('[API] Returning empty array to React Query');
+      // Если WebSocket вернул пустой результат - возвращаем пустой массив
+      if (rows.length === 0) {
+        logger.warn(
+          '[API] WebSocket returned empty result - no data available'
+        );
+        logger.debug('[API] Returning empty array to React Query');
+        return [];
+      }
+
+      // Возвращаем данные без изменений
+      logger.info(`[API] Loaded ${rows.length} tokens from backend`);
+      logger.debug('[API] Returning tokens to React Query:', {
+        count: rows.length,
+        firstToken: rows[0]?.token || 'none',
+        sample: rows.slice(0, 3).map((r) => ({
+          token: r.token,
+          network: r.network,
+          spread: r.spread,
+        })),
+      });
+      return rows;
+    } catch (error) {
+      logger.error('[API] Error in getAllTokens:', error);
+      // Возвращаем пустой массив вместо выбрасывания ошибки
+      // Это позволяет React Query не делать retry при ошибках подключения
       return [];
     }
-
-    // Возвращаем данные без изменений
-    logger.info(`[API] Loaded ${rows.length} tokens from backend`);
-    logger.debug('[API] Returning tokens to React Query:', {
-      count: rows.length,
-      firstToken: rows[0]?.token || 'none',
-      sample: rows.slice(0, 3).map((r) => ({
-        token: r.token,
-        network: r.network,
-        spread: r.spread,
-      })),
-    });
-    return rows;
   }
 
   async getAllPrices(token: Token, signal?: AbortSignal): Promise<AllPrices> {

@@ -9,6 +9,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Переменные окружения для тестов
+    env: {
+      // Отключаем mock-данные в тестах - тесты должны быть изолированными
+      VITE_USE_MOCK_DATA: 'false',
+    },
     // Test suites configuration
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: [

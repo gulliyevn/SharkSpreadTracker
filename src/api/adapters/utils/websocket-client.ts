@@ -53,10 +53,21 @@ export function createWebSocketUrl(
     // Создаем URL с ws:// или wss:// протоколом
     url = new URL(normalizedBaseUrl);
   } else {
-    url = new URL(
-      normalizedBaseUrl,
-      typeof window !== 'undefined' ? window.location.href : 'http://localhost'
-    );
+    // Для относительных путей создаем URL относительно текущего location
+    // ВАЖНО: Затем преобразуем протокол с http/https на ws/wss
+    const baseLocation =
+      typeof window !== 'undefined'
+        ? window.location
+        : { protocol: 'http:', host: 'localhost:3000' };
+    const baseUrlForRelative = `${baseLocation.protocol}//${baseLocation.host}${normalizedBaseUrl}`;
+    url = new URL(baseUrlForRelative);
+
+    // Преобразуем протокол: http:// -> ws://, https:// -> wss://
+    if (url.protocol === 'http:') {
+      url.protocol = 'ws:';
+    } else if (url.protocol === 'https:') {
+      url.protocol = 'wss:';
+    }
   }
 
   // Добавляем query параметры если они указаны
