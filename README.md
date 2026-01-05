@@ -34,7 +34,8 @@ npm install
 cp .env.example .env.local
 
 # Отредактируй .env.local и укажи URL твоего бэкенда
-# VITE_BACKEND_URL=http://158.220.122.153:8080
+# Например, если бэкенд доступен по домену:
+# VITE_BACKEND_URL=https://sosal.space
 ```
 
 ## 🏃 Запуск
@@ -56,12 +57,15 @@ npm run dev
 
 2. **Укажи URL бэкенда** в `.env.local`:
    ```env
-   VITE_BACKEND_URL=http://158.220.122.153:8080
+   # Основной HTTPS-URL бэкенда
+   VITE_BACKEND_URL=https://sosal.space
    ```
 
 3. **Опционально - WebSocket URL** (если нужен прямой WebSocket):
    ```env
-   VITE_WEBSOCKET_URL=ws://158.220.122.153:8080/socket/sharkStraight
+   # Явный WebSocket-URL (если не указать, он соберётся из VITE_BACKEND_URL)
+   # Для production обязательно wss://
+   VITE_WEBSOCKET_URL=wss://sosal.space/socket/sharkStraight
    ```
 
 4. **Для отладки HTTP fallback** (принудительно использовать HTTP вместо WebSocket):
