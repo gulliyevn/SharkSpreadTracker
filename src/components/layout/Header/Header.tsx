@@ -18,15 +18,6 @@ export function Header() {
       role="banner"
       className="sticky top-0 z-50 w-full border-b bg-white/95 dark:bg-dark-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-dark-900/80 border-light-200 dark:border-dark-800"
     >
-      {/* Skip links для клавиатурной навигации */}
-      <div className="sr-only focus-within:not-sr-only focus-within:absolute focus-within:top-2 focus-within:left-2 focus-within:z-[100]">
-        <a
-          href="#main-content"
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-        >
-          Skip to main content
-        </a>
-      </div>
       <div className="container mx-auto px-3 sm:px-4 md:px-4 lg:px-8">
         <div className="flex flex-col sm:flex-row h-auto sm:min-h-[68px] md:min-h-[72px] items-stretch sm:items-center justify-between gap-2 sm:gap-0 py-2 sm:py-2 md:py-3">
           {/* Logo and Title - на мобильной версии в первой строке с кнопками */}
