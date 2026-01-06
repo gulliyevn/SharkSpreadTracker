@@ -1,4 +1,4 @@
- import { Moon, Sun, BarChart3, Coins } from 'lucide-react';
+import { Moon, Sun, BarChart3, Coins } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useView } from '@/contexts/ViewContext';
