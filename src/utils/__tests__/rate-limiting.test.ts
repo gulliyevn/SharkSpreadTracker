@@ -273,8 +273,11 @@ describe('rate-limiting', () => {
 
       const promise = withRateLimitRetry(requestFn, 2, 1000);
 
-      // Запускаем все таймеры
-      await vi.runAllTimersAsync();
+      // Запускаем все таймеры и ждем завершения промиса
+      const timerPromise = vi.runAllTimersAsync();
+      const resultPromise = promise.catch((error) => error);
+
+      await Promise.all([timerPromise, resultPromise]);
 
       try {
         await promise;
@@ -367,8 +370,11 @@ describe('rate-limiting', () => {
 
       const promise = withRateLimitRetry(requestFn, 1, 1000);
 
-      // Запускаем все таймеры
-      await vi.runAllTimersAsync();
+      // Запускаем все таймеры и ждем завершения промиса
+      const timerPromise = vi.runAllTimersAsync();
+      const resultPromise = promise.catch((error) => error);
+
+      await Promise.all([timerPromise, resultPromise]);
 
       try {
         await promise;
