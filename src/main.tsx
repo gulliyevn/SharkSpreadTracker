@@ -20,6 +20,7 @@ import { logger } from '@/utils/logger';
 import '@/utils/indexeddb';
 import App from '@/App';
 import '@/styles/tailwind.css';
+import { wsConnectionManager } from '@/api/adapters/websocket-connection-manager';
 
 // Инициализация Sentry (error tracking)
 initSentry();
@@ -92,6 +93,28 @@ window.addEventListener('unhandledrejection', (event) => {
 
   logger.error('Unhandled promise rejection:', event.reason);
 });
+
+// Очистка WebSocket соединений при закрытии страницы или unmount
+const cleanup = () => {
+  try {
+    logger.info('[Main] Cleaning up WebSocket connections...');
+    wsConnectionManager.disconnect();
+  } catch (error) {
+    logger.error('[Main] Error during cleanup:', error);
+  }
+};
+
+// Очищаем соединения при закрытии страницы
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', cleanup);
+
+  // Очищаем при hot reload в development
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      cleanup();
+    });
+  }
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

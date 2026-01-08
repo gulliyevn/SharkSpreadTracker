@@ -20,11 +20,15 @@ const BACKEND_URL = (() => {
 })();
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getCorsHeaders } from './utils/cors';
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const requestOrigin = req.headers.origin || null;
+  
   // Пытаемся получить оригинальный путь из различных источников
   let originalPath = req.url || '';
   
@@ -115,14 +119,24 @@ export default async function handler(
       });
     }
 
+    const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET', 'POST', 'OPTIONS'], ['Content-Type']);
     res.setHeader('Content-Type', contentType || 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    // Устанавливаем CORS заголовки если они есть
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
+    
     res.status(response.status).send(responseText);
   } catch (error) {
     // Ошибки логируем всегда, но детали только в dev
     if (process.env.NODE_ENV === 'development') {
     console.error('[Backend Proxy] Error:', error);
     }
+    const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET', 'POST', 'OPTIONS'], ['Content-Type']);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
     return res.status(500).json({ error: 'Failed to proxy request to backend' });
   }
 }

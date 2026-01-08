@@ -3,6 +3,8 @@
  * Работает в корне api/, так как новые поддиректории не подхватываются Vercel
  */
 
+import { getCorsHeaders } from './utils/cors';
+
 export const config = { runtime: "edge" };
 
 // Известные endpoints, которые обрабатываются другими файлами
@@ -17,6 +19,8 @@ const SKIP_PATHS = [
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   const pathname = url.pathname;
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const requestOrigin = req.headers.get('origin');
   
   // Пропускаем известные endpoints - возвращаем 404, чтобы Vercel попробовал другие handlers
   if (SKIP_PATHS.some(path => pathname === path || pathname.startsWith(path + '/'))) {
@@ -83,6 +87,7 @@ export default async function handler(req: Request) {
     const contentType = response.headers.get('content-type') || '';
 
     if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
+      const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET', 'POST', 'OPTIONS'], ['Content-Type']);
       return new Response(
         JSON.stringify({
           error: 'Backend returned HTML instead of JSON',
@@ -94,17 +99,18 @@ export default async function handler(req: Request) {
           status: 500,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...corsHeaders,
           },
         }
       );
     }
 
+    const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET', 'POST', 'OPTIONS'], ['Content-Type']);
     return new Response(responseText, {
       status: response.status,
       headers: {
         'Content-Type': contentType || 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        ...corsHeaders,
       },
     });
   } catch (error) {
@@ -112,13 +118,14 @@ export default async function handler(req: Request) {
     if (process.env.NODE_ENV === 'development') {
     console.error('[Backend Proxy] Error:', error);
     }
+    const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET', 'POST', 'OPTIONS'], ['Content-Type']);
     return new Response(
       JSON.stringify({ error: 'Failed to proxy request to backend' }),
       {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+          ...corsHeaders,
         },
       }
     );

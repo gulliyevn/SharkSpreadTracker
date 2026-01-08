@@ -3,6 +3,7 @@ import { cn } from '@/utils/cn';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { calculateSpread } from '@/utils/calculations';
 import { loadSpreadHistory } from '@/utils/spreadHistory';
+import { logger } from '@/utils/logger';
 import type {
   SpreadResponse,
   SourceType,
@@ -58,7 +59,7 @@ export function SpreadHistoryTableContent({
         setSavedHistory(history);
       })
       .catch((error) => {
-        console.error('Failed to load spread history:', error);
+        logger.error('Failed to load spread history:', error);
         setSavedHistory([]);
       });
   }, [token, timeframe]);

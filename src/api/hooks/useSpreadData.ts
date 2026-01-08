@@ -13,9 +13,30 @@ import type { Token, SpreadResponse, TimeframeOption } from '@/types';
  * - При каждом обновлении создается новое WebSocket соединение (request-response паттерн)
  * - Интервал адаптируется в зависимости от состояния сети
  *
- * @param token - Токен (symbol и chain)
- * @param timeframe - Таймфрейм для исторических данных
- * @param enabled - Включить/выключить запрос
+ * @param token - Токен (symbol и chain) или null для отключения запроса
+ * @param timeframe - Таймфрейм для исторических данных (по умолчанию '1h')
+ * @param enabled - Включить/выключить запрос (по умолчанию true)
+ * @returns Объект с данными спреда, состоянием загрузки, ошибками и функцией refetch
+ *
+ * @example
+ * ```tsx
+ * function SpreadChart({ token }) {
+ *   const { data: spreadData, isLoading, refetch } = useSpreadData(
+ *     token,
+ *     '1h',
+ *     true
+ *   );
+ *
+ *   if (isLoading) return <div>Loading spread data...</div>;
+ *
+ *   return (
+ *     <div>
+ *       <p>Current spread: {spreadData?.current?.spread}%</p>
+ *       <p>History points: {spreadData?.history?.length}</p>
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 export function useSpreadData(
   token: Token | null,

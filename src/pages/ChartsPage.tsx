@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import type { SortOption } from '@/components/features/tokens/SortSelector';
 import type { Token, StraightData, TimeframeOption, SourceType } from '@/types';
+import { logger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/api';
 
 /**
@@ -72,7 +73,7 @@ export function ChartsPage() {
         return new Set(favorites);
       }
     } catch (error) {
-      console.error('Error loading favorites:', error);
+      logger.error('Error loading favorites:', error);
     }
     return new Set<string>();
   });
@@ -293,7 +294,7 @@ export function ChartsPage() {
           JSON.stringify(Array.from(newSet))
         );
       } catch (error) {
-        console.error('Error saving favorites:', error);
+        logger.error('Error saving favorites:', error);
       }
       return newSet;
     });
@@ -331,7 +332,7 @@ export function ChartsPage() {
     if (lastPoint) {
       updateSpreadHistory(selectedToken, lastPoint, timeframe).catch(
         (error) => {
-          console.error('Failed to save spread history:', error);
+          logger.error('Failed to save spread history:', error);
         }
       );
     }

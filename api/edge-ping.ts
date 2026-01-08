@@ -3,11 +3,17 @@
  * Endpoint: /api/edge-ping
  */
 
+import { getCorsHeaders } from './utils/cors';
+
 export const config = {
   runtime: 'edge',
 };
 
 export default async function handler(req: Request) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const requestOrigin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment);
+  
   return new Response(
     JSON.stringify({
       success: true,
@@ -22,7 +28,7 @@ export default async function handler(req: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        ...corsHeaders,
       },
     }
   );

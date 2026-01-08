@@ -78,7 +78,7 @@ export function TokensPage() {
         return new Set(favorites);
       }
     } catch (error) {
-      console.error('Error loading favorites:', error);
+      logger.error('Error loading favorites:', error);
     }
     return new Set<string>();
   });

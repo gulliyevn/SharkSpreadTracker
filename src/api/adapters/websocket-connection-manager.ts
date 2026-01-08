@@ -371,6 +371,14 @@ class WebSocketConnectionManager {
           logger.warn(
             `[WS Manager] Unexpected close (code=${event.code}) without receiving data, will attempt reconnect`
           );
+          logger.warn('[WS Manager] Reconnect details:', {
+            code: event.code,
+            wasClean: event.wasClean,
+            reason: event.reason || 'none',
+            subscribers: this.subscribers.size,
+            reconnectAttempts: this.reconnectAttempts,
+            maxAttempts: MAX_RECONNECT_ATTEMPTS,
+          });
         } else {
           logger.info(
             `[WS Manager] Connection closed (code=${event.code}) but data was received, not reconnecting`
@@ -383,6 +391,17 @@ class WebSocketConnectionManager {
         }
       } else {
         setConnectionStatus('disconnected');
+
+        // Логируем информацию о закрытии для диагностики
+        if (event.code !== 1000) {
+          logger.warn('[WS Manager] Connection closed with non-normal code:', {
+            code: event.code,
+            wasClean: event.wasClean,
+            reason: event.reason || 'none',
+            hadData: !!(this.lastData && this.lastData.length > 0),
+            subscribers: this.subscribers.size,
+          });
+        }
       }
     };
   }
@@ -433,6 +452,21 @@ class WebSocketConnectionManager {
     if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
       logger.error('[WS Manager] Max reconnect attempts reached');
       this.notifyError(new Error('Max reconnection attempts reached'));
+
+      // Логируем информацию о текущем состоянии для диагностики
+      logger.error('[WS Manager] Connection state after max attempts:', {
+        subscribers: this.subscribers.size,
+        isConnecting: this.isConnecting,
+        currentState: this.ws?.readyState ?? null,
+        url: this.url,
+      });
+
+      // Очищаем таймер переподключения
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+
       return;
     }
 
@@ -446,6 +480,11 @@ class WebSocketConnectionManager {
       `[WS Manager] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`
     );
 
+    // Очищаем предыдущий таймер переподключения, если он существует
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+    }
+
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect(this.params);
@@ -456,25 +495,60 @@ class WebSocketConnectionManager {
    * Закрыть соединение
    */
   disconnect(): void {
+    logger.info('[WS Manager] Disconnecting...', {
+      hasWebSocket: !!this.ws,
+      readyState: this.ws?.readyState ?? null,
+      subscribers: this.subscribers.size,
+      isConnecting: this.isConnecting,
+      hasReconnectTimer: !!this.reconnectTimer,
+      hasConnectionTimer: !!this.connectionTimer,
+    });
+
+    // Останавливаем переподключение
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+      logger.debug('[WS Manager] Reconnect timer cleared');
     }
 
+    // Очищаем таймер установки соединения
     if (this.connectionTimer) {
       clearTimeout(this.connectionTimer);
       this.connectionTimer = null;
+      logger.debug('[WS Manager] Connection timer cleared');
     }
 
+    // Закрываем WebSocket соединение
     if (this.ws) {
-      this.ws.close(1000, 'Client disconnect');
-      this.ws = null;
+      try {
+        // Проверяем состояние перед закрытием
+        if (
+          this.ws.readyState === WebSocket.OPEN ||
+          this.ws.readyState === WebSocket.CONNECTING
+        ) {
+          this.ws.close(1000, 'Client disconnect');
+          logger.debug('[WS Manager] WebSocket closed with code 1000');
+        } else {
+          logger.debug(
+            '[WS Manager] WebSocket already closed or closing, state:',
+            this.ws.readyState
+          );
+        }
+      } catch (error) {
+        logger.error('[WS Manager] Error closing WebSocket:', error);
+      } finally {
+        this.ws = null;
+      }
     }
 
+    // Сбрасываем состояние
     this.isConnecting = false;
     this.reconnectAttempts = 0;
     setConnectionStatus('disconnected');
-    logger.info('[WS Manager] Disconnected');
+
+    logger.info('[WS Manager] Disconnected successfully', {
+      subscribers: this.subscribers.size,
+    });
   }
 
   /**

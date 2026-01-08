@@ -3,6 +3,8 @@
  * Решает проблему CORS в production
  */
 
+import { getCorsHeaders } from '../utils/cors';
+
 export const config = {
   runtime: 'edge',
 };
@@ -16,13 +18,17 @@ const JUPITER_API = 'https://api.jup.ag';
 export default async function handler(req: Request) {
   // Начало измерения времени выполнения
   const startTime = performance.now();
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const requestOrigin = req.headers.get('origin');
   
   // Разрешаем только GET запросы
   if (req.method !== 'GET') {
+    const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET'], ['x-api-key', 'Content-Type']);
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: {
         'Content-Type': 'application/json',
+        ...corsHeaders,
       },
     });
   }
@@ -63,6 +69,7 @@ export default async function handler(req: Request) {
 
     // Проверяем статус ответа
     if (!response.ok) {
+      const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET'], ['x-api-key', 'Content-Type']);
       return new Response(
         JSON.stringify({
           error: `Jupiter API error: ${response.status} ${response.statusText}`,
@@ -71,9 +78,7 @@ export default async function handler(req: Request) {
           status: response.status,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET',
-            'Access-Control-Allow-Headers': 'x-api-key, Content-Type',
+            ...corsHeaders,
           },
         }
       );
@@ -86,13 +91,12 @@ export default async function handler(req: Request) {
     const totalDuration = performance.now() - startTime;
 
     // Возвращаем ответ с CORS заголовками и метриками производительности
+    const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET'], ['x-api-key', 'Content-Type']);
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'x-api-key, Content-Type',
+        ...corsHeaders,
         'Cache-Control': 'public, max-age=60, s-maxage=60',
         // Метрики производительности для мониторинга
         'X-Response-Time': `${Math.round(totalDuration)}ms`,
@@ -103,6 +107,7 @@ export default async function handler(req: Request) {
   } catch (error) {
     // Обработка ошибок
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const corsHeaders = getCorsHeaders(requestOrigin, isDevelopment, ['GET'], ['x-api-key', 'Content-Type']);
     
     return new Response(
       JSON.stringify({
@@ -112,9 +117,7 @@ export default async function handler(req: Request) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
-          'Access-Control-Allow-Headers': 'x-api-key, Content-Type',
+          ...corsHeaders,
         },
       }
     );

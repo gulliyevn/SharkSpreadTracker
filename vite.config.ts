@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('@tanstack/react-query')) {
               return 'query-vendor';
             }
-            if (id.includes('recharts')) {
+            if (id.includes('echarts') || id.includes('echarts-for-react')) {
               return 'chart-vendor';
             }
             if (id.includes('i18next') || id.includes('react-i18next')) {
@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes('lucide-react') || id.includes('react-icons')) {
               return 'ui-vendor';
+            }
+            if (id.includes('axios')) {
+              return 'http-vendor';
             }
             // Остальные node_modules в отдельный chunk
             return 'vendor';

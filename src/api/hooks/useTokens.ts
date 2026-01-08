@@ -5,7 +5,29 @@ import type { StraightData } from '@/types';
 
 /**
  * React Query hook для получения всех токенов
- * Возвращает исходные данные от бэкенда без изменений
+ *
+ * Возвращает исходные данные от бэкенда без изменений.
+ * Автоматически кэширует данные и управляет состоянием загрузки.
+ *
+ * @returns Объект с данными токенов, состоянием загрузки, ошибками и функцией refetch
+ *
+ * @example
+ * ```tsx
+ * function TokensList() {
+ *   const { data: tokens, isLoading, error, refetch } = useTokens();
+ *
+ *   if (isLoading) return <div>Loading...</div>;
+ *   if (error) return <div>Error: {error.message}</div>;
+ *
+ *   return (
+ *     <div>
+ *       {tokens?.map(token => (
+ *         <div key={token.token}>{token.token}</div>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 export function useTokens() {
   return useQuery<StraightData[]>({

@@ -72,10 +72,10 @@ export async function fetchStraightSpreadsHttpFallback(
   logger.info(
     `[HTTP Fallback] Trying HTTP GET request to: ${httpUrl.toString()}`
   );
-  console.log('[HTTP Fallback] 🔍 Request URL:', httpUrl.toString());
-  console.log('[HTTP Fallback] 🔍 Is Production:', isProduction);
-  console.log('[HTTP Fallback] 🔍 Is HTTPS:', isHttps);
-  console.log('[HTTP Fallback] 🔍 BACKEND_URL:', BACKEND_URL);
+  logger.debug('[HTTP Fallback] Request URL:', httpUrl.toString());
+  logger.debug('[HTTP Fallback] Is Production:', isProduction);
+  logger.debug('[HTTP Fallback] Is HTTPS:', isHttps);
+  logger.debug('[HTTP Fallback] BACKEND_URL:', BACKEND_URL);
 
   try {
     const controller = new AbortController();
@@ -87,17 +87,15 @@ export async function fetchStraightSpreadsHttpFallback(
     if (params.signal) {
       // Проверяем, не отменен ли уже сигнал
       if (params.signal.aborted) {
-        console.warn(
-          '[HTTP Fallback] ⚠️ Signal already aborted before request'
-        );
+        logger.warn('[HTTP Fallback] Signal already aborted before request');
         logger.debug('[HTTP Fallback] Request signal was already aborted');
         return [];
       }
       params.signal.addEventListener(
         'abort',
         () => {
-          console.log(
-            '[HTTP Fallback] ⚠️ External signal aborted, aborting request'
+          logger.debug(
+            '[HTTP Fallback] External signal aborted, aborting request'
           );
           controller.abort();
         },
@@ -107,8 +105,8 @@ export async function fetchStraightSpreadsHttpFallback(
       );
     }
 
-    console.log('[HTTP Fallback] 📤 Sending fetch request...');
-    console.log('[HTTP Fallback] 📤 Timeout:', HTTP_FALLBACK_TIMEOUT, 'ms');
+    logger.debug('[HTTP Fallback] Sending fetch request...');
+    logger.debug('[HTTP Fallback] Timeout:', HTTP_FALLBACK_TIMEOUT, 'ms');
     const startTime = Date.now();
     const response = await fetch(httpUrl.toString(), {
       method: 'GET',
@@ -118,13 +116,13 @@ export async function fetchStraightSpreadsHttpFallback(
       },
     });
     const requestTime = Date.now() - startTime;
-    console.log('[HTTP Fallback] ⏱️ Request completed in', requestTime, 'ms');
+    logger.debug('[HTTP Fallback] Request completed in', requestTime, 'ms');
 
     clearTimeout(timeoutId);
-    console.log('[HTTP Fallback] 📥 Response status:', response.status);
-    console.log('[HTTP Fallback] 📥 Response ok:', response.ok);
-    console.log(
-      '[HTTP Fallback] 📥 Response headers:',
+    logger.debug('[HTTP Fallback] Response status:', response.status);
+    logger.debug('[HTTP Fallback] Response ok:', response.ok);
+    logger.debug(
+      '[HTTP Fallback] Response headers:',
       Object.fromEntries(response.headers.entries())
     );
 
@@ -152,8 +150,8 @@ export async function fetchStraightSpreadsHttpFallback(
       contentType.includes('text/html') ||
       responseText.trim().startsWith('<!')
     ) {
-      console.error('[HTTP Fallback] ❌ Backend returned HTML instead of JSON');
-      console.error(
+      logger.error('[HTTP Fallback] Backend returned HTML instead of JSON');
+      logger.error(
         '[HTTP Fallback] Response preview:',
         responseText.substring(0, 500)
       );
@@ -168,11 +166,11 @@ export async function fetchStraightSpreadsHttpFallback(
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error(
-        '[HTTP Fallback] ❌ Failed to parse response as JSON:',
+      logger.error(
+        '[HTTP Fallback] Failed to parse response as JSON:',
         parseError
       );
-      console.error(
+      logger.error(
         '[HTTP Fallback] Response preview:',
         responseText.substring(0, 500)
       );
@@ -181,7 +179,7 @@ export async function fetchStraightSpreadsHttpFallback(
       );
       return [];
     }
-    console.log('[HTTP Fallback] ✅ Received data:', {
+    logger.debug('[HTTP Fallback] Received data:', {
       type: Array.isArray(data) ? 'array' : typeof data,
       length: Array.isArray(data) ? data.length : 'N/A',
       preview: Array.isArray(data) && data.length > 0 ? data[0] : data,
@@ -238,14 +236,14 @@ export async function fetchStraightSpreadsHttpFallback(
     } else {
       rows = [];
     }
-    console.log('[HTTP Fallback] ✅ Parsed rows:', rows.length);
+    logger.debug('[HTTP Fallback] Parsed rows:', rows.length);
 
     logger.info(
       `[HTTP Fallback] Successfully parsed ${rows.length} rows from HTTP response`
     );
     return rows;
   } catch (err) {
-    console.error('[HTTP Fallback] ❌ Error:', err);
+    logger.error('[HTTP Fallback] Error:', err);
     if (err instanceof Error && err.name === 'AbortError') {
       // Проверяем, был ли это таймаут или внешняя отмена
       const wasTimeout = !params.signal?.aborted;
@@ -255,33 +253,31 @@ export async function fetchStraightSpreadsHttpFallback(
           HTTP_FALLBACK_TIMEOUT,
           'ms'
         );
-        console.warn(
-          '[HTTP Fallback] ⏱️ Request timed out after',
+        logger.warn(
+          '[HTTP Fallback] Request timed out after',
           HTTP_FALLBACK_TIMEOUT,
           'ms'
         );
-        console.warn('[HTTP Fallback] ⚠️ Backend might be slow or unreachable');
-        console.warn(
-          '[HTTP Fallback] ⚠️ Check if backend is running at:',
+        logger.warn('[HTTP Fallback] Backend might be slow or unreachable');
+        logger.warn(
+          '[HTTP Fallback] Check if backend is running at:',
           BACKEND_URL
         );
       } else {
         logger.debug('[HTTP Fallback] Request aborted by external signal');
-        console.log(
-          '[HTTP Fallback] ⏱️ Request was aborted by external signal'
-        );
+        logger.debug('[HTTP Fallback] Request was aborted by external signal');
       }
     } else {
       logger.error('[HTTP Fallback] HTTP request failed:', err);
-      console.error(
-        '[HTTP Fallback] ❌ Request failed:',
+      logger.error(
+        '[HTTP Fallback] Request failed:',
         err instanceof Error ? err.message : String(err)
       );
       if (err instanceof Error && err.message.includes('fetch')) {
-        console.error(
-          '[HTTP Fallback] ⚠️ Network error - check if backend is accessible'
+        logger.error(
+          '[HTTP Fallback] Network error - check if backend is accessible'
         );
-        console.error('[HTTP Fallback] ⚠️ Backend URL:', BACKEND_URL);
+        logger.error('[HTTP Fallback] Backend URL:', BACKEND_URL);
       }
     }
     return [];

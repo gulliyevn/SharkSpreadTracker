@@ -15,6 +15,7 @@ import {
   requestDeduplicator,
   createDeduplicationKey,
 } from '@/utils/request-deduplication';
+import { withRateLimitRetry, isRateLimitError } from '@/utils/rate-limiting';
 import {
   filterByToken,
   extractValidPrices,
@@ -37,20 +38,44 @@ export type { ConnectionStatus };
 
 /**
  * Интерфейс для API адаптера
+ * Определяет контракт для всех методов работы с API бэкенда
  */
 export interface IApiAdapter {
-  // Tokens
+  /**
+   * Получить все доступные токены
+   * @param signal - AbortSignal для отмены запроса
+   * @returns Promise с массивом токенов и их данными о спредах
+   */
   getAllTokens(signal?: AbortSignal): Promise<StraightData[]>;
 
-  // Prices
+  /**
+   * Получить все цены для указанного токена из разных источников
+   * @param token - Токен для получения цен (symbol и chain)
+   * @param signal - AbortSignal для отмены запроса
+   * @returns Promise с ценами из всех источников (Jupiter, PancakeSwap, MEXC)
+   */
   getAllPrices(token: Token, signal?: AbortSignal): Promise<AllPrices>;
 
-  // Spreads
+  /**
+   * Получить данные спреда для токена с историей
+   * @param token - Токен для получения данных спреда
+   * @param timeframe - Таймфрейм для исторических данных (по умолчанию '1h')
+   * @param signal - AbortSignal для отмены запроса
+   * @returns Promise с данными спреда включая историю и текущие значения
+   */
   getSpreadData(
     token: Token,
     timeframe?: TimeframeOption,
     signal?: AbortSignal
   ): Promise<SpreadResponse>;
+
+  /**
+   * Получить спреды для нескольких токенов одновременно
+   * @param tokens - Массив токенов для получения спредов
+   * @param signal - AbortSignal для отмены запроса
+   * @param maxTokens - Максимальное количество токенов для обработки (опционально)
+   * @returns Promise с массивом токенов, дополненных данными о спредах и ценах
+   */
   getSpreadsForTokens(
     tokens: Token[],
     signal?: AbortSignal,
@@ -65,7 +90,13 @@ export interface IApiAdapter {
     >
   >;
 
-  // MEXC Limits
+  /**
+   * Получить лимиты торговли MEXC для токена
+   * @param symbol - Символ токена
+   * @param signal - AbortSignal для отмены запроса
+   * @returns Promise с лимитами торговли или null если не доступны
+   * @note В текущей версии бэкенд не предоставляет эту информацию, всегда возвращает null
+   */
   getMexcTradingLimits(
     symbol: string,
     signal?: AbortSignal
@@ -82,7 +113,25 @@ let cachedAllTokensTimestamp: number = 0;
 /**
  * Публичная функция для получения данных straight spread с дедупликацией и кэшированием
  *
- * Примечание: Когда бэкенд реализует /socket/sharkReverse, будет создана аналогичная функция
+ * Использует WebSocket соединение для получения данных в реальном времени.
+ * Автоматически переключается на HTTP fallback если WebSocket недоступен.
+ *
+ * @param params - Параметры для фильтрации данных (token, network, signal)
+ * @returns Promise с массивом данных о спредах
+ *
+ * @example
+ * ```ts
+ * // Получить все токены
+ * const allTokens = await fetchStraightSpreads({});
+ *
+ * // Получить конкретный токен
+ * const btcTokens = await fetchStraightSpreads({ token: 'BTC' });
+ *
+ * // Получить токены конкретной сети
+ * const solanaTokens = await fetchStraightSpreads({ network: 'solana' });
+ * ```
+ *
+ * @note Когда бэкенд реализует /socket/sharkReverse, будет создана аналогичная функция
  * fetchReverseSpreads с той же логикой (дедупликация, кэширование, WebSocket/HTTP fallback)
  */
 async function fetchStraightSpreads(
@@ -122,13 +171,21 @@ async function fetchStraightSpreads(
 
 /**
  * Backend‑реализация адаптера.
+ * Использует WebSocket соединение для получения данных от бэкенда.
  */
 class BackendApiAdapter implements IApiAdapter {
+  /**
+   * @inheritdoc
+   */
   async getAllTokens(signal?: AbortSignal): Promise<StraightData[]> {
     logger.info('[API] getAllTokens called');
     try {
-      // Используем fetchStraightSpreads который уже имеет кэширование и дедупликацию
-      const rows = await fetchStraightSpreads({ signal });
+      // Используем fetchStraightSpreads с обработкой rate limiting
+      const rows = await withRateLimitRetry(
+        () => fetchStraightSpreads({ signal }),
+        3, // max retries
+        1000 // base delay
+      );
 
       logger.debug(`[API] fetchStraightSpreads returned ${rows.length} rows`);
 
@@ -155,18 +212,32 @@ class BackendApiAdapter implements IApiAdapter {
       return rows;
     } catch (error) {
       logger.error('[API] Error in getAllTokens:', error);
+
+      // Если это rate limit ошибка, пробрасываем её для специальной обработки
+      if (isRateLimitError(error)) {
+        throw error;
+      }
+
       // Возвращаем пустой массив вместо выбрасывания ошибки
       // Это позволяет React Query не делать retry при ошибках подключения
       return [];
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   async getAllPrices(token: Token, signal?: AbortSignal): Promise<AllPrices> {
-    const rows = await fetchStraightSpreads({
-      token: token.symbol,
-      network: chainToNetwork(token.chain),
-      signal,
-    });
+    const rows = await withRateLimitRetry(
+      () =>
+        fetchStraightSpreads({
+          token: token.symbol,
+          network: chainToNetwork(token.chain),
+          signal,
+        }),
+      3,
+      1000
+    );
 
     const relevant = filterByToken(rows, token);
 
@@ -261,6 +332,11 @@ class BackendApiAdapter implements IApiAdapter {
     };
   }
 
+  /**
+   * @inheritdoc
+   * @note Параметр timeframe в текущей версии не поддерживается бэкендом
+   * и оставлен для совместимости с интерфейсом
+   */
   async getSpreadData(
     token: Token,
     timeframe: TimeframeOption = '1h',
@@ -272,11 +348,16 @@ class BackendApiAdapter implements IApiAdapter {
     // В будущем, если бэкенд добавит поддержку timeframe, его можно будет использовать
     void timeframe; // Помечаем как использованный для избежания ESLint предупреждения
 
-    const rows = await fetchStraightSpreads({
-      token: token.symbol,
-      network: chainToNetwork(token.chain),
-      signal,
-    });
+    const rows = await withRateLimitRetry(
+      () =>
+        fetchStraightSpreads({
+          token: token.symbol,
+          network: chainToNetwork(token.chain),
+          signal,
+        }),
+      3,
+      1000
+    );
 
     const relevant = filterByToken(rows, token);
     // Проверяем, что массив не пустой перед доступом к элементу
@@ -344,6 +425,9 @@ class BackendApiAdapter implements IApiAdapter {
     };
   }
 
+  /**
+   * @inheritdoc
+   */
   async getSpreadsForTokens(
     tokens: Token[],
     signal?: AbortSignal,
@@ -361,7 +445,11 @@ class BackendApiAdapter implements IApiAdapter {
 
     // Оптимизация: если запрашиваются все токены, используем кэш
     // Это позволяет избежать дублирования запросов когда getAllTokens и getSpreadsForTokens вызываются одновременно
-    const rows = await fetchStraightSpreads({ signal });
+    const rows = await withRateLimitRetry(
+      () => fetchStraightSpreads({ signal }),
+      3,
+      1000
+    );
 
     const byKey = new Map<
       string,
@@ -401,13 +489,15 @@ class BackendApiAdapter implements IApiAdapter {
     }));
   }
 
+  /**
+   * @inheritdoc
+   * @note В текущей версии бэкенд не предоставляет информацию о лимитах торговли MEXC.
+   * Метод всегда возвращает null и оставлен для совместимости с интерфейсом.
+   */
   async getMexcTradingLimits(
     _symbol: string,
     _signal?: AbortSignal
   ): Promise<MexcTradingLimits | null> {
-    // Примечание: Бэкенд API не предоставляет информацию о лимитах торговли MEXC
-    // Метод оставлен для совместимости с интерфейсом, но всегда возвращает null
-    // В будущем, если бэкенд добавит endpoint для получения лимитов MEXC, его можно будет использовать
     void _symbol; // Помечаем как использованный для избежания ESLint предупреждения
     void _signal; // Помечаем как использованный для избежания ESLint предупреждения
     return null;
@@ -432,16 +522,49 @@ if (USE_MOCK_DATA) {
 }
 
 /**
- * Экспортируем функции для удобства использования
+ * Получить все доступные токены
+ * @param signal - AbortSignal для отмены запроса
+ * @returns Promise с массивом токенов и их данными о спредах
+ * @example
+ * ```ts
+ * const tokens = await getAllTokens();
+ * console.log(`Loaded ${tokens.length} tokens`);
+ * ```
  */
 export const getAllTokens = async (signal?: AbortSignal) => {
   return apiAdapter.getAllTokens(signal);
 };
 
+/**
+ * Получить все цены для указанного токена из разных источников
+ * @param token - Токен для получения цен (symbol и chain)
+ * @param signal - AbortSignal для отмены запроса
+ * @returns Promise с ценами из всех источников (Jupiter, PancakeSwap, MEXC)
+ * @example
+ * ```ts
+ * const prices = await getAllPrices({ symbol: 'BTC', chain: 'solana' });
+ * console.log('Jupiter price:', prices.jupiter?.price);
+ * ```
+ */
 export const getAllPrices = async (token: Token, signal?: AbortSignal) => {
   return apiAdapter.getAllPrices(token, signal);
 };
 
+/**
+ * Получить данные спреда для токена с историей
+ * @param token - Токен для получения данных спреда
+ * @param timeframe - Таймфрейм для исторических данных (по умолчанию '1h')
+ * @param signal - AbortSignal для отмены запроса
+ * @returns Promise с данными спреда включая историю и текущие значения
+ * @example
+ * ```ts
+ * const spreadData = await getSpreadData(
+ *   { symbol: 'BTC', chain: 'solana' },
+ *   '1h'
+ * );
+ * console.log('Current spread:', spreadData.current);
+ * ```
+ */
 export const getSpreadData = async (
   token: Token,
   timeframe: TimeframeOption = '1h',
@@ -450,6 +573,20 @@ export const getSpreadData = async (
   return apiAdapter.getSpreadData(token, timeframe, signal);
 };
 
+/**
+ * Получить спреды для нескольких токенов одновременно
+ * @param tokens - Массив токенов для получения спредов
+ * @param signal - AbortSignal для отмены запроса
+ * @param maxTokens - Максимальное количество токенов для обработки (опционально)
+ * @returns Promise с массивом токенов, дополненных данными о спредах и ценах
+ * @example
+ * ```ts
+ * const tokensWithSpreads = await getSpreadsForTokens([
+ *   { symbol: 'BTC', chain: 'solana' },
+ *   { symbol: 'ETH', chain: 'solana' }
+ * ]);
+ * ```
+ */
 export const getSpreadsForTokens = async (
   tokens: Token[],
   signal?: AbortSignal,
@@ -458,6 +595,20 @@ export const getSpreadsForTokens = async (
   return apiAdapter.getSpreadsForTokens(tokens, signal, maxTokens);
 };
 
+/**
+ * Получить лимиты торговли MEXC для токена
+ * @param symbol - Символ токена
+ * @param signal - AbortSignal для отмены запроса
+ * @returns Promise с лимитами торговли или null если не доступны
+ * @note В текущей версии бэкенд не предоставляет эту информацию, всегда возвращает null
+ * @example
+ * ```ts
+ * const limits = await getMexcTradingLimits('BTC');
+ * if (limits) {
+ *   console.log('Min notional:', limits.minNotional);
+ * }
+ * ```
+ */
 export const getMexcTradingLimits = async (
   symbol: string,
   signal?: AbortSignal
